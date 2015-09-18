@@ -424,6 +424,7 @@ if ( $messages->{'ResFound'}) {
 
         my $diffBranchSend = !$branchCheck ? $reserve->{branchcode} : undef;
         ModReserveAffect( $reserve->{itemnumber}, $reserve->{borrowernumber}, $diffBranchSend, $reserve->{reserve_id} );
+        ModReserveStatus($reserve->{itemnumber}, 'W');
         my ( $messages, $nextreservinfo ) = GetOtherReserves($reserve->{itemnumber});
 
         my $patron = Koha::Patrons->find( $nextreservinfo );
