@@ -629,18 +629,13 @@ Circulation:
               choices:
                   ItemHomeLibrary: "item's home library"
                   PatronLibrary: "patron's home library"
-            - to see if the patron can place a hold on the item.    
-        -
-            - Mark a hold as problematic if it has been waiting for more than
-            - pref: ReservesMaxPickUpDelay
-              class: integer
-            - days.
+            - to see if the patron can place a hold on the item.
         -
             - pref: ExpireReservesMaxPickUpDelay
               choices:
                   yes: Allow
                   no: "Don't allow"
-            - "holds to expire automatically if they have not been picked by within the time period specified in ReservesMaxPickUpDelay.<br><strong>NOTE:</strong> This system preference requires the <code>misc/cronjobs/holds/cancel_expired_holds.pl</code> cronjob. Ask your system administrator to schedule it."
+            - "holds to expire automatically if they have not been picked by within the time period specified in hold pickup delay defined in the issuing rules"
         -
             - If using ExpireReservesMaxPickUpDelay, charge a borrower who allows their waiting hold to expire a fee of
             - pref: ExpireReservesMaxPickUpDelayCharge
