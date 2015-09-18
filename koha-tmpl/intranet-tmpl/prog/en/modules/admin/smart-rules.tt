@@ -97,6 +97,7 @@
                 <th>Suspension charging interval</th>
                 <th>Renewals allowed (count)</th>
                 <th>Renewal period</th>
+                <th>Holds wait for pickup (day)</th>
                 <th>No renewal before</th>
                 <th>Automatic renewal</th>
                 <th>No automatic renewal after</th>
@@ -201,6 +202,7 @@
                             <td>[% rule.suspension_chargeperiod | html %]</td>
 							<td>[% rule.renewalsallowed | html %]</td>
                             <td>[% rule.renewalperiod | html %]</td>
+                            <td>[% rule.holdspickupwait | html %]</td>
                             <td>[% rule.norenewalbefore | html %]</td>
                             <td>
                                 [% IF ( rule.auto_renew ) %]
@@ -313,6 +315,7 @@
                     <td><input type="text" name="suspension_chargeperiod" id="suspension_chargeperiod" size="3" /> </td>
                     <td><input type="text" name="renewalsallowed" id="renewalsallowed" size="2" /></td>
                     <td><input type="text" name="renewalperiod" id="renewalperiod" size="3" /></td>
+                    <td><input type="text" name="holdspickupwait" id="holdspickupwait" size="2" /></td>
                     <td><input type="text" name="norenewalbefore" id="norenewalbefore" size="3" /></td>
                     <td>
                         <select name="auto_renew" id="auto_renew">
@@ -379,6 +382,7 @@
                       <th>Suspension charging interval</th>
                       <th>Renewals allowed (count)</th>
                       <th>Renewal period</th>
+                      <th>Holds wait for pickup (day)</th>
                       <th>No renewal before</th>
                       <th>Automatic renewal</th>
                       <th>No automatic renewal after</th>

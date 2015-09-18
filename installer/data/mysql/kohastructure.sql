@@ -831,6 +831,7 @@ CREATE TABLE `issuingrules` ( -- circulation and fine rules
   `reservesallowed` smallint(6) NOT NULL default "0", -- how many holds are allowed
   `holds_per_record` SMALLINT(6) NOT NULL DEFAULT 1, -- How many holds a patron can have on a given bib
   `holds_per_day` SMALLINT(6) DEFAULT NULL, -- How many holds a patron can have on a day
+  `holdspickupwait` int(11)  default NULL, -- How many open library days a hold can wait in the pickup shelf until it becomes problematic
   `branchcode` varchar(10) NOT NULL default '', -- the branch this rule is for (branches.branchcode)
   overduefinescap decimal(28,6) default NULL, -- the maximum amount of an overdue fine
   cap_fine_to_replacement_price BOOLEAN NOT NULL DEFAULT  '0', -- cap the fine based on item's replacement price
@@ -1815,6 +1816,7 @@ CREATE TABLE `reserves` ( -- information related to holds/reserves in Koha
   `suspend_until` DATETIME NULL DEFAULT NULL,
   `itemtype` VARCHAR(10) NULL DEFAULT NULL, -- If record level hold, the optional itemtype of the item the patron is requesting
   `item_level_hold` BOOLEAN NOT NULL DEFAULT 0, -- Is the hpld placed at item level
+  `lastpickupdate` date NULL DEFAULT NULL, -- the last day this hold is available for pickup, until it becomes problematic
   PRIMARY KEY (`reserve_id`),
   KEY priorityfoundidx (priority,found),
   KEY `borrowernumber` (`borrowernumber`),
@@ -1855,6 +1857,7 @@ CREATE TABLE `old_reserves` ( -- this table holds all holds/reserves that have b
   `suspend_until` DATETIME NULL DEFAULT NULL, -- the date this hold is suspended until (NULL for infinitely)
   `itemtype` VARCHAR(10) NULL DEFAULT NULL, -- If record level hold, the optional itemtype of the item the patron is requesting
   `item_level_hold` BOOLEAN NOT NULL DEFAULT 0, -- Is the hpld placed at item level
+  `lastpickupdate` date NULL DEFAULT NULL, -- the last day this hold is available for pickup, until it becomes problematic
   PRIMARY KEY (`reserve_id`),
   KEY `old_reserves_borrowernumber` (`borrowernumber`),
   KEY `old_reserves_biblionumber` (`biblionumber`),

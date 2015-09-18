@@ -33,6 +33,7 @@ use Koha::Items;
 use Koha::Libraries;
 use Koha::Old::Holds;
 use Koha::Calendar;
+use Koha::IssuingRules;
 
 use Koha::Exceptions::Hold;
 
@@ -181,10 +182,37 @@ sub set_waiting {
     my $calendar = Koha::Calendar->new( branchcode => $self->branchcode );
 
     my $expirationdate = $today->clone;
-    $expirationdate->add(days => $max_pickup_delay);
+
+    my $patron = Koha::Patrons->find( {borrowernumber => $self->borrowernumber} );
+    my $item = Koha::Items->find( $self->itemnumber() );
+    my $hold = Koha::Holds->find( $self->reserve_id );
+#    my $lastpickupdate = C4::Reserves->GetLastPickupDate( $hold, $item, $patron);
+
+    # Get the controlbranch
+    my $controlbranch = C4::Reserves->GetReservesControlBranch( $item, $patron );
+    my $hbr = C4::Context->preference('HomeOrHoldingBranch') || "homebranch";
+    my $branchcode    = "*";
+    if ( $controlbranch eq "ItemHomeLibrary" ) {
+        $branchcode = $item->{$hbr};
+    } elsif ( $controlbranch eq "PatronLibrary" ) {
+        $branchcode = $patron->branchcode;
+    }
+
+     warn $branchcode;
+     warn $patron->categorycode;
+     warn $item->itype;
+     my $issuingrule = Koha::IssuingRules->get_effective_issuing_rule({
+             branchcode   => $branchcode,
+             categorycode => $patron->categorycode,
+             itemtype     => $item->itype,
+     });
+
+    if ( defined $issuingrule->holdspickupwait && $issuingrule->holdspickupwait > 0) {
+        $expirationdate->add(days => $issuingrule->holdspickupwait);
+    }
 
     if ( C4::Context->preference("ExcludeHolidaysFromMaxPickUpDelay") ) {
-        $expirationdate = $calendar->days_forward( dt_from_string(), $max_pickup_delay );
+        $expirationdate = $calendar->days_forward( dt_from_string(), $issuingrule->{holdspickupwait} );
     }
 
     # If patron's requested expiration date is prior to the

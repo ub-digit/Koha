@@ -19,7 +19,7 @@
     <tbody>
         [% FOREACH reserveloo IN reserveloop %]
             <tr>
-                <td><span title="[% reserveloo.waitingdate | html %]">[% reserveloo.waitingdate | $KohaDates %]</span></td>
+                <td><span title="[% reserveloo.waitingdate | html %]">[% reserveloo.waitingdate | $KohaDates %] - [% reserveloo.lastpickupdate | $KohaDates %]</span></td>
                 <td><span title="[% reserveloo.reservedate | html %]">[% reserveloo.reservedate | $KohaDates %]</span></td>
                 <td>[% INCLUDE 'biblio-default-view.inc' biblionumber = reserveloo.biblionumber %]
                         [% INCLUDE 'biblio-title.inc' biblio=reserveloo.biblio %]

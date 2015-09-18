@@ -2005,7 +2005,6 @@ sub AddReturn {
         }
         $validTransfert = 1;
     }
-
     # fix up the accounts.....
     if ( $item->itemlost ) {
         $messages->{'WasLost'} = 1;
@@ -2061,8 +2060,9 @@ sub AddReturn {
     my $lookahead= C4::Context->preference('ConfirmFutureHolds'); #number of days to look for future holds
     ($resfound, $resrec, undef) = C4::Reserves::CheckReserves( $item->itemnumber, undef, $lookahead ) unless ( $item->withdrawn );
     if ($resfound) {
-          $resrec->{'ResFound'} = $resfound;
+        $resrec->{'ResFound'} = $resfound;
         $messages->{'ResFound'} = $resrec;
+        C4::Reserves::ModReserveStatus($item->{'itemnumber'}, 'W');
     }
 
     # Record the fact that this book was returned.

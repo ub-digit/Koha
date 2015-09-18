@@ -18,6 +18,9 @@ $(document).ready(function() {
                         "data": { _: "reservedate_formatted", "sort": "reservedate" }
                     },
                     {
+                        "mDataProp": "lastpickupdate_formatted"
+                    },
+                    {
                         "mDataProp": function ( oObj ) {
                             title = "<a href='/cgi-bin/koha/reserve/request.pl?biblionumber="
                                   + oObj.biblionumber

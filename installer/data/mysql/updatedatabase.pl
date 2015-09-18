@@ -37,6 +37,8 @@ use Getopt::Long;
 # Koha modules
 use C4::Context;
 use C4::Installer;
+use C4::Reserves;
+use DateTime::Duration;
 use Koha::Database;
 use Koha;
 use Koha::DateUtils;
@@ -16478,6 +16480,8 @@ if( CheckVersion( $DBversion ) ) {
     print "Upgrade to $DBversion done (Bug 21403 - Add Indian Amazon Affiliate option to AmazonLocale setting)\n";
 }
 
+# SEE bug 13068
+# if there is anything in the atomicupdate, read and execute it.
 
 $DBversion = '18.06.00.036';
 if( CheckVersion( $DBversion ) ) {

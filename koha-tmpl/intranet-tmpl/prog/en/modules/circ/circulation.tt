@@ -876,6 +876,7 @@
                                         <thead>
                                             <tr>
                                                 <th>Hold date</th>
+                                                <th>Last pickup date</th>
                                                 <th>Title</th>
                                                 <th>Call number</th>
                                                 <th>Barcode</th>
@@ -946,16 +947,6 @@
                                 </aside>
                             </div> <!-- /.col-sm-2.col-sm-pull-10 -->
                         [% END %]
-                    [% END %]
-                [% END %]
-
-                [% UNLESS ( borrowers ) %]
-                    [% IF borrowernumber and patron %]
-                            <div class="col-sm-2 col-sm-pull-10">
-                                <aside>
-                            [% INCLUDE 'circ-menu.inc' %]
-                                </aside>
-                            </div> <!-- /.col-sm-2 col-sm-pull-10 -->
                     [% END %]
                 [% END %]
 

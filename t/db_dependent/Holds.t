@@ -399,9 +399,141 @@ is(CanItemBeReserved($borrowernumbers[0], $itemnumber)->{status},
     "CanItemBeReserved should use item home library rule when ReservesControlBranch set to 'ItemsHomeLibrary'");
 
 ($item_bibnum, $item_bibitemnum, $itemnumber) = AddItem(
+<<<<<<< HEAD
     { homebranch => $branch_1, holdingbranch => $branch_1, itype => 'CAN' } , $biblio->biblionumber);
 is(CanItemBeReserved($borrowernumbers[0], $itemnumber)->{status}, 'OK',
     "CanItemBeReserved should return 'OK'");
+=======
+    { homebranch => 'CPL', holdingbranch => 'CPL', itype => 'CAN' } , $bibnum);
+is(CanItemBeReserved($borrowernumbers[0], $itemnumber), 'OK',
+    "CanItemBeReserved should returns 'OK'");
+
+##Setting duration variables
+my $now = DateTime->now();
+my $minus4days = DateTime::Duration->new(days => -4);
+my $minus1days = DateTime::Duration->new(days => -1);
+my $plus1days = DateTime::Duration->new(days => 1);
+my $plus4days = DateTime::Duration->new(days => 4);
+##Setting some test prerequisites testing environment
+C4::Context->set_preference( 'ExpireReservesMaxPickUpDelay', 1 );
+setSimpleCircPolicy();
+setCalendars();
+#Running more tests
+testGetLastPickupDate();
+testMoveWaitingdate();
+testCancelExpiredReserves();
+C4::Context->set_preference( 'ExpireReservesMaxPickUpDelay', 0 );
+
+## Environment should be the following
+## Holidays: days from today; -2,-3,-4
+sub testCancelExpiredReserves {
+    $dbh->do('UPDATE issuingrules SET holdspickupwait = 1'); #Make holds problematize after 1 day
+
+    $reserves = $dbh->selectall_arrayref('SELECT * FROM reserves WHERE found IS NULL', { Slice => {} });
+    $reserve = $reserves->[0];
+    #Catch this hold and make it Waiting for pickup today.
+    C4::Reserves::ModReserveAffect( $reserve->{itemnumber}, $reserve->{borrowernumber} );
+    $reserve = C4::Reserves::GetReserve( $reserve->{reserve_id} ); #UPDATE DB changes to local scope.
+
+    CancelExpiredReserves();
+    my $count = $dbh->selectrow_array("SELECT COUNT(*) FROM reserves WHERE reserve_id = ?", undef, $reserve->{reserve_id} );
+    is( $count, 1, "Waiting reserve with lastpickupdate for ".$reserve->{lastpickupdate}." not canceled" );
+
+    C4::Reserves::MoveWaitingdate( $reserve, DateTime::Duration->new(days => -4) );
+    CancelExpiredReserves();
+    $count = $dbh->selectrow_array("SELECT COUNT(*) FROM reserves WHERE reserve_id = ?", undef, $reserve->{reserve_id} );
+    is( $count, 0, "Waiting reserve with lastpickupdate for ".$reserve->{lastpickupdate}." totally canceled" );
+
+    # Test expirationdate
+    $reserve = $reserves->[1];
+    $dbh->do("UPDATE reserves SET expirationdate = DATE_SUB( NOW(), INTERVAL 1 DAY ) WHERE reserve_id = ?", undef, $reserve->{reserve_id} );
+    CancelExpiredReserves();
+    $count = $dbh->selectrow_array("SELECT COUNT(*) FROM reserves WHERE reserve_id = ?", undef, $reserve->{reserve_id} );
+    is( $count, 0, "Reserve with manual expiration date canceled correctly" );
+
+    #This test verifies that reserves with holdspickupwait disabled are not Ä‡anceled!
+    $dbh->do('UPDATE issuingrules SET holdspickupwait = 0'); #Make holds never problematize
+    $reserve = $reserves->[2];
+    #Catch this hold and make it Waiting for pickup today.
+    C4::Reserves::ModReserveAffect( $reserve->{itemnumber}, $reserve->{borrowernumber} );
+    $reserve = C4::Reserves::GetReserve( $reserve->{reserve_id} ); #UPDATE DB changes to local scope.
+    #Move the caught reserve 4 days to past and try to cancel it.
+    C4::Reserves::MoveWaitingdate( $reserve, $minus4days );
+    CancelExpiredReserves();
+    $count = $dbh->selectrow_array("SELECT COUNT(*) FROM reserves WHERE reserve_id = ?", undef, $reserve->{reserve_id} );
+    is( $count, 1, "CancelExpiredReserves(): not canceling lastpickupdate-less hold." );
+}
+
+## Environment should be the following
+## Holidays: days from today; -2,-3,-4
+sub testMoveWaitingdate {
+    $dbh->do('UPDATE issuingrules SET holdspickupwait = 1'); #Make holds problematize after 1 day
+
+    $reserves = $dbh->selectall_arrayref('SELECT * FROM reserves WHERE found IS NULL', { Slice => {} }); #Get reserves not waiting for pickup
+    $reserve = $reserves->[0];
+
+    C4::Reserves::ModReserveAffect( $reserve->{itemnumber}, $reserve->{borrowernumber} ); #Catch the reserve and put it to wait for pickup, now we get a waitingdate generated.
+
+    C4::Reserves::MoveWaitingdate( $reserve, $minus1days );
+    $reserve = C4::Reserves::GetReserve( $reserve_id ); #UPDATE DB changes to local scope. Actually MoveWaitingdate already updates changes to DB, but just making sure it does.
+    is( ($reserve->{waitingdate} eq $now->clone()->add_duration($minus1days)->ymd() &&
+         $reserve->{lastpickupdate} eq $now->ymd()),
+         1, "MoveWaitingdate(): Moving to past");
+    C4::Reserves::MoveWaitingdate( $reserve, $plus1days );
+
+    C4::Reserves::MoveWaitingdate( $reserve, $plus4days );
+    $reserve = C4::Reserves::GetReserve( $reserve_id );
+    is( ($reserve->{waitingdate} eq $now->clone()->add_duration($plus4days)->ymd() &&
+         $reserve->{lastpickupdate} eq $now->clone()->add_duration($plus4days)->add_duration($plus1days)->ymd()),
+         1, "MoveWaitingdate(): Moving to future");
+    C4::Reserves::MoveWaitingdate( $reserve, $minus4days );
+}
+
+## Environment should be the following
+## Holidays: days from today; -2,-3,-4
+sub testGetLastPickupDate {
+    $dbh->do('UPDATE issuingrules SET holdspickupwait = 1'); #Make holds problematize after 1 day
+
+    my $now = DateTime->now();
+    my $minus4days = DateTime::Duration->new(days => -4);
+    my $minus1days = DateTime::Duration->new(days => -1);
+    my $plus1days = DateTime::Duration->new(days => 1);
+    my $plus4days = DateTime::Duration->new(days => 4);
+
+    $reserves = $dbh->selectall_arrayref('SELECT * FROM reserves', { Slice => {} }); #Get reserves not waiting for pickup
+    $reserve = $reserves->[0];
+
+    $reserve->{waitingdate} = $now->clone()->add_duration($minus4days)->ymd();
+    my $lastpickupdate = C4::Reserves::GetLastPickupDate( $reserve )->ymd();
+    $reserve = C4::Reserves::GetReserve( $reserve_id ); #UPDATE DB changes to local scope
+    is( $lastpickupdate, $now->clone()->add_duration($minus1days)->ymd(),
+         "GetLastPickupDate(): Calendar finds the next open day for lastpickupdate.");
+
+    $reserve->{waitingdate} = $now->clone()->add_duration($minus1days)->ymd();
+    $lastpickupdate = C4::Reserves::GetLastPickupDate( $reserve )->ymd();
+    is( $lastpickupdate, $now->ymd(),
+         "GetLastPickupDate(): Not using Calendar");
+
+    $reserve->{waitingdate} = $now->clone()->add_duration($plus4days)->ymd();
+    $lastpickupdate = C4::Reserves::GetLastPickupDate( $reserve )->ymd();
+    is( $lastpickupdate, $now->clone()->add_duration($plus4days)->add_duration($plus1days)->ymd(),
+         "GetLastPickupDate(): Moving to future");
+
+    #This test catches moving lastpickupdate for each holiday, instead of just moving the last date to an open library day
+    $dbh->do('UPDATE issuingrules SET holdspickupwait = 4'); #Make holds problematize after 4 days
+    $reserve->{waitingdate} = $now->clone()->add_duration($minus4days)->ymd();
+    $lastpickupdate = C4::Reserves::GetLastPickupDate( $reserve )->ymd();
+    is( $lastpickupdate, $now->ymd(),
+         "GetLastPickupDate(): Moving lastpickupdate over holidays, but not affected by them");
+
+    #This test verifies that this feature is disabled and an undef is returned
+    $dbh->do('UPDATE issuingrules SET holdspickupwait = 0'); #Make holds never problematize
+    $reserve->{waitingdate} = $now->clone()->add_duration($minus4days)->ymd();
+    $lastpickupdate = C4::Reserves::GetLastPickupDate( $reserve );
+    is( $reserve->{lastpickupdate}, undef,
+         "GetLastPickupDate(): holdspickupwait disabled");
+}
+>>>>>>> Bug 8367: How long is a hold waiting for pickup at a more granular level
 
 # Bug 12632
 t::lib::Mocks::mock_preference( 'item-level_itypes',     1 );
@@ -687,3 +819,90 @@ subtest 'CanItemBeReserved / holds_per_day tests' => sub {
 
     $schema->storage->txn_rollback;
 };
+
+# Helper method to set up a Biblio.
+sub create_helper_biblio {
+    my $itemtype = $_[0] ? $_[0] : 'BK';
+    my $bib = MARC::Record->new();
+    my $title = 'Silence in the library';
+    $bib->append_fields(
+        MARC::Field->new('100', ' ', ' ', a => 'Moffat, Steven'),
+        MARC::Field->new('245', ' ', ' ', a => $title),
+        MARC::Field->new('942', ' ', ' ', c => $itemtype),
+    );
+    return ($bibnum, $title, $bibitemnum) = AddBiblio($bib, '');
+}
+
+sub setSimpleCircPolicy {
+    $dbh->do('DELETE FROM issuingrules');
+    $dbh->do(
+        q{INSERT INTO issuingrules (categorycode, branchcode, itemtype, reservesallowed,
+                                    maxissueqty, issuelength, lengthunit,
+                                    renewalsallowed, renewalperiod,
+                                    norenewalbefore, auto_renew,
+                                    fine, chargeperiod, holdspickupwait)
+          VALUES (?, ?, ?, ?,
+                  ?, ?, ?,
+                  ?, ?,
+                  ?, ?,
+                  ?, ?, ?
+                 )
+        },
+        {},
+        '*', '*', '*', 25,
+        20, 14, 'days',
+        1, 7,
+        '', 0,
+        .10, 1,1
+    );
+}
+
+###Set C4::Calendar and Koha::Calendar holidays for
+# today -2 days
+# today -3 days
+# today -4 days
+#
+## Koha::Calendar for caching purposes (supposedly) doesn't work from the DB in this script
+## So we must set the cache for Koha::calnder as well as the DB modifications for C4::Calendar.
+## When making date comparisons with Koha::Calendar, using DateTime::Set, DateTime-objects
+## need to match by the nanosecond and time_zone.
+sub setCalendars {
+
+    ##Set the C4::Calendar
+    my $now = DateTime->now(time_zone => C4::Context->tz())->truncate(to => 'day');
+    my $c4calendar = C4::Calendar->new(branchcode => $reserve->{branchcode});
+    $now->add_duration( DateTime::Duration->new(days => -2) );
+    $c4calendar->insert_single_holiday(
+        day         => $now->day(),
+        month       => $now->month(),
+        year        => $now->year(),
+        title       => 'Test',
+        description => 'Test',
+    );
+    $now->add_duration( DateTime::Duration->new(days => -1) );
+    $c4calendar->insert_single_holiday(
+        day         => $now->day(),
+        month       => $now->month(),
+        year        => $now->year(),
+        title       => 'Test',
+        description => 'Test',
+    );
+    $now->add_duration( DateTime::Duration->new(days => -1) );
+    $c4calendar->insert_single_holiday(
+        day         => $now->day(),
+        month       => $now->month(),
+        year        => $now->year(),
+        title       => 'Test',
+        description => 'Test',
+    );
+
+    #Set the Koha::Calendar
+    my $kohaCalendar = Koha::Calendar->new(branchcode => $reserve->{branchcode});
+    $now = DateTime->now(time_zone => C4::Context->tz())->truncate(to => 'day');
+    $now->add_duration( DateTime::Duration->new(days => -2) );
+    $kohaCalendar->add_holiday( $now );
+    $now->add_duration( DateTime::Duration->new(days => -1) );
+    $kohaCalendar->add_holiday( $now );
+    $now->add_duration( DateTime::Duration->new(days => -1) );
+    $kohaCalendar->add_holiday( $now );
+}
