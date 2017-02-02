@@ -205,7 +205,14 @@ if ( $op eq 'form' ) {
                 my $record = GetMarcBiblio({ biblionumber => $biblionumber });
                 ModifyRecordWithTemplate( $mmtid, $record );
                 my $frameworkcode = C4::Biblio::GetFrameworkCode( $biblionumber );
-                ModBiblio( $record, $biblionumber, $frameworkcode );
+                my ($member) = Koha::Patrons->find($loggedinuser);
+                ModBiblio( $record, $biblionumber, $frameworkcode,
+                    {
+                        source => 'batchmod',
+                        categorycode => $member->categorycode,
+                        userid => $member->userid
+                    }
+                );
             };
             if ( $error and $error != 1 or $@ ) { # ModBiblio returns 1 if everything as gone well
                 push @messages, {
