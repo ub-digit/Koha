@@ -40,6 +40,7 @@
     [% IF Koha.Preference('SearchEngine') == 'Elasticsearch' %]
         <li><a href="/cgi-bin/koha/admin/searchengine/elasticsearch/mappings.pl">Search engine configuration</a></li>
     [% END %]
+    <li><a href="/cgi-bin/koha/admin/marc-permissions.pl">MARC field permissions</a></li>
 </ul>
 
 [% IF ( CAN_user_acquisition_period_manage || CAN_user_acquisition_budget_manage || CAN_user_parameters || CAN_user_acquisition_edi_manage ) %]
