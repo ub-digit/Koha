@@ -29,6 +29,7 @@ use MARC::File::USMARC;
 use MARC::File::XML;
 use POSIX qw(strftime);
 use Module::Load::Conditional qw(can_load);
+use String::Similarity;
 
 use C4::Koha;
 use C4::Log;    # logaction
@@ -102,6 +103,12 @@ BEGIN {
 
       &CountItemsIssued
       &CountBiblioInOrders
+
+      &GetMarcPermissionsRules
+      &GetMarcPermissionsModules
+      &ModMarcPermissionsRule
+      &AddMarcPermissionsRule
+      &DelMarcPermissionsRule
     );
 
     # To modify something
@@ -129,6 +136,7 @@ BEGIN {
     # they are useful in a few circumstances, so they are exported,
     # but don't use them unless you are a core developer ;-)
     push @EXPORT, qw(
+      &ApplyMarcPermissions
       &ModBiblioMarc
     );
 
@@ -266,7 +274,7 @@ sub AddBiblio {
 
 =head2 ModBiblio
 
-  ModBiblio( $record,$biblionumber,$frameworkcode);
+  ModBiblio($record, $biblionumber, $frameworkcode, $options);
 
 Replace an existing bib record identified by C<$biblionumber>
 with one supplied by the MARC::Record object C<$record>.  The embedded
@@ -291,6 +299,8 @@ sub ModBiblio {
     my %mod_biblio_marc_options;
     $mod_biblio_marc_options{'defer_search_engine_indexing'} =
         defined $options && exists $options->{'defer_search_engine_indexing'} && $options->{'defer_search_engine_indexing'};
+    $options //= {};
+    $mod_biblio_marc_options{'context'} = $options->{'context'} if (exists $options->{'context'});
 
     if (!$record) {
         carp 'No record passed to ModBiblio';
@@ -329,7 +339,7 @@ sub ModBiblio {
     _koha_marc_update_bib_ids( $record, $frameworkcode, $biblionumber, $biblioitemnumber );
 
     # load the koha-table data object
-    my $oldbiblio = TransformMarcToKoha( $record, $frameworkcode );
+    my $oldbiblio = TransformMarcToKoha( $record, $frameworkcode, undef, $biblionumber, { 'context' => $options->{'context'} } );
 
     # update MARC subfield that stores biblioitems.cn_sort
     _koha_marc_update_biblioitem_cn_sort( $record, $oldbiblio, $frameworkcode );
@@ -2610,7 +2620,7 @@ sub TransformHtmlToMarc {
 
 =head2 TransformMarcToKoha
 
-    $result = TransformMarcToKoha( $record, undef, $limit )
+    $result = TransformMarcToKoha($record, undef, $biblionumber, $option)
 
 Extract data from a MARC bib record into a hashref representing
 Koha biblio, biblioitems, and items fields.
@@ -2621,7 +2631,7 @@ hash_ref.
 =cut
 
 sub TransformMarcToKoha {
-    my ( $record, $frameworkcode, $limit_table ) = @_;
+    my ( $record, $frameworkcode, $limit_table, $biblionumber, $options ) = @_;
     # FIXME  Parameter $frameworkcode is obsolete and will be removed
     $limit_table //= q{};
 
@@ -2634,6 +2644,17 @@ sub TransformMarcToKoha {
     my %tables = ( biblio => 1, biblioitems => 1, items => 1 );
     if( $limit_table eq 'items' ) {
         %tables = ( items => 1 );
+    }
+
+    # apply permissions
+    if ( C4::Context->preference('MARCPermissions') && $biblionumber && defined $options && exists $options->{'context'} ) {
+        $record = ApplyMarcPermissions({
+                biblionumber => $biblionumber,
+                record => $record,
+                frameworkcode => $frameworkcode,
+                filter => $options->{'context'},
+                nolog => 1
+            });
     }
 
     # The next call acknowledges Default as the authoritative framework
@@ -3348,7 +3369,7 @@ sub _koha_delete_biblio_metadata {
 
 =head2 ModBiblioMarc
 
-  &ModBiblioMarc($newrec,$biblionumber,$frameworkcode,$options);
+  &ModBiblioMarc($newrec, $biblionumber, $frameworkcode, $options);
 
 Add MARC XML data for a biblio to koha
 
@@ -3375,6 +3396,23 @@ sub ModBiblioMarc {
     if ( !$frameworkcode ) {
         $frameworkcode = "";
     }
+
+    # apply permissions
+    if (
+        C4::Context->preference('MARCPermissions') &&
+        defined $options &&
+        exists $options->{'context'}
+    ) {
+        $record = ApplyMarcPermissions(
+            {
+                biblionumber => $biblionumber,
+                record => $record,
+                frameworkcode => $frameworkcode,
+                filter => $options->{'context'}
+            }
+        );
+    }
+
     my $sth = $dbh->prepare("UPDATE biblio SET frameworkcode=? WHERE biblionumber=?");
     $sth->execute( $frameworkcode, $biblionumber );
     $sth->finish;
@@ -3430,7 +3468,7 @@ sub ModBiblioMarc {
 
     $count = &CountBiblioInOrders( $biblionumber);
 
-This function return count of biblios in orders with $biblionumber 
+This function return count of biblios in orders with $biblionumber
 
 =cut
 
@@ -3438,7 +3476,7 @@ sub CountBiblioInOrders {
  my ($biblionumber) = @_;
     my $dbh            = C4::Context->dbh;
     my $query          = "SELECT count(*)
-          FROM  aqorders 
+          FROM  aqorders
           WHERE biblionumber=? AND (datecancellationprinted IS NULL OR datecancellationprinted='0000-00-00')";
     my $sth = $dbh->prepare($query);
     $sth->execute($biblionumber);
@@ -3676,6 +3714,925 @@ sub RemoveAllNsb {
     return $record;
 }
 
+=head2 ApplyMarcPermissions
+
+    my $record = ApplyMarcPermissions($arguments)
+
+Applies marc permission rules to a record.
+
+C<$arguments> is expected to be a hashref with below keys defined.
+
+=over 4
+
+=item C<biblionumber>
+biblionumber of old record
+
+=item C<record>
+record that will modify old record
+
+=item C<frameworkcode>
+only tags included in framework will be processed
+
+=item C<filter>
+hashref containing at least one filter module from the marc_permissions_modules
+table in form {module => filter}. Three predefined filter modules exists:
+
+    * source
+    * category
+    * borrower
+
+=item C<log>
+optional reference to array that will be filled with rule evaluation log
+entries.
+
+=item C<nolog>
+optional boolean which when true disables logging to action log.
+
+=back
+
+Returns:
+
+=over 4
+
+=item C<$record>
+
+new MARC record based on C<record> with C<filter> applied. If no old
+record for C<biblionumber> can be found, C<record> is returned unchanged.
+Default action when no matching filter found is to leave old record unchanged.
+
+=back
+
+=cut
+
+sub ApplyMarcPermissions {
+    my $arguments     = shift;
+    my $biblionumber  = $arguments->{biblionumber};
+    my $new_record    = $arguments->{record};
+    my $frameworkcode = $arguments->{frameworkcode} || '';
+
+    if ( !$biblionumber ) {
+        carp 'ApplyMarcPermissions called on undefined biblionumber';
+        return;
+    }
+    if ( !$new_record ) {
+        carp 'ApplyMarcPermissions called on undefined record';
+        return;
+    }
+    my $filter = $arguments->{filter}
+      or return $new_record;
+
+    my $log   = $arguments->{log} || [];
+    my $nolog = $arguments->{nolog};
+
+    my $dbh = C4::Context->dbh;
+
+    my $is_regex = sub {
+        my ( $tag, $m ) = @_;
+        # tag is not exactly same as possible regex
+        $tag ne $m &&
+
+        # wildcard
+        $m ne '*' &&
+
+        # valid tagDataType
+        $m !~ /^(0[1-9A-z][\dA-Z]) |
+        ([1-9A-z][\dA-z]{2})$/x &&
+
+        # nor valid controltagDataType
+        $m !~ /00[1-9A-Za-z]{1}/ &&
+
+        # so we try it as a regex
+        $tag =~ /^$m$/
+    };
+
+    my $old_record = GetMarcBiblio({ biblionumber => $biblionumber });
+    if ( $old_record ) {
+        my $ret_record      = MARC::Record->new();
+        my $perm            = GetMarcPermissions() or return $new_record;
+        my $marc_struct     = GetMarcStructure(1, $frameworkcode);
+        my $similarity_pref = C4::Context->preference("MARCPermissionsCorrectionSimilarity");
+        $similarity_pref    = defined $similarity_pref &&
+                              $similarity_pref >= 0 &&
+                              $similarity_pref <= 100 ?
+                              $similarity_pref/100.0 : undef;
+
+        # First came the leader ...
+        $ret_record->leader($old_record->leader());
+
+        # ... and then came all the tags in the framework
+        for my $tag (sort keys %{$marc_struct}) {
+            my @old_fields = $old_record->field($tag);
+            my @new_fields = $new_record->field($tag);
+            next unless @old_fields or @new_fields;
+            my @perms = (
+                $perm->{'*'},
+                (   # regex tags
+                    map { $perm->{$_} }
+                      grep { $is_regex->( $tag, $_ ) } sort keys %{$perm}
+                ),
+                $perm->{$tag}
+            );
+
+            # There can be more than one field for each tag, so we have to
+            # iterate all fields and distinguish which are new, removed or
+            # modified
+            my $max_fields = ($#old_fields, $#new_fields)
+                             [$#old_fields< $#new_fields];
+            for ( my $i_field = 0; $i_field <= $max_fields; $i_field++ ) {
+                my $old_field = $old_fields[$i_field];
+                my $new_field = $new_fields[$i_field];
+
+                # Existing field
+                if ( $old_field and $new_field ) {
+                    # Control fields
+                    if ( $old_field->is_control_field() ) {
+                        # Existing control field
+                        if ( $old_field and $new_field ) {
+                            my $on_existing = GetMarcPermissionsAction('on_existing', $filter, @perms);
+                            if ( defined $on_existing->{action} ) {
+                                push @{$log},
+                                  {
+                                    rule         => $on_existing->{rule},
+                                    event        => "existing",
+                                    action       => $on_existing->{action},
+                                    tag          => $tag,
+                                    subfieldcode => undef,
+                                    filter       => $filter
+                                  };
+                                if ( $on_existing->{action} eq 'skip' ) {
+                                    $ret_record->insert_fields_ordered($old_field);
+                                    next;
+                                } elsif ( $on_existing->{action} eq 'overwrite' ) {
+                                    $ret_record->insert_fields_ordered($new_field);
+                                    next;
+                                } elsif ( $on_existing->{action} eq 'add' ) {
+                                    $ret_record->insert_fields_ordered($old_field);
+                                    $ret_record->insert_fields_ordered($new_field);
+                                    next;
+                                } elsif ( $on_existing->{action} eq 'add_or_correct' ) {
+                                    if ( $similarity_pref ) {
+                                        my $similarity = similarity $old_field->data(), $new_field->data();
+                                        if ( $similarity >= $similarity_pref ) {
+                                            $ret_record->insert_fields_ordered($new_field);
+                                        } else {
+                                            $ret_record->insert_fields_ordered($old_field);
+                                            $ret_record->insert_fields_ordered($new_field);
+                                        }
+                                    } else {
+                                        $ret_record->insert_fields_ordered($old_field);
+                                    }
+                                }
+                            } else { # default to skip
+                                $ret_record->insert_fields_ordered($old_field);
+                                next;
+                            }
+                        # New control field
+                        } elsif ( not $old_field and $new_field ) {
+                            my $on_new = GetMarcPermissionsAction('on_new', $filter, @perms);
+                            if ( defined $on_new->{action} ) {
+                                push @{$log},
+                                  {
+                                    rule         => $on_new->{rule},
+                                    event        => "new",
+                                    action       => $on_new->{action},
+                                    tag          => $tag,
+                                    subfieldcode => undef,
+                                    filter       => $filter
+                                  };
+                                if ( $on_new->{action} eq 'skip' ) { # Redundant
+                                    next;
+                                } elsif ( $on_new->{action} eq 'add' ) {
+                                    $ret_record->insert_fields_ordered($new_field);
+                                    next;
+                                }
+                            }
+                        # Removed control field
+                        } elsif ( $old_field and not $new_field ) {
+                            my $on_removed = GetMarcPermissionsAction('on_removed', $filter, @perms);
+                            if ( defined $on_removed->{action} ) {
+                                push @{$log},
+                                  {
+                                    rule         => $on_removed->{rule},
+                                    event        => "removed",
+                                    action       => $on_removed->{action},
+                                    tag          => $tag,
+                                    subfieldcode => undef
+                                  };
+                                if ( $on_removed->{action} eq 'skip' ) {
+                                    $ret_record->insert_fields_ordered($old_field);
+                                    next;
+                                } elsif ( $on_removed->{action} eq 'remove' ) {
+                                    next;
+                                }
+                            } else { # default to skip
+                                $ret_record->insert_fields_ordered($old_field);
+                                next;
+                            }
+                        }
+                    # Indicators and subfields
+                    } else {
+                        # Indicators
+                        my @old_ind = map { $old_field->indicator($_) } (1,2);
+                        my @new_ind = map { $new_field->indicator($_) } (1,2);
+                        my @ind = ('','');
+
+                        for my $i ((0,1)) {
+                            my @ind_perms = (
+                                @perms,
+                                $perm->{$tag}->{subfields}->{ 'i' . ( $i + 1 ) }
+                            );
+
+                            # Existing indicator
+                            if ( defined $old_ind[$i] and defined $new_ind[$i] ) {
+                                my $on_existing = GetMarcPermissionsAction('on_existing', $filter, @ind_perms);
+                                if ( defined $on_existing->{action} ) {
+                                    push @{$log},
+                                      {
+                                        rule         => $on_existing->{rule},
+                                        event        => "existing",
+                                        action       => $on_existing->{action},
+                                        tag          => $tag,
+                                        subfieldcode => 'i' . ( $i + 1 ),
+                                        filter       => $filter
+                                      };
+                                    if ( $on_existing->{action} eq 'skip' ) {
+                                        $ind[$i] = $old_ind[$i];
+                                    } elsif ( $on_existing->{action} eq 'overwrite' ) {
+                                        $ind[$i] = $new_ind[$i];
+                                    }
+                                } else { # default to skip
+                                    $ind[$i] = $old_ind[$i];
+                                }
+                            # New indicator
+                            } elsif ( not defined $old_ind[$i] and defined $new_ind[$i] ) {
+                                my $on_new = GetMarcPermissionsAction('on_new', $filter, @ind_perms);
+                                if ( defined $on_new->{action} ) {
+                                    push @{$log},
+                                      {
+                                        rule         => $on_new->{rule},
+                                        event        => "new",
+                                        action       => $on_new->{action},
+                                        tag          => $tag,
+                                        subfieldcode => 'i' . ( $i + 1 ),
+                                        filter       => $filter
+                                      };
+                                    if ( $on_new->{action} eq 'skip' ) {
+                                        $ind[$i] = $old_ind[$i];
+                                    } elsif ( $on_new->{action} eq 'add' ) {
+                                        $ind[$i] = $new_ind[$i];
+                                    }
+                                }
+                            # Removed indicator
+                            } elsif ( defined $old_ind[$i] and not defined $new_ind[$i] ) {
+                                my $on_removed = GetMarcPermissionsAction('on_removed', $filter, @ind_perms);
+                                if ( defined $on_removed->{action} ) {
+                                    push @{$log},
+                                      {
+                                        rule         => $on_removed->{rule},
+                                        event        => "removed",
+                                        action       => $on_removed->{action},
+                                        tag          => $tag,
+                                        subfieldcode => 'i' . ( $i + 1 ),
+                                        filter       => $filter
+                                      };
+                                    if ( $on_removed->{action} eq 'skip' ) {
+                                        $ind[$i] = $old_ind[$i];
+                                    } elsif ( $on_removed->{action} eq 'remove' ) {
+                                        $ind[$i] = '';
+                                    }
+                                } else { # default to skip
+                                    $ind[$i] = $old_ind[$i];
+                                }
+                            }
+                        }
+
+                        # Subfields
+                        my @subfields = ();
+                        my %proccessed_subcodes = ();
+
+                        # Try to preserve subfield order by first processing
+                        # subfields from the old record, and then subfields from
+                        # the framework structure unless include in old record.
+                        my @sorted_subfields = (
+                            map { shift @{$_} } $old_field->subfields(),
+                            () = sort keys %{ $marc_struct->{$tag} }
+                        );
+                        for my $subcode ( @sorted_subfields ) {
+                            next if $proccessed_subcodes{$subcode};
+                            $proccessed_subcodes{$subcode} = 1;
+                            next unless ref $marc_struct->{$tag}{$subcode} eq 'HASH';
+                            my @old_subfields = $old_field->subfield($subcode);
+                            my @new_subfields = $new_field->subfield($subcode);
+                            next unless @old_subfields or @new_subfields;
+
+                            my @subfield_perms = (
+                                @perms,
+                                $perm->{'*'}->{subfields}->{'*'},
+                                $perm->{$tag}->{subfields}->{'*'},
+                                (    # tag->regex
+                                    map { $perm->{$tag}->{subfields}->{$_} }
+                                      grep {
+                                        # subcode is not exactly same as
+                                        # possible regex
+                                        $subcode ne $_ &&
+
+                                        # wildcard, not checking for valid
+                                        # subfieldcodeDataType since it
+                                        # contains too many regex characters
+                                        $_ !~ /^(\*)$/ &&
+
+                                        # so we try it as a regex
+                                        $subcode =~ /$_/
+                                      } sort
+                                      keys %{ $perm->{$tag}->{subfields} }
+                                ),
+                                (    # regex->*
+                                    map { $perm->{$_}->{subfields}->{'*'} }
+                                      grep { $is_regex->( $tag, $_ ) }
+                                      sort keys %{$perm}
+                                ),
+                                $perm->{'*'}->{subfields}->{$subcode},
+                                (    # regex->subcode
+                                    map { $perm->{$_}->{subfields}->{$subcode} }
+                                      grep { $is_regex->( $tag, $_ ) }
+                                      sort keys %{$perm}
+                                ),
+                                $perm->{$tag}->{subfields}->{$subcode}
+                            );
+
+                            # Existing subfield
+                            if ( @old_subfields and @new_subfields ) {
+                                my $on_existing = GetMarcPermissionsAction('on_existing', $filter, @subfield_perms);
+                                if ( defined $on_existing->{action} ) {
+                                    push @{$log},
+                                      {
+                                        rule         => $on_existing->{rule},
+                                        event        => "existing",
+                                        action       => $on_existing->{action},
+                                        tag          => $tag,
+                                        subfieldcode => $subcode,
+                                        filter       => $filter
+                                      };
+                                    if ( $on_existing->{action} eq 'skip' ) {
+                                        push(@subfields, map {($subcode,$_)} @old_subfields);
+                                        next;
+                                    } elsif ( $on_existing->{action} eq 'overwrite' ) {
+                                        push(@subfields, map {($subcode,$_)} @new_subfields);
+                                        next;
+                                    } elsif ( $on_existing->{action} eq 'add' ) {
+                                        push(@subfields, map {($subcode,$_)} @old_subfields);
+                                        push(@subfields, map {($subcode,$_)} @new_subfields);
+                                        next;
+                                    } elsif ( $on_existing->{action} eq 'add_or_correct' ) {
+                                        if ( $similarity_pref ) {
+                                            my @corrected_vals = ();
+
+                                            # correct all old subfields
+                                            for ( my $i_new = 0; $i_new <= $#new_subfields; $i_new++ ) {
+                                                my $new_val = $new_subfields[$i_new];
+                                                for ( my $i_old = 0; $i_old <= $#old_subfields; $i_old++ ) {
+                                                    my $old_val = $old_subfields[$i_old];
+                                                    next if not defined $old_val or not defined $new_val;
+                                                    my $similarity = similarity ($old_val, $new_val);
+                                                    if ( $similarity >= $similarity_pref ) {
+                                                        $corrected_vals[$i_old] = $new_val;
+                                                        $new_subfields[$i_new] = undef;
+                                                        $old_subfields[$i_old] = undef;
+                                                        last;
+                                                    }
+                                                }
+                                            }
+
+                                            # insert all unchanged old subfields
+                                            map {
+                                                $corrected_vals[$_] = $old_subfields[$_]
+                                                    if defined $old_subfields[$_]
+                                                } 0 .. $#old_subfields;
+
+
+                                            # append all remaning new subfields
+                                            map {push @corrected_vals, $_ if defined} @new_subfields;
+
+                                            push(@subfields, map {($subcode,$_)} @corrected_vals);
+                                        } else {
+                                            push(@subfields, map {($subcode,$_)} @old_subfields);
+                                        }
+                                    }
+                                } else { # default to skip
+                                    push(@subfields, map {($subcode,$_)} @old_subfields);
+                                    next;
+                                }
+                            # New subfield
+                            } elsif ( not @old_subfields and @new_subfields ) {
+                                my $on_new = GetMarcPermissionsAction('on_new', $filter, @subfield_perms);
+                                if ( defined $on_new->{action} ) {
+                                    push @{$log},
+                                      {
+                                        rule         => $on_new->{rule},
+                                        event        => "new",
+                                        action       => $on_new->{action},
+                                        tag          => $tag,
+                                        subfieldcode => $subcode,
+                                        filter       => $filter
+                                      };
+                                    if ( $on_new->{action} eq 'skip' ) {
+                                        next;
+                                    } elsif ( $on_new->{action} eq 'add' ) {
+                                        push(@subfields, map {($subcode,$_)} @new_subfields);
+                                        next;
+                                    }
+                                }
+                            # Removed subfield
+                            } elsif ( @old_subfields and not @new_subfields ) {
+                                my $on_removed = GetMarcPermissionsAction('on_removed', $filter, @subfield_perms);
+                                if ( defined $on_removed->{action} ) {
+                                    push @{$log},
+                                      {
+                                        rule         => $on_removed->{rule},
+                                        event        => "removed",
+                                        action       => $on_removed->{action},
+                                        tag          => $tag,
+                                        subfieldcode => $subcode,
+                                        filter       => $filter
+                                      };
+                                    if ( $on_removed->{action} eq 'skip' ) {
+                                        push(@subfields, ($subcode => @old_subfields));
+                                        next;
+                                    } elsif ( $on_removed->{action} eq 'remove' ) {
+                                        next;
+                                    }
+                                } else { # default to skip
+                                    push(@subfields, ($subcode => @old_subfields));
+                                    next;
+                                }
+                            }
+                        } # / for each subfield
+                        $ret_record->insert_grouped_field(MARC::Field->new($tag, $ind[0], $ind[1], @subfields));
+                    }
+                # New field
+                } elsif ( not $old_field and $new_field ) {
+                    my $on_new = GetMarcPermissionsAction('on_new', $filter, @perms);
+
+                    if ( defined $on_new->{action} ) {
+                        push @{$log},
+                          {
+                            rule         => $on_new->{rule},
+                            event        => "new",
+                            action       => $on_new->{action},
+                            tag          => $tag,
+                            subfieldcode => undef,
+                            filter       => $filter
+                          };
+                        if ( $on_new->{action} eq 'skip' ) {
+                            next;
+                        } elsif ( $on_new->{action} eq 'add' ) {
+                            $ret_record->insert_fields_ordered($new_field);
+                            next;
+                        }
+                    }
+                # Removed field
+                } elsif ( $old_field and not $new_field ) {
+                    my $on_removed = GetMarcPermissionsAction('on_removed', $filter, @perms);
+                    if ( defined $on_removed->{action} ) {
+                        push @{$log},
+                          {
+                            rule         => $on_removed->{rule},
+                            event        => "removed",
+                            action       => $on_removed->{action},
+                            tag          => $tag,
+                            subfieldcode => undef,
+                            filter       => $filter
+                          };
+                        if ( $on_removed->{action} eq 'skip' ) {
+                            $ret_record->insert_grouped_field($old_field);
+                            next;
+                        } elsif ( $on_removed->{action} eq 'remove' ) {
+                            next;
+                        }
+                    } else { # default to skip
+                        $ret_record->insert_grouped_field($old_field);
+                        next;
+                    }
+                }
+            } # / for each field
+        } # / for each tag
+        if ( !$nolog && C4::Context->preference("MARCPermissionsLog") ) {
+            my $log_str = '';
+            my $n       = $#{$log};
+            for my $l ( @{$log} ) {
+                $log_str .= "{\n";
+                my $kn = keys %{$l};
+                for my $k ( sort keys %{$l} ) {
+                    if ( $k eq 'filter' ) {
+                        $log_str .= "  filter => {\n";
+                        my $fkn = keys %{ $l->{$k} };
+                        for my $fk ( sort keys %{ $l->{$k} } ) {
+                            $log_str .= '    '
+                              . $fk . ' => '
+                              . $l->{$k}->{$fk}
+                              . ( --$fkn ? ',' : '' ) . "\n";
+                        }
+                        $log_str .= "  }" . ( --$kn ? ',' : '' ) . "\n";
+                    }
+                    else {
+                        $log_str .= '  '
+                          . $k . ' => '
+                          . $l->{$k}
+                          . ( --$kn ? ',' : '' ) . "\n"
+                          if defined $l->{$k};
+                    }
+                }
+                $log_str .= '}' . ( $n-- ? ",\n" : '' );
+            }
+            logaction( "CATALOGUING", "MODIFY", $biblionumber, $log_str );
+        }
+        return $ret_record;
+    }
+    return $new_record;
+}
+
+
+=head2 GetMarcPermissions
+
+    my $marc_permissions = GetMarcPermissions()
+
+Loads MARC field permissions from the marc_permissions table.
+
+Returns:
+
+=over 4
+
+=item C<$marc_permissions>
+
+hashref with permissions structure for use with GetMarcPermissionsAction.
+
+=back
+
+=cut
+
+sub GetMarcPermissions {
+    my $dbh = C4::Context->dbh;
+    my $rule_count = 0;
+    my %perms = ();
+
+    my $query = '
+    SELECT `marc_permissions`.*,
+           `marc_permissions_modules`.`name`,
+           `marc_permissions_modules`.`description`,
+           `marc_permissions_modules`.`specificity`
+    FROM `marc_permissions`
+    LEFT JOIN `marc_permissions_modules` ON `module` = `marc_permissions_modules`.`id`
+    ORDER BY `marc_permissions_modules`.`specificity`, `id`
+    ';
+    my $sth = $dbh->prepare($query);
+    $sth->execute();
+    while ( my $row = $sth->fetchrow_hashref ) {
+        $rule_count++;
+        if ( defined $row->{tagsubfield} and $row->{tagsubfield} ) {
+            $perms{ $row->{tagfield} }->{subfields}->{ $row->{tagsubfield} }
+              ->{on_existing}->{ $row->{name} }->{ $row->{filter} } =
+              { action => $row->{on_existing}, rule => $row->{'id'} };
+            $perms{ $row->{tagfield} }->{subfields}->{ $row->{tagsubfield} }
+              ->{on_new}->{ $row->{name} }->{ $row->{filter} } =
+              { action => $row->{on_new}, rule => $row->{'id'} };
+            $perms{ $row->{tagfield} }->{subfields}->{ $row->{tagsubfield} }
+              ->{on_removed}->{ $row->{name} }->{ $row->{filter} } =
+              { action => $row->{on_removed}, rule => $row->{'id'} };
+        }
+        else {
+            $perms{ $row->{tagfield} }->{on_existing}->{ $row->{name} }
+              ->{ $row->{filter} } =
+              { action => $row->{on_existing}, rule => $row->{'id'} };
+            $perms{ $row->{tagfield} }->{on_new}->{ $row->{name} }
+              ->{ $row->{filter} } =
+              { action => $row->{on_new}, rule => $row->{'id'} };
+            $perms{ $row->{tagfield} }->{on_removed}->{ $row->{name} }
+              ->{ $row->{filter} } =
+              { action => $row->{on_removed}, rule => $row->{'id'} };
+        }
+    }
+
+    return unless $rule_count;
+    return \%perms;
+}
+
+=head2 GetMarcPermissionsAction
+
+    my $action = GetMarcPermissionsAction($event, $filter, @permissions)
+
+Gets action based on C<$event>, C<$filter> and C<@permissions>.
+
+=over 4
+
+=item C<$event>
+
+which event: 'on_existing', 'on_new' or 'on_removed'
+
+=item C<$filter>
+
+hashref containing at least one filter module from the marc_permissions_modules
+table in form {module => filter}. Three predefined filter modules exists:
+
+    * source
+    * category
+    * borrower
+
+=item C<@permissions>
+
+list of permission structures in order of specificity from least to most
+specific.
+
+=back
+
+Returns:
+
+=over 4
+
+=item C<$action>
+
+hashref defining matching action.
+
+=back
+
+=cut
+
+sub GetMarcPermissionsAction {
+    my $what = shift or return;
+    my $filter = shift or return;
+    my @perms = @_;
+    my $modules = GetMarcPermissionsModules();
+    my $action = undef;
+
+    for my $perm (@perms) {
+        next if not defined $perm;
+        next if not defined $perm->{$what};
+        my $tmp_action = undef;
+        for my $module ( @{$modules} ) {
+            my $action_candidate = defined $perm->{$what}->{ $module->{'name'} } ? $perm->{$what}->{ $module->{'name'} } : undef;
+            if ($action_candidate) {
+                if (
+                    defined $filter->{ $module->{'name'} } and
+                    defined $action_candidate->{ $filter->{ $module->{'name'} } }->{action}
+                ) {
+                    $tmp_action = $perm->{$what}->{ $module->{'name'} }->{ $filter->{ $module->{'name'} } };
+                    last;
+                }
+                elsif (defined $action_candidate->{'*'}->{action} and !$tmp_action) {
+                    $tmp_action = $perm->{$what}->{ $module->{'name'} }->{'*'};
+                }
+            }
+        }
+        $action = $tmp_action if defined $tmp_action;
+    }
+    return $action;
+}
+
+=head2 GetMarcPermissionsRules
+
+    my $rules = GetMarcPermissionsRules()
+
+Returns:
+
+=over 4
+
+=item C<$rules>
+
+array (in list context, arrayref otherwise) of hashrefs from marc_permissions
+table in order of module specificity and rule id.
+
+=back
+
+=cut
+
+sub GetMarcPermissionsRules {
+    my $dbh = C4::Context->dbh;
+    my @rules = ();
+
+    my $query = '
+    SELECT `marc_permissions`.`id`,
+           `marc_permissions`.`tagfield`,
+           `marc_permissions`.`tagsubfield`,
+           `marc_permissions`.`filter`,
+           `marc_permissions`.`on_existing`,
+           `marc_permissions`.`on_new`,
+           `marc_permissions`.`on_removed`,
+           `marc_permissions_modules`.`name` as  `module`,
+           `marc_permissions_modules`.`description`,
+           `marc_permissions_modules`.`specificity`
+    FROM `marc_permissions`
+    LEFT JOIN `marc_permissions_modules` ON `module` = `marc_permissions_modules`.`id`
+    ORDER BY `marc_permissions_modules`.`specificity`, `id`
+    ';
+    my $sth = $dbh->prepare($query);
+    $sth->execute();
+    while ( my $row = $sth->fetchrow_hashref ) {
+        push(@rules, $row);
+    }
+
+    return wantarray ? @rules : \@rules;
+}
+
+=head2 GetMarcPermissionsModules
+
+    my $modules = GetMarcPermissionsModules()
+
+Returns:
+
+=over 4
+
+=item C<$modules>
+
+array (in list context, arrayref otherwise) of hashrefs from
+marc_permissions_modules table in order of specificity.
+
+=back
+
+=cut
+
+sub GetMarcPermissionsModules {
+    my $dbh = C4::Context->dbh;
+    my @modules = ();
+
+    my $query = '
+    SELECT *
+    FROM `marc_permissions_modules`
+    ORDER BY `specificity` DESC
+    ';
+    my $sth = $dbh->prepare($query);
+    $sth->execute();
+    while ( my $row = $sth->fetchrow_hashref ) {
+        push(@modules, $row);
+    }
+
+    return wantarray ? @modules : \@modules;
+}
+
+=head2 ModMarcPermissionsRule
+
+    my $success = ModMarcPermissionsRule($id, $fields)
+
+Modifies rule in the marc_permissions table.
+
+=over 4
+
+=item C<$id>
+
+rule id to modify
+
+=item C<$fields>
+
+hashref defining the table fields
+
+      * tagfield - required
+      * tagsubfield
+      * module - required
+      * filter - required
+      * on_existing - required
+      * on_new - required
+      * on_removed - required
+
+=back
+
+Returns:
+
+=over 4
+
+=item C<$success>
+
+undef if an error occurs, otherwise true.
+
+=back
+
+=cut
+
+sub ModMarcPermissionsRule {
+    my ($id, $f) = @_;
+    my $dbh = C4::Context->dbh;
+    my $query = '
+    UPDATE `marc_permissions`
+    SET
+      tagfield = ?,
+      tagsubfield = ?,
+      module = ?,
+      filter = ?,
+      on_existing = ?,
+      on_new = ?,
+      on_removed = ?
+    WHERE
+      id = ?
+    ';
+    my $sth = $dbh->prepare($query);
+    return $sth->execute (
+                      $f->{tagfield},
+                      $f->{tagsubfield},
+                      $f->{module},
+                      $f->{filter},
+                      $f->{on_existing},
+                      $f->{on_new},
+                      $f->{on_removed},
+                      $id
+                  );
+}
+
+=head2 AddMarcPermissionsRule
+
+    my $success = AddMarcPermissionsRule($fields)
+
+Add rule to the marc_permissions table.
+
+=over 4
+
+=item C<$fields>
+
+hashref defining the table fields
+
+      tagfield - required
+      tagsubfield
+      module - required
+      filter - required
+      on_existing - required
+      on_new - required
+      on_removed - required
+
+=back
+
+Returns:
+
+=over 4
+
+=item C<$success>
+
+undef if an error occurs, otherwise true.
+
+=back
+
+=cut
+
+sub AddMarcPermissionsRule {
+    my $f = shift;
+    my $dbh = C4::Context->dbh;
+    my $query = '
+    INSERT INTO `marc_permissions`
+    (
+      tagfield,
+      tagsubfield,
+      module,
+      filter,
+      on_existing,
+      on_new,
+      on_removed
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+    ';
+    my $sth = $dbh->prepare($query);
+    return $sth->execute (
+                      $f->{tagfield},
+                      $f->{tagsubfield},
+                      $f->{module},
+                      $f->{filter},
+                      $f->{on_existing},
+                      $f->{on_new},
+                      $f->{on_removed}
+                  );
+}
+
+=head2 DelMarcPermissionsRule
+
+    my $success = DelMarcPermissionsRule($id)
+
+Deletes rule from the marc_permissions table.
+
+=over 4
+
+=item C<$id>
+
+rule id to delete
+
+=back
+
+Returns:
+
+=over 4
+
+=item C<$success>
+
+undef if an error occurs, otherwise true.
+
+=back
+
+=cut
+
+sub DelMarcPermissionsRule {
+    my $id = shift;
+    my $dbh = C4::Context->dbh;
+    my $query = '
+    DELETE FROM `marc_permissions`
+    WHERE
+      id = ?
+    ';
+    my $sth = $dbh->prepare($query);
+    return $sth->execute($id);
+}
 1;
 
 
