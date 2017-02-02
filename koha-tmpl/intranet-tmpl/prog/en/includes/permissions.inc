@@ -53,6 +53,7 @@
     [%- CASE 'manage_oai_sets' -%]<span>Manage OAI sets</span>
     [%- CASE 'manage_item_search_fields' -%]<span>Manage item search fields</span>
     [%- CASE 'manage_search_engine_config' -%]<span>Manage search engine configuration</span>
+    [%- CASE 'manage_marc_merge_rules' -%]<span>Manage MARC merge rules configuration</span>
     [%- CASE 'manage_search_targets' -%]<span>Manage Z39.50 and SRU server configuration</span>
     [%- CASE 'manage_didyoumean' -%]<span>Manage Did you mean? configuration</span>
     [%- CASE 'manage_column_config' -%]<span>Manage column configuration</span>
