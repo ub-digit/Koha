@@ -23,6 +23,7 @@ use C4::Output;
 # use C4::Auth;
 use C4::Context;
 use CGI qw ( -utf8 );
+use C4::Biblio;
 
 sub _help_template_file_of_url {
     my $url = shift;
@@ -73,5 +74,9 @@ if ( $help_version =~ m|^(\d+)\.(\d{2}).*$| ) {
     $help_version = "$version.$major";
 }
 $template->param( helpVersion => $help_version );
+
+my $rules = GetMarcPermissionsRules();
+my $modules = GetMarcPermissionsModules();
+$template->param( rules => $rules, modules => $modules );
 
 output_html_with_http_headers $query, "", $template->output;
