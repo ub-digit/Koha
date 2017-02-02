@@ -62,6 +62,7 @@ BEGIN {
         DelBiblio
         BiblioAutoLink
         LinkBibHeadingsToAuthorities
+        ApplyMarcMergeRules
         TransformMarcToKoha
         TransformHtmlToMarc
         TransformHtmlToXml
@@ -107,9 +108,9 @@ use Koha::Plugins;
 use Koha::SearchEngine;
 use Koha::Libraries;
 use Koha::Util::MARC;
+use Koha::MarcMergeRules;
 
 use vars qw($debug $cgi_debug);
-
 
 =head1 NAME
 
@@ -242,7 +243,7 @@ sub AddBiblio {
 
 =head2 ModBiblio
 
-  ModBiblio( $record,$biblionumber,$frameworkcode, $disable_autolink);
+  ModBiblio($record, $biblionumber, $frameworkcode, $options);
 
 Replace an existing bib record identified by C<$biblionumber>
 with one supplied by the MARC::Record object C<$record>.  The embedded
@@ -258,16 +259,32 @@ in the C<biblio> and C<biblioitems> tables, as well as
 which fields are used to store embedded item, biblioitem,
 and biblionumber data for indexing.
 
-Unless C<$disable_autolink> is passed ModBiblio will relink record headings
+The C<$options> argument is a hashref with additional parameters:
+
+=over 4
+
+=item C<context>
+
+This parameter is forwared to L</ApplyMarcMergeRules> where it is used for
+selecting the current rule set if Marc Merge Rules is enabled.
+See L</ApplyMarcMergeRules> for more details.
+
+=item C<disable_autolink>
+
+Unless C<disable_autolink> is passed ModBiblio will relink record headings
 to authorities based on settings in the system preferences. This flag allows
 us to not relink records when the authority linker is saving modifications.
+
+=back
 
 Returns 1 on success 0 on failure
 
 =cut
 
 sub ModBiblio {
-    my ( $record, $biblionumber, $frameworkcode, $disable_autolink ) = @_;
+    my ( $record, $biblionumber, $frameworkcode, $options ) = @_;
+    $options //= {};
+
     if (!$record) {
         carp 'No record passed to ModBiblio';
         return 0;
@@ -278,7 +295,7 @@ sub ModBiblio {
         logaction( "CATALOGUING", "MODIFY", $biblionumber, "biblio BEFORE=>" . $newrecord->as_formatted );
     }
 
-    if ( !$disable_autolink && C4::Context->preference('BiblioAddsAuthorities') ) {
+    if ( !$options->{disable_autolink} && C4::Context->preference('BiblioAddsAuthorities') ) {
         BiblioAutoLink( $record, $frameworkcode );
     }
 
@@ -299,6 +316,16 @@ sub ModBiblio {
 
     _strip_item_fields($record, $frameworkcode);
 
+    # apply merge rules
+    if (C4::Context->preference('MARCMergeRules') && $biblionumber && defined $options && exists $options->{'context'}) {
+        $record = ApplyMarcMergeRules({
+                biblionumber => $biblionumber,
+                record => $record,
+                context => $options->{'context'},
+            }
+        );
+    }
+
     # update biblionumber and biblioitemnumber in MARC
     # FIXME - this is assuming a 1 to 1 relationship between
     # biblios and biblioitems
@@ -315,7 +342,7 @@ sub ModBiblio {
     _koha_marc_update_biblioitem_cn_sort( $record, $oldbiblio, $frameworkcode );
 
     # update the MARC record (that now contains biblio and items) with the new record data
-    &ModBiblioMarc( $record, $biblionumber, $frameworkcode );
+    ModBiblioMarc( $record, $biblionumber, $frameworkcode );
 
     # modify the other koha tables
     _koha_modify_biblio( $dbh, $oldbiblio, $frameworkcode );
@@ -3082,7 +3109,7 @@ sub _koha_delete_biblio_metadata {
 
 =head2 ModBiblioMarc
 
-  &ModBiblioMarc($newrec,$biblionumber,$frameworkcode);
+  ModBiblioMarc($newrec, $biblionumber, $frameworkcode);
 
 Add MARC XML data for a biblio to koha
 
@@ -3419,8 +3446,67 @@ sub RemoveAllNsb {
     return $record;
 }
 
-1;
+=head2 ApplyMarcMergeRules
 
+    my $record = ApplyMarcMergeRules($params)
+
+Applies marc merge rules to a record.
+
+C<$params> is expected to be a hashref with below keys defined.
+
+=over 4
+
+=item C<biblionumber>
+biblionumber of old record
+
+=item C<record>
+Incoming record that will be merged with old record
+
+=item C<context>
+hashref containing at least one context module and filter value on
+the form {module => filter, ...}.
+
+=back
+
+Returns:
+
+=over 4
+
+=item C<$record>
+
+Merged MARC record based with merge rules for C<context> applied. If no old
+record for C<biblionumber> can be found, C<record> is returned unchanged.
+Default action when no matching context is found to return C<record> unchanged.
+If no rules are found for a certain field tag the default is to overwrite with
+fields with this field tag from C<record>.
+
+=back
+
+=cut
+
+sub ApplyMarcMergeRules {
+    my ($params) = @_;
+    my $biblionumber = $params->{biblionumber};
+    my $incoming_record = $params->{record};
+
+    if (!$biblionumber) {
+        carp 'ApplyMarcMergeRules called on undefined biblionumber';
+        return;
+    }
+    if (!$incoming_record) {
+        carp 'ApplyMarcMergeRules called on undefined record';
+        return;
+    }
+    my $old_record = GetMarcBiblio({ biblionumber => $biblionumber });
+
+    # Skip merge rules if called with no context
+    if ($old_record && defined $params->{context}) {
+        return Koha::MarcMergeRules->merge_records($old_record, $incoming_record, $params->{context});
+    }
+    return $incoming_record;
+}
+
+1;
 
 =head2 _after_biblio_action_hooks
 
