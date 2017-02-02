@@ -159,7 +159,7 @@ if ( $op eq 'form' ) {
     my ( $job );
     if ( $runinbackground ) {
         my $job_size = scalar( @record_ids );
-        $job = C4::BackgroundJob->new( $sessionID, "FIXME", '/cgi-bin/koha/tools/batch_record_modification.pl', $job_size );
+        $job = C4::BackgroundJob->new( $sessionID, "FIXME", $ENV{SCRIPT_NAME}, $job_size );
         my $job_id = $job->id;
         if (my $pid = fork) {
             $dbh->{InactiveDestroy}  = 1;
@@ -171,7 +171,7 @@ if ( $op eq 'form' ) {
         } elsif (defined $pid) {
             close STDOUT;
         } else {
-            warn "fork failed while attempting to run tools/batch_record_modification.pl as a background job";
+            warn "fork failed while attempting to run $ENV{'SCRIPT_NAME'} as a background job";
             exit 0;
         }
     }
@@ -195,7 +195,14 @@ if ( $op eq 'form' ) {
                 my $record = GetMarcBiblio({ biblionumber => $biblionumber });
                 ModifyRecordWithTemplate( $mmtid, $record );
                 my $frameworkcode = C4::Biblio::GetFrameworkCode( $biblionumber );
-                ModBiblio( $record, $biblionumber, $frameworkcode );
+                my ($member) = Koha::Patrons->find($loggedinuser);
+                ModBiblio( $record, $biblionumber, $frameworkcode,
+                    {
+                        source => 'batchmod',
+                        category => $member->{'category_type'},
+                        borrower => $loggedinuser
+                    }
+                );
             };
             if ( $error and $error != 1 or $@ ) { # ModBiblio returns 1 if everything as gone well
                 push @messages, {
