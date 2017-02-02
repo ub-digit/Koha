@@ -124,7 +124,7 @@ if ($all) {
 #$index //= 1;
 my $using_elastic_search = (C4::Context->preference('SearchEngine') eq 'Elasticsearch');
 my $modify_biblio_marc_options = {
-    'defer_search_engine_indexing' => $using_elastic_search,
+    'defer_search_engine_indexing' => $using_elastic_search
 };
 
 my @search_engine_record_ids;
@@ -554,7 +554,16 @@ RECORD: foreach my $record (@{$marc_records}) {
                 };
                 if ($update) {
                     my $success;
-                    eval { $success = ModBiblio($record, $matched_record_id, GetFrameworkCode($matched_record_id), $modify_biblio_marc_options) };
+                    eval {
+                        $success = ModBiblio(
+                            $record,
+                            $matched_record_id,
+                            GetFrameworkCode($matched_record_id), {
+                                context => {source => 'bulkmarcimport'},
+                                'defer_search_engine_indexing' => $modify_biblio_marc_options->{'defer_search_engine_indexing'}
+                            }
+                        );
+                    };
                     if ($@) {
                         warn "ERROR: Edit biblio $matched_record_id failed: $@\n";
                         printlog( { id => $matched_record_id, op => "update", status => "ERROR" } ) if ($logfile);
