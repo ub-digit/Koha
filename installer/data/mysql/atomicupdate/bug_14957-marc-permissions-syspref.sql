@@ -1,0 +1,3 @@
+INSERT IGNORE INTO systempreferences ( `variable`, `value`, `options`, `explanation`, `type` ) VALUES ('MARCPermissions','0','','Use the MARC permissions system to decide what actions to take for each field when modifying records.','YesNo');
+INSERT IGNORE INTO systempreferences ( `variable`, `value`, `options`, `explanation`, `type` ) VALUES ('MARCPermissionsLog','0','','Write MARC permissions rule evaluations to the system log when applying rules for MARC field modifications.','YesNo');
+INSERT IGNORE INTO systempreferences ( `variable`, `value`, `options`, `explanation`, `type` ) VALUES ('MARCPermissionsCorrectionSimilarity','90','','New field value is considered a correction if it is similar to the old to the specified percentage.','Integer');
