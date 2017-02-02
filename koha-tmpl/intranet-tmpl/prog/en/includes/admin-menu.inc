@@ -36,6 +36,7 @@
     <li><a href="/cgi-bin/koha/admin/matching-rules.pl">Record matching rules</a></li>
     <li><a href="/cgi-bin/koha/admin/oai_sets.pl">OAI sets configuration</a></li>
     <li><a href="/cgi-bin/koha/admin/items_search_fields.pl">Item search fields</a></li>
+    <li><a href="/cgi-bin/koha/admin/marc-permissions.pl">MARC field permissions</a></li>
 </ul>
 
 <h5>Acquisition parameters</h5>

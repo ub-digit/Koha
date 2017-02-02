@@ -288,3 +288,13 @@ Cataloging:
             - "All values of repeating tags and subfields will be printed with the given RIS tag."
             - "<br/>"
             - "Use of TY ( record type ) as a key will <i>replace</i> the default TY with the field value of your choosing."
+        -
+            - When importing records
+            - pref: MARCPermissions
+              choices:
+                  yes: "use"
+                  no: "don't use"
+            - MARC permissions rules to decide which action to take for each field.
+            - When <b>add_or_correct</b>, consider a field modification to be a correction if the old and new value has a similarity of
+            - pref: MARCPermissionsCorrectionSimilarity
+            - %. If similarity falls below this value, the new value will be treated as a new field.
