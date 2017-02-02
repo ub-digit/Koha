@@ -423,9 +423,11 @@ sub AddItemBatchFromMarc {
         push @itemnumbers, $itemnumber; # FIXME not checking error
         $item->{'itemnumber'} = $itemnumber;
 
-        logaction("CATALOGUING", "ADD", $itemnumber, "item") if C4::Context->preference("CataloguingLog"); 
+        logaction("CATALOGUING", "ADD", $itemnumber, "item") if C4::Context->preference("CataloguingLog");
 
         my $new_item_marc = _marc_from_item_hash($item, $frameworkcode, $unlinked_item_subfields);
+
+        # @FIXME: why modify clone record here since not even saving below?
         $item_field->replace_with($new_item_marc->field($itemtag));
     }
 
