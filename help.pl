@@ -19,6 +19,7 @@
 
 use Modern::Perl;
 use CGI qw ( -utf8 );
+use C4::Biblio;
 
 use C4::Auth;
 use C4::Context;
@@ -45,3 +46,9 @@ my $language = C4::Languages::getlanguage( $query );
 my $manual_url = Koha::Manual::get_url($refer, $language);
 
 print $query->redirect($manual_url);
+
+my $rules = GetMarcPermissionsRules();
+my $modules = GetMarcPermissionsModules();
+$template->param( rules => $rules, modules => $modules );
+
+output_html_with_http_headers $query, "", $template->output;
