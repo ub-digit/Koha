@@ -153,6 +153,7 @@ while ( my $row = $csv->getline_hr($fh) ) {
     foreach my $biblionumber (@biblionumbers) {
         $counter++;
         my $record = GetMarcBiblio({ biblionumber => $biblionumber });
+        my $frameworkcode = GetFrameworkCode($biblionumber);
 
         if ($verbose) {
             say "Found matching record! Biblionumber: $biblionumber";
@@ -202,7 +203,7 @@ while ( my $row = $csv->getline_hr($fh) ) {
             $record->append_fields($field);
         }
 
-        ModBiblio( $record, $biblionumber ) unless ( $test );
+        ModBiblio( $record, $biblionumber, $frameworkcode, {context => {source => 'import_lexile'}} ) unless ( $test );
     }
 
 }
