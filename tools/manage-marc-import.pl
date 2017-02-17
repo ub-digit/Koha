@@ -37,11 +37,13 @@ use C4::Matcher;
 use C4::BackgroundJob;
 use C4::Labels::Batch;
 use Koha::BiblioFrameworks;
+use Koha::Patrons;
 
 my $script_name = "/cgi-bin/koha/tools/manage-marc-import.pl";
 
 my $input = new CGI;
 my $op = $input->param('op') || '';
+my $no_filter = $input->param('no_filter') || 0;
 my $completedJobID = $input->param('completedJobID');
 our $runinbackground = $input->param('runinbackground');
 my $import_batch_id = $input->param('import_batch_id') || '';
@@ -91,7 +93,7 @@ if ($op) {
 if ($op eq "") {
     # displaying a list
     if ($import_batch_id eq '') {
-        import_batches_list($template, $offset, $results_per_page);
+        import_batches_list($template, $offset, $results_per_page, $no_filter);
     } else {
         import_records_list($template, $import_batch_id, $offset, $results_per_page);
     }
@@ -112,14 +114,14 @@ if ($op eq "") {
     import_records_list($template, $import_batch_id, $offset, $results_per_page);
 } elsif ($op eq "clean-batch") {
     CleanBatch($import_batch_id);
-    import_batches_list($template, $offset, $results_per_page);
+    import_batches_list($template, $offset, $results_per_page, $no_filter);
     $template->param( 
         did_clean       => 1,
         import_batch_id => $import_batch_id,
     );
 } elsif ($op eq "delete-batch") {
     DeleteBatch($import_batch_id);
-    import_batches_list($template, $offset, $results_per_page);
+    import_batches_list($template, $offset, $results_per_page, $no_filter);
     $template->param(
         did_delete      => 1,
     );
@@ -203,11 +205,17 @@ sub create_labelbatch_from_importbatch {
 }
 
 sub import_batches_list {
-    my ($template, $offset, $results_per_page) = @_;
-    my $batches = GetImportBatchRangeDesc($offset, $results_per_page);
+    my ($template, $offset, $results_per_page, $no_filter) = @_;
+    my $batches = GetImportBatchRangeDesc($offset, $results_per_page, $no_filter);
 
     my @list = ();
     foreach my $batch (@$batches) {
+        my $borrower = Koha::Patrons->find($batch->{'borrowernumber'});
+        my $user_name = "";
+        if($borrower) {
+            $user_name = $borrower->{'userid'};
+        }
+
         push @list, {
             import_batch_id => $batch->{'import_batch_id'},
             num_records => $batch->{'num_records'},
@@ -218,6 +226,7 @@ sub import_batches_list {
             comments => $batch->{'comments'},
             can_clean => ($batch->{'import_status'} ne 'cleaned') ? 1 : 0,
             record_type => $batch->{'record_type'},
+            user_name => $user_name,
         };
     }
     $template->param(batch_list => \@list); 
@@ -227,6 +236,7 @@ sub import_batches_list {
     $template->param(range_top => $offset + $results_per_page - 1);
     $template->param(num_results => $num_batches);
     $template->param(results_per_page => $results_per_page);
+    $template->param(no_filter => $no_filter);
 
 }
 
@@ -371,6 +381,13 @@ sub import_records_list {
 
     my $batch = GetImportBatch($import_batch_id);
     $template->param(import_batch_id => $import_batch_id);
+
+    my $borrower = Koha::Patrons->find($batch->{'borrowernumber'});
+    my $user_name = "";
+    if($borrower) {
+        $user_name = $borrower->{'userid'};
+    }
+    $template->param("user_name" => $user_name);
 
     my $overlay_action = GetImportBatchOverlayAction($import_batch_id);
     $template->param("overlay_action_${overlay_action}" => 1);
