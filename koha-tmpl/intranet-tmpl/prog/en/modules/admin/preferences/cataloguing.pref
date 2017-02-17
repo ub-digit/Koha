@@ -268,6 +268,18 @@ Cataloging:
                   yes: "do"
                   no: "don't"
             - attempt to match aggressively by trying all variations of the ISSNs in the imported record as a phrase in the ISSN fields of already cataloged records.  Note that this preference has no effect if UseQueryParser is on.
+        -
+            - In list of staged batches of MARC records,
+            - pref: StageFilterByUser
+              choices:
+                  yes: "show only batches uploaded by logged in user."
+                  no: "show all batches regardless of user."
+        -
+            - pref: StageHideCleanedImported
+              choices:
+                  yes: "Hide"
+                  no: "Do not hide"
+            - cleaned and imported batches of MARC records by default.
 
     Exporting:
         -
