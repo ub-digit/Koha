@@ -238,9 +238,17 @@ sub GetImportRecordMarcXML {
 sub AddImportBatch {
     my ($params) = @_;
 
+    # Get ID of logged in user.  if called from a batch job,
+    # no user session exists and C4::Context->userenv() returns
+    # the scalar '0'.
+    my $userenv = C4::Context->userenv();
+    my $usernumber = (ref($userenv) eq 'HASH') ? $userenv->{'number'} : 0;
+    $usernumber ||= 0;
+    $params->{borrowernumber} = $usernumber;
+
     my (@fields, @vals);
     foreach (qw( matcher_id template_id branchcode
-                 overlay_action nomatch_action item_action
+                 overlay_action nomatch_action item_action borrowernumber
                  import_status batch_type file_name comments record_type )) {
         if (exists $params->{$_}) {
             push @fields, $_;
@@ -1021,13 +1029,29 @@ start at the given offset.
 =cut
 
 sub GetImportBatchRangeDesc {
-    my ($offset, $results_per_group) = @_;
+    my ($offset, $results_per_group, $no_filter) = @_;
 
     my $dbh = C4::Context->dbh;
     my $query = "SELECT * FROM import_batches
-                                    WHERE batch_type IN ('batch', 'webservice')
-                                    ORDER BY import_batch_id DESC";
+                                    WHERE batch_type IN ('batch', 'webservice')";
+
     my @params;
+
+    if(C4::Context->preference("StageFilterByUser") && !$no_filter) {
+        my $userenv = C4::Context->userenv();
+        my $usernumber = (ref($userenv) eq 'HASH') ? $userenv->{'number'} : 0;
+        $usernumber ||= 0;
+
+        $query .= " AND borrowernumber = ?";
+        push(@params, $usernumber);
+    }
+
+    if(C4::Context->preference("StageHideCleanedImported") && !$no_filter) {
+        $query .= " AND import_status NOT IN ('cleaned', 'imported')";
+    }
+
+    $query .= " ORDER BY import_batch_id DESC";
+
     if ($results_per_group){
         $query .= " LIMIT ?";
         push(@params, $results_per_group);
