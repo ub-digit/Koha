@@ -360,6 +360,18 @@ Cataloging:
                   1: "Use"
                   0: "Don't use"
             - MARC overlay rules for incoming records, to decide which action to take for each field.
+        -
+            - In list of staged batches of MARC records,
+            - pref: StageFilterByUser
+              choices:
+                  yes: "show only batches uploaded by logged in user."
+                  no: "show all batches regardless of user."
+        -
+            - pref: StageHideCleanedImported
+              choices:
+                  yes: "Hide"
+                  no: "Do not hide"
+            - cleaned and imported batches of MARC records by default.
     Exporting:
         -
             - "Include the following fields when exporting BibTeX:"
