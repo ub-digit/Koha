@@ -2,3 +2,6 @@
 /blib/
 /Makefile
 /pm_to_blib
+*~
+\#*#
+.#*
