@@ -21,7 +21,7 @@ use File::Temp qw|tempfile|;
 use MARC::Field;
 use MARC::File::XML;
 use MARC::Record;
-use Test::More tests => 3;
+use Test::More tests => 4;
 use t::lib::Mocks;
 
 BEGIN {
@@ -29,6 +29,54 @@ BEGIN {
 }
 
 t::lib::Mocks::mock_preference('marcflavour', 'MARC21');
+
+subtest 'StageFilterByUser' => sub {
+    plan tests => 5;
+
+    # Set current user to "user1"
+    C4::Context->_new_userenv('USER1-ENV');
+    C4::Context->set_userenv('12345', 'user1', '12345', '', '', '', '', 1, '', '');
+    C4::Context->set_preference( 'StageFilterByUser', '1');
+    C4::Context->set_preference( 'StageHideCleanedImported', '1');
+
+    my $file = create_file({ two => 1, format => 'marc'});
+    my ($errors, $recs) = C4::ImportBatch::RecordsFromISO2709File($file, 'biblio', 'UTF-8');
+
+    my ($batch_id) = C4::ImportBatch::BatchStageMarcRecords('biblio', 'UTF-8', $recs,
+                                                          'file1.mrc', undef, undef, '',
+                                                          '', 1, 0, 0, undef);
+
+    my $batch_list_user1 = C4::ImportBatch::GetImportBatchRangeDesc(0, 100000);
+    is( find_id_in_batch_list($batch_id, $batch_list_user1), 1, "Found one batch from user1");
+
+    # Set current user to "user2"
+    C4::Context->_new_userenv('USER2-ENV');
+    C4::Context->set_userenv('23456', 'user2', '23456', '', '', '', '', 1, '', '');
+
+    my $batch_list_user2 = C4::ImportBatch::GetImportBatchRangeDesc(0, 100000);
+    is( find_id_in_batch_list($batch_id, $batch_list_user2), 0, "Did not see batches from user1 when logged in as user2");
+
+    $batch_list_user2 = C4::ImportBatch::GetImportBatchRangeDesc(0, 100000, 1);
+    is( find_id_in_batch_list($batch_id, $batch_list_user2), 1, "Can see batch from user1 as user2 when filter is disabled");
+
+    # Set current user back to "user1"
+    C4::Context->_new_userenv('USER1-ENV');
+    C4::Context->set_userenv('12345', 'user1', '12345', '', '', '', '', 1, '', '');
+
+    C4::Context->set_preference( 'StageHideCleanedImported', '1');
+    C4::ImportBatch::SetImportBatchStatus($batch_id, 'imported');
+
+    $batch_list_user1 = C4::ImportBatch::GetImportBatchRangeDesc(0, 100000);
+    is( find_id_in_batch_list($batch_id, $batch_list_user1), 0, "Did not see imported batch from user1 hen hidden");
+
+    C4::Context->set_preference( 'StageHideCleanedImported', '0');
+    C4::ImportBatch::SetImportBatchStatus($batch_id, 'imported');
+
+    $batch_list_user1 = C4::ImportBatch::GetImportBatchRangeDesc(0, 100000);
+    is( find_id_in_batch_list($batch_id, $batch_list_user1), 1, "Did see imported batch from user1 when not hidden");
+
+    C4::ImportBatch::DeleteBatch($batch_id);
+};
 
 subtest 'RecordsFromISO2709File' => sub {
     plan tests => 4;
@@ -98,4 +146,15 @@ sub create_file {
     }
     close $fh;
     return $name;
+}
+
+sub find_id_in_batch_list {
+    my ($batch_id, $batch_list) = @_;
+    my $found = 0;
+    foreach my $batch (@$batch_list) {
+        if($batch->{import_batch_id} == $batch_id) {
+            $found = 1;
+        }
+    }
+    return $found;
 }
