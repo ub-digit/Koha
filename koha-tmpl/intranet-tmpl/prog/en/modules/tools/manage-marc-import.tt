@@ -111,6 +111,13 @@
                         <div class="dialog message">
                             <p>No records have been staged.</p>
                             <p><a href="/cgi-bin/koha/tools/stage-marc-import.pl">Stage MARC records for import</a>.</p>
+                            [% IF Koha.Preference( 'StageFilterByUser' ) %]
+                                <p>
+                                [% UNLESS ( no_filter ) %]
+                                    <a href="[% batch_lis.script_name %]?no_filter=1">Show unfiltered list</a>.
+                                [% END %]
+                                </p>
+                            [% END %]
                         </div>
                     [% END %]
 
