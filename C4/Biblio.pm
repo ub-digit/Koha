@@ -343,6 +343,11 @@ Unless C<disable_autolink> is passed ModBiblio will relink record headings
 to authorities based on settings in the system preferences. This flag allows
 us to not relink records when the authority linker is saving modifications.
 
+=item C<defer_search_engine_indexing>
+
+Don't update search index. Useful for bulk updates where this is handled
+manually for optimization purposes.
+
 =back
 
 Returns 1 on success 0 on failure
@@ -352,6 +357,9 @@ Returns 1 on success 0 on failure
 sub ModBiblio {
     my ( $record, $biblionumber, $frameworkcode, $options ) = @_;
     $options //= {};
+    my %mod_biblio_marc_options;
+    $mod_biblio_marc_options{'defer_search_engine_indexing'} =
+        exists $options->{'defer_search_engine_indexing'} && $options->{'defer_search_engine_indexing'};
 
     if (!$record) {
         carp 'No record passed to ModBiblio';
@@ -415,7 +423,7 @@ sub ModBiblio {
     _koha_marc_update_biblioitem_cn_sort( $record, $oldbiblio, $frameworkcode );
 
     # update the MARC record (that now contains biblio and items) with the new record data
-    ModBiblioMarc( $record, $biblionumber );
+    ModBiblioMarc( $record, $biblionumber, \%mod_biblio_marc_options );
 
     # modify the other koha tables
     _koha_modify_biblio( $dbh, $oldbiblio, $frameworkcode );
@@ -2849,18 +2857,31 @@ sub _koha_delete_biblio_metadata {
 
 =head2 ModBiblioMarc
 
-  ModBiblioMarc($newrec,$biblionumber);
+  ModBiblioMarc($newrec, $biblionumber, $options);
 
 Add MARC XML data for a biblio to koha
 
 Function exported, but should NOT be used, unless you really know what you're doing
+
+The C<$options> argument is a hashref with additional parameters:
+
+=over 4
+
+=item C<defer_search_engine_indexing>
+
+Don't update search index. Useful for bulk updates where this is handled
+manually for optimization purposes.
+
+=back
 
 =cut
 
 sub ModBiblioMarc {
     # pass the MARC::Record to this function, and it will create the records in
     # the marcxml field
-    my ( $record, $biblionumber ) = @_;
+    my ( $record, $biblionumber, $options ) = @_;
+    $options //= {};
+
     if ( !$record ) {
         carp 'ModBiblioMarc passed an undefined record';
         return;
@@ -2925,8 +2946,10 @@ sub ModBiblioMarc {
     $m_rs->metadata( $record->as_xml_record($encoding) );
     $m_rs->store;
 
-    my $indexer = Koha::SearchEngine::Indexer->new({ index => $Koha::SearchEngine::BIBLIOS_INDEX });
-    $indexer->index_records( $biblionumber, "specialUpdate", "biblioserver" );
+    unless (exists $options->{'defer_search_engine_indexing'} && $options->{'defer_search_engine_indexing'}) {
+        my $indexer = Koha::SearchEngine::Indexer->new({ index => $Koha::SearchEngine::BIBLIOS_INDEX });
+        $indexer->index_records( $biblionumber, "specialUpdate", "biblioserver" );
+    }
 
     return $biblionumber;
 }
