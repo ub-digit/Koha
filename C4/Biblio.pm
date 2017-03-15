@@ -242,7 +242,7 @@ sub AddBiblio {
 
 =head2 ModBiblio
 
-  ModBiblio( $record,$biblionumber,$frameworkcode, $disable_autolink);
+  ModBiblio($record, $biblionumber, $frameworkcode, $options);
 
 Replace an existing bib record identified by C<$biblionumber>
 with one supplied by the MARC::Record object C<$record>.  The embedded
@@ -258,16 +258,34 @@ in the C<biblio> and C<biblioitems> tables, as well as
 which fields are used to store embedded item, biblioitem,
 and biblionumber data for indexing.
 
-Unless C<$disable_autolink> is passed ModBiblio will relink record headings
+The C<$options> argument is a hashref with additional parameters:
+
+=over 4
+
+=item C<context>
+
+This parameter is forwared to L</ApplyMarcMergeRules> where it is used for
+selecting the current rule set if Marc Merge Rules is enabled.
+See L</ApplyMarcMergeRules> for more details.
+
+=item C<disable_autolink>
+
+Unless C<disable_autolink> is passed ModBiblio will relink record headings
 to authorities based on settings in the system preferences. This flag allows
 us to not relink records when the authority linker is saving modifications.
+
+=back
 
 Returns 1 on success 0 on failure
 
 =cut
 
 sub ModBiblio {
-    my ( $record, $biblionumber, $frameworkcode, $disable_autolink ) = @_;
+    my ( $record, $biblionumber, $frameworkcode, $options ) = @_;
+    my %mod_biblio_marc_options;
+    $mod_biblio_marc_options{'defer_search_engine_indexing'} =
+        defined $options && exists $options->{'defer_search_engine_indexing'} && $options->{'defer_search_engine_indexing'};
+
     if (!$record) {
         carp 'No record passed to ModBiblio';
         return 0;
@@ -278,7 +296,7 @@ sub ModBiblio {
         logaction( "CATALOGUING", "MODIFY", $biblionumber, "biblio BEFORE=>" . $newrecord->as_formatted );
     }
 
-    if ( !$disable_autolink && C4::Context->preference('BiblioAddsAuthorities') ) {
+    if ( !$options->{disable_autolink} && C4::Context->preference('BiblioAddsAuthorities') ) {
         BiblioAutoLink( $record, $frameworkcode );
     }
 
@@ -315,7 +333,7 @@ sub ModBiblio {
     _koha_marc_update_biblioitem_cn_sort( $record, $oldbiblio, $frameworkcode );
 
     # update the MARC record (that now contains biblio and items) with the new record data
-    &ModBiblioMarc( $record, $biblionumber, $frameworkcode );
+    ModBiblioMarc( $record, $biblionumber, $frameworkcode, \%mod_biblio_marc_options );
 
     # modify the other koha tables
     _koha_modify_biblio( $dbh, $oldbiblio, $frameworkcode );
@@ -3088,7 +3106,7 @@ sub _koha_delete_biblio_metadata {
 
 =head2 ModBiblioMarc
 
-  &ModBiblioMarc($newrec,$biblionumber,$frameworkcode);
+  &ModBiblioMarc($newrec,$biblionumber,$frameworkcode,$options);
 
 Add MARC XML data for a biblio to koha
 
@@ -3099,7 +3117,10 @@ Function exported, but should NOT be used, unless you really know what you're do
 sub ModBiblioMarc {
     # pass the MARC::Record to this function, and it will create the records in
     # the marcxml field
-    my ( $record, $biblionumber, $frameworkcode ) = @_;
+    my ( $record, $biblionumber, $frameworkcode, $options ) = @_;
+    my $defer_search_engine_indexing =
+        defined $options && exists $options->{'defer_search_engine_indexing'} && $options->{'defer_search_engine_indexing'};
+
     if ( !$record ) {
         carp 'ModBiblioMarc passed an undefined record';
         return;
@@ -3170,8 +3191,7 @@ sub ModBiblioMarc {
     $m_rs->metadata( $record->as_xml_record($encoding) );
     $m_rs->store;
 
-    ModZebra( $biblionumber, "specialUpdate", "biblioserver" );
-
+    ModZebra( $biblionumber, "specialUpdate", "biblioserver" ) unless $defer_search_engine_indexing;
     return $biblionumber;
 }
 
