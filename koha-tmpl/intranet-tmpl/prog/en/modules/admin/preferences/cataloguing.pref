@@ -149,6 +149,11 @@ Cataloging:
             - and record's last modifier name in MARC subfield
             - pref: MarcFieldForModifierName
             - "<br/>NOTE: Use a dollar sign between field and subfield like 123$a."
+        -
+            - Apply the MARC modification template with name
+            - pref: EditBiblioMarcModificationTemplate
+              class: short
+            - on records saved using the staff client simple MARC editor, advanced editor or HTTP API.
     Display:
         -
             - 'Separate multiple displayed authors, series or subjects with '
