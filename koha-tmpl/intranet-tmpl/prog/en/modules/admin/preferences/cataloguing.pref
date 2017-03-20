@@ -155,6 +155,11 @@ Cataloging:
                   yes: Add
                   no: Do not add
             - System-Control-Number (001) and Control-Number-Identifier (003) automatically from biblionumber and MARCOrgCode.
+        -
+            - Apply the MARC modification template with name
+            - pref: EditBiblioMarcModificationTemplate
+              class: short
+            - on records saved using the staff client simple MARC editor, advanced editor or HTTP API.
     Display:
         -
             - 'Separate multiple displayed authors, series or subjects with '
