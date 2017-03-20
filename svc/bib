@@ -25,7 +25,9 @@ use CGI qw ( -utf8 );
 use C4::Auth qw/check_api_auth/;
 use C4::Biblio;
 use C4::Items;
+use C4::MarcModificationTemplates;
 use XML::Simple;
+use List::MoreUtils qw(firstval);
 
 my $query = new CGI;
 binmode STDOUT, ':encoding(UTF-8)';
@@ -111,6 +113,17 @@ sub update_bib {
                 $one_item_record->add_fields($field);
                 ModItemFromMarc( $one_item_record, $biblionumber,
                     $field->subfield($itemsubfield) );
+            }
+        }
+
+        my $marc_modification_template_name = C4::Context->preference("EditBiblioMarcModificationTemplate");
+        if ($marc_modification_template_name) {
+            my $template = firstval { $_->{'name'} eq $marc_modification_template_name } GetModificationTemplates();
+            if ($template) {
+                ModifyRecordWithTemplate($template->{'template_id'}, $record);
+            }
+            else {
+                warn "No MARC modification template exists with name \"$marc_modification_template_name\"";
             }
         }
 
