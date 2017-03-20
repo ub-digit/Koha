@@ -1,0 +1,1 @@
+INSERT IGNORE INTO systempreferences ( `variable`, `value`, `options`, `explanation`, `type`) VALUES ('EditBiblioMarcModificationTemplate', '', '', 'MARC modification template applied when saving bibliographic record in staff client or HTTP API', 'Free');
