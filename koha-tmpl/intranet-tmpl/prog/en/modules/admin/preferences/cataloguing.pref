@@ -186,6 +186,11 @@ Cataloging:
                 duplicate: "when editing records as new (duplicating)"
                 changed: "when changing the framework while editing the existing record"
                 imported: "when importing a record via z39.50"
+        -
+            - Apply the MARC modification template with name
+            - pref: SaveBiblioMarcModificationTemplate
+              class: short
+            - on records saved using the staff client simple MARC editor, advanced editor or HTTP API.
     Display:
         -
             - 'Separate main entry and subdivisions with '
