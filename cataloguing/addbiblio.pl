@@ -44,6 +44,7 @@ use MARC::Record;
 use C4::ClassSource qw( GetClassSources );
 use C4::ImportBatch qw( GetImportRecordMarc );
 use C4::Charset qw( SetMarcUnicodeFlag );
+use C4::MarcModificationTemplates;
 use Koha::BiblioFrameworks;
 use Koha::DateUtils qw( dt_from_string );
 
@@ -56,6 +57,7 @@ use Koha::Patrons;
 use MARC::File::USMARC;
 use MARC::File::XML;
 use URI::Escape qw( uri_escape_utf8 );
+use List::MoreUtils qw(firstval);
 
 if ( C4::Context->preference('marcflavour') eq 'UNIMARC' ) {
     MARC::File::XML->default_record_format('UNIMARC');
@@ -865,6 +867,16 @@ if ( $op eq "addbiblio" ) {
     # it is not a duplicate (determined either by Koha itself or by user checking it's not a duplicate)
     if ( !$duplicatebiblionumber or $confirm_not_duplicate ) {
         my $oldbibitemnum;
+        my $marc_modification_template_name = C4::Context->preference("SaveBiblioMarcModificationTemplate");
+        if ($marc_modification_template_name) {
+            my $template = firstval { $_->{'name'} eq $marc_modification_template_name } GetModificationTemplates();
+            if ($template) {
+                ModifyRecordWithTemplate($template->{'template_id'}, $record);
+            }
+            else {
+                warn "No MARC modification template exists with name \"$marc_modification_template_name\"";
+            }
+        }
         if ( $is_a_modif ) {
             my $member = Koha::Patrons->find($loggedinuser);
             ModBiblio(
