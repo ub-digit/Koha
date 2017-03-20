@@ -171,6 +171,11 @@ Cataloging:
               choices:
                   biblionumber: generated as biblionumber.
                   "OFF": not generated automatically.
+        -
+            - Apply the MARC modification template with name
+            - pref: SaveBiblioMarcModificationTemplate
+              class: short
+            - on records saved using the staff client simple MARC editor, advanced editor or HTTP API.
     Display:
         -
             - 'Separate main entry and subdivisions with '
