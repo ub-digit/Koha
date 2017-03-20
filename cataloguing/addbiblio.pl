@@ -34,6 +34,7 @@ use C4::Koha;
 use C4::ClassSource;
 use C4::ImportBatch;
 use C4::Charset;
+use C4::MarcModificationTemplates;
 use Koha::BiblioFrameworks;
 use Koha::DateUtils;
 
@@ -46,6 +47,7 @@ use Date::Calc qw(Today);
 use MARC::File::USMARC;
 use MARC::File::XML;
 use URI::Escape;
+use List::MoreUtils qw(firstval);
 
 if ( C4::Context->preference('marcflavour') eq 'UNIMARC' ) {
     MARC::File::XML->default_record_format('UNIMARC');
@@ -836,6 +838,16 @@ if ( $op eq "addbiblio" ) {
     # it is not a duplicate (determined either by Koha itself or by user checking it's not a duplicate)
     if ( !$duplicatebiblionumber or $confirm_not_duplicate ) {
         my $oldbibitemnum;
+        my $marc_modification_template_name = C4::Context->preference("EditBiblioMarcModificationTemplate");
+        if ($marc_modification_template_name) {
+            my $template = firstval { $_->{'name'} eq $marc_modification_template_name } GetModificationTemplates();
+            if ($template) {
+                ModifyRecordWithTemplate($template->{'template_id'}, $record);
+            }
+            else {
+                warn "No MARC modification template exists with name \"$marc_modification_template_name\"";
+            }
+        }
         if ( $is_a_modif ) {
             ModBiblio( $record, $biblionumber, $frameworkcode );
         }
