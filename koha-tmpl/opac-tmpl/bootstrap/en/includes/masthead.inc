@@ -139,6 +139,7 @@
 
     <div class="container-fluid">
         <div class="row-fluid">
+            [% IF Koha.Preference('enableOpacCatalogBrowsing') == 1 %]
             <div id="opac-main-search">
     <!--             <div class="span2">
         [% IF ( opacsmallimage ) %]
@@ -297,6 +298,7 @@
                 [% END # / OpacPublic %]
             </div> <!-- /.span10 -->
             </div> <!-- /.opac-main-search -->
+            [% END %]
         </div> <!-- / .row-fluid -->
     </div> <!-- /.container-fluid -->
 
@@ -334,7 +336,15 @@
                             [% Koha.Preference( 'NoLoginInstructions' ) %]
                         </div>
                     [% END %]
-                        [% IF PatronSelfRegistration && PatronSelfRegistrationDefaultCategory %]<div id="mpatronregistration"><p>Don't have an account? <a href="/cgi-bin/koha/opac-memberentry.pl">Register here.</a></p></div>[% END %]
+
+                        [% IF PatronSelfRegistration && PatronSelfRegistrationDefaultCategory %]
+                                <div id="mpatronregistration"><p>Don't have an account?
+                                    [% IF Koha.Preference( 'PatronSelfRegistrationLinkAddress') %]
+                                        <a href="[% Koha.Preference( 'PatronSelfRegistrationLinkAddress') %]">Register here.</a>
+                                    [% ELSE %]
+                                        <a href="/cgi-bin/koha/opac-memberentry.pl">Register here.</a>
+                                    [% END %]
+                        [% END %]
                     </fieldset>
             </div>
             <div class="modal-footer">
