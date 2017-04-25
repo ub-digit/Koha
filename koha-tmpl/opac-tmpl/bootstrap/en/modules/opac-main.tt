@@ -119,7 +119,15 @@
                                     <fieldset class="action">
                                         <input type="submit" value="Log in" class="btn" />
                                     </fieldset>
-                                    [% IF PatronSelfRegistration && PatronSelfRegistrationDefaultCategory %]<div id="patronregistration"><p>Don't have an account? <a href="/cgi-bin/koha/opac-memberentry.pl">Register here.</a></p></div>[% END %]
+                                    [% IF PatronSelfRegistration && PatronSelfRegistrationDefaultCategory %]
+                                      <div id="patronregistration"><p>Don't have an account?
+                                      [% IF Koha.Preference( 'PatronSelfRegistrationLinkAddress') %]
+                                        <a href="[% Koha.Preference( 'PatronSelfRegistrationLinkAddress') %]">Register here.</a>
+                                      [% ELSE %]
+                                        <a href="/cgi-bin/koha/opac-memberentry.pl">Register here.</a>
+                                      [% END %]
+                                      </p></div>
+                                    [% END %]
                                     </fieldset>
                                 [% IF Koha.Preference('OpacPasswordChange') && Koha.Preference('OpacResetPassword') %]
                                     <div id="forgotpassword">
