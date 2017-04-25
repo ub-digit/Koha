@@ -292,6 +292,7 @@ my $reserves = Koha::Holds->search( { borrowernumber => $borrowernumber } );
 $template->param(
     RESERVES       => $reserves,
     showpriority   => $show_priority,
+    external_url => sub {my $bibnumber = shift; my $url = sprintf(C4::Context->preference('externalSiteURL'),$bibnumber); return $url;},
 );
 
 # current alert subscriptions
