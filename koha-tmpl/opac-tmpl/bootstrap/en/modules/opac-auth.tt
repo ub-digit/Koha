@@ -186,8 +186,12 @@
                                 <h5>Don't have a library card?</h5>
                                 <p>If you don't have a library card, stop by your local library to sign up.</p>
                             [% END # / IF Koha.Preference('NoLoginInstructions') %]
-
-                            [% IF PatronSelfRegistration && PatronSelfRegistrationDefaultCategory %]<span id="registrationinstructions"><a href="/cgi-bin/koha/opac-memberentry.pl">You may register here.</a></span>
+                            [% IF PatronSelfRegistration && PatronSelfRegistrationDefaultCategory %]
+                              [% IF Koha.Preference( 'PatronSelfRegistrationLinkAddress') %]
+                                <span id="registrationinstructions"><a href="[% Koha.Preference( 'PatronSelfRegistrationLinkAddress') %]">You may register here.</a></span>
+	                            [% ELSE %]
+                                <span id="registrationinstructions"><a href="/cgi-bin/koha/opac-memberentry.pl">You may register here.</a></span>
+                              [% END %]
                             [% END %]
                             </div>
                             </form>
