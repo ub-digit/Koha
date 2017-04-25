@@ -6,7 +6,7 @@
         <div class="navbar navbar-inverse navbar-static-top">
             <div class="navbar-inner">
                 <div class="container-fluid">
-                    <h1 id="logo">
+                    <h1 id="logo" class="pull-left">
                         <a class="brand" href="/cgi-bin/koha/opac-main.pl">
                             [% IF ( LibraryNameTitle ) %]
                                 [% LibraryNameTitle %]
@@ -15,6 +15,7 @@
                             [% END %]
                         </a>
                     </h1>
+                    <div class="navbar-appname"> Mina lån </div>
                     [% IF ( Koha.Preference( 'opacbookbag' ) == 1 ) %]
                         <div id="cartDetails" class="cart-message">Your cart is empty.</div>
                     [% END %]
