@@ -55,6 +55,39 @@ my $patron = Koha::Patrons->find( $borrowernumber ); # FIXME and if borrowernumb
 my $messaging_options = C4::Members::Messaging::GetMessagingOptions();
 
 if ( defined $query->param('modify') && $query->param('modify') eq 'yes' ) {
+    # if simplified form is to be used we add the params here
+    if ( defined $query->param('simple') && $query->param('simple') eq 'yes') {
+        if (defined $query->param ('opacmessaging-simple-radios')) {
+            my %whichActionsToTickUsingSimpleOpacMessaging = map { $_ => 1 } (split /\|/, C4::Context->preference('whichActionsToTickUsingSimpleOpacMessaging')); # split the string to array and then convert to hash to use keys for easy checking
+            if ($query->param('opacmessaging-simple-radios') eq 'sms') {
+                foreach my $messaging_option (@{$messaging_options})
+                {
+                    if ($whichActionsToTickUsingSimpleOpacMessaging{$messaging_option->{'message_name'}}) {
+                        $query->param($messaging_option->{'message_attribute_id'}, "sms");
+                    }
+                }
+            }
+            elsif ($query->param('opacmessaging-simple-radios') eq 'email') {
+                # set all types to email
+                foreach my $messaging_option (@{$messaging_options})
+                {
+                    if ($whichActionsToTickUsingSimpleOpacMessaging{$messaging_option->{'message_name'}}) {
+                         $query->param($messaging_option->{'message_attribute_id'}, "email");
+                    }
+                }
+            }
+            elsif (($query->param('opacmessaging-simple-radios') eq 'SmsAndEmail')) {
+                 # set all types to email and sms
+                foreach my $messaging_option (@{$messaging_options})
+                {
+                    if ($whichActionsToTickUsingSimpleOpacMessaging{$messaging_option->{'message_name'}}) {
+                        $query->param($messaging_option->{'message_attribute_id'}, "sms", "email");
+                    }
+                }
+            }
+        }
+    }
+
     my $sms = $query->param('SMSnumber');
     my $sms_provider_id = $query->param('sms_provider_id');
     if ( defined $sms && ( $patron->smsalertnumber // '' ) ne $sms
@@ -62,6 +95,7 @@ if ( defined $query->param('modify') && $query->param('modify') eq 'yes' ) {
         $patron->set({
             smsalertnumber  => $sms,
             sms_provider_id => $sms_provider_id,
+            email           => $query->param('email'),
         })->store;
     }
 
@@ -73,6 +107,7 @@ C4::Form::MessagingPreferences::set_form_values({ borrowernumber     => $patron-
 $template->param(
                   messagingview         => 1,
                   SMSnumber             => $patron->smsalertnumber, # FIXME This is already sent 2 lines above
+                  email => $patron->email,
                   SMSSendDriver                =>  C4::Context->preference("SMSSendDriver"),
                   TalkingTechItivaPhone        =>  C4::Context->preference("TalkingTechItivaPhoneNotification") );
 
