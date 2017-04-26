@@ -25,6 +25,14 @@ OPAC:
                   no: "Don't show"
             - "a summary of a logged in user's checkouts, overdues, holds and fines on the mainpage"
         -
+            - pref: enableSimpleOpacMessaging
+              choices:
+                  yes: "Enable"
+                  no: "Disable"
+            -  the simple form of messaging options. This will enable the user to set sms, email or sms and email for all different events listed in the input box below.
+            - pref: whichActionsToTickUsingSimpleOpacMessaging
+              class: multi
+            - (separate columns with |)
             - pref: enableOpacCatalogBrowsing
               choices:
                   yes: "Enable"
