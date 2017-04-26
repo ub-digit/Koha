@@ -69,6 +69,7 @@ if ( $op eq 'add_form' ) {
     $template->param(
         category => $category,
         branches_loop       => \@branches_loop,
+        is_admin_page   => 1,
     );
 
     if ( C4::Context->preference('EnhancedMessagingPreferences') ) {
