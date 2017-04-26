@@ -39,6 +39,28 @@ OPAC:
             - pref: externalSiteURL
               class: url
         -
+            - pref: enableSimpleOpacMessaging
+              choices:
+                  yes: "Enable"
+                  no: "Disable"
+            -  the simple form of messaging options. This will enable the user to set sms, email or sms and email for all different events listed in the input box below.
+            - pref: whichActionsToTickUsingSimpleOpacMessaging
+              class: multi
+            - (separate columns with |)
+            - pref: enableOpacCatalogBrowsing
+              choices:
+                  yes: "Enable"
+                  no: "Disable"
+            -  catalog browsing and searching.
+        -
+            - pref: linkToExternalSite
+              choices:
+                  yes: "Link to external site"
+                  no: "Link to OPAC"
+            - for links to bibliographic records. The external URL is
+            - pref: externalSiteURL
+              class: url
+        -
             - For search results in the OPAC, show the item's
             - pref: OPACResultsLibrary
               choices:
