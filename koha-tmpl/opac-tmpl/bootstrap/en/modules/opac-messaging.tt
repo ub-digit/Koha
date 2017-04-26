@@ -28,6 +28,7 @@
                     [% IF ( settings_updated ) %]
                         <div class="alert alert-success"><h4>Settings updated</h4></div>
                     [% END %]
+                    [% IF !Koha.Preference('enableSimpleOpacMessaging') %]
                     <form action="/cgi-bin/koha/opac-messaging.pl" method="get" name="opacmessaging">
                         <input type="hidden" name="modify" value="yes" />
 
@@ -146,6 +147,114 @@
                           <input type="submit" value="Submit changes" class="btn" />
                         </fieldset>
                     </form>
+                    [% END %] <!-- END !enableSimpleOpacMessaging -->
+
+                    [% IF Koha.Preference('enableSimpleOpacMessaging') %]
+                        <!-- START - Simplified form -->
+                        <form action="/cgi-bin/koha/opac-messaging.pl" method="get" name="opacmessaging-simple">
+                            <input type="hidden" name="simple" value="yes" />
+                            <input type="hidden" name="modify" value="yes" />
+                                <table class="table table-bordered table-condensed table-striped">
+                                    <tr>
+                                        <th>&nbsp;</th>
+                                        [% IF ( SMSSendDriver ) %]<th>SMS</th>[% END %]
+                                        <th>Email</th>
+                                        [% IF ( SMSSendDriver ) %]<th>Email and SMS</th>[% END %]
+                                    </tr>
+                                    [% FOREACH messaging_preference IN messaging_preferences %]
+                                        [% IF ( messaging_preference.Advance_Notice ) %]
+                                          [% IF ( messaging_preference.takes_days ) %]
+                                            [% FOREACH select_day IN messaging_preference.select_days %]
+                                              [% IF ( select_day.selected ) %]
+                                                <input type="hidden" name="[% messaging_preference.message_attribute_id %]-DAYS" value="[% select_day.day %]"></input>
+                                              [% END %]
+                                            [% END %]
+                                          [% END %]
+                                            <tr>
+                                                <td>Reminders and notifications</td>
+                                                [% IF ( messaging_preference.transport_sms ) %]
+                                                    [% IF ( SMSSendDriver ) %]
+                                                        <td>
+                                                            [% IF ( messaging_preference.transports_sms ) %]
+                                                                <label class="radio">
+                                                                  <input type="radio" name="opacmessaging-simple-radios" id="optionSMS" value="sms" checked>
+                                                                  SMS
+                                                                </label>
+                                                            [% ELSE %]
+                                                                <label class="radio">
+                                                                  <input type="radio" name="opacmessaging-simple-radios" id="optionSMS" value="sms" >
+                                                                  SMS
+                                                                </label>
+                                                            [% END %]
+                                                        </td>
+                                                    [% END %]
+                                                [% END %]
+                                                [% IF ( messaging_preference.transport_email ) %]
+                                                    <td>
+                                                        [% IF ( messaging_preference.transports_email ) %]
+                                                            <label class="radio">
+                                                              <input type="radio" name="opacmessaging-simple-radios" id="optionEMAIL" value="email" checked >
+                                                              Email
+                                                            </label>
+                                                        [% ELSE %]
+                                                            <label class="radio">
+                                                              <input type="radio" name="opacmessaging-simple-radios" id="optionEMAIL" value="email" >
+                                                              Email
+                                                            </label>
+                                                        [% END %]
+                                                    </td>
+                                                [% ELSE %]
+                                                    <td>-</td>
+                                                [% END %]
+
+                                                [% IF ( messaging_preference.transport_sms ) %]
+                                                    [% IF ( SMSSendDriver ) %]
+                                                        <td>
+                                                            [% IF ( messaging_preference.transports_sms && messaging_preference.transports_email) %]
+                                                                <label class="radio">
+                                                                  <input type="radio" name="opacmessaging-simple-radios" id="optionSmsAndEmail" value="SmsAndEmail" checked>
+                                                                  Email and SMS
+                                                                </label>
+                                                            [% ELSE %]
+                                                                <label class="radio">
+                                                                  <input type="radio" name="opacmessaging-simple-radios" id="optionSmsAndEmail" value="SmsAndEmail" >
+                                                                  Email and SMS
+                                                                </label>
+                                                            [% END %]
+                                                        </td>
+                                                    [% END %]
+                                                [% END %]
+                                            </tr>
+                                        [% END %]
+                                    [% END # / FOREACH messaging_preferences%]
+                            </table>
+                            <fieldset class="rows">
+                                [% IF ( SMSSendDriver ) %]
+                                    <ol>
+                                        <li>
+                                            [% IF (email) %]
+                                                <strong>Email:</strong> [% email | html %]
+                                            [% ELSE %]
+                                                You have not yet registered an email address. <a href="/cgi-bin/koha/opac-memberentry.pl">Click here to edit your details. </a>
+                                            [% END %]
+                                        </li>
+                                        <li>
+                                            [% IF (SMSnumber) %]
+                                                <strong>Mobile/SMS:</strong> [% SMSnumber | html %]
+                                            [% ELSE %]
+                                                You have not yet registered a mobile/sms number. <a href="/cgi-bin/koha/opac-memberentry.pl">Click here to edit your details. </a>
+                                            [% END %]
+                                        </li>
+                                    </ol>
+                                [% END %]
+                            </fieldset>
+
+                            <fieldset class="action">
+                              <input type="submit" value="Submit changes" class="btn" /> <a class="cancel" href="/cgi-bin/koha/opac-user.pl">Cancel</a>
+                            </fieldset>
+                        </form>
+                        <!-- END - Simplified form  -->
+                    [% END %]
                 </div> <!-- / #usermessaging -->
                 [% ELSE %]
                     <h4>You are not allowed to call this page directly</h4>
