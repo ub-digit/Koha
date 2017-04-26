@@ -49,6 +49,7 @@ if ( $op eq 'add_form' ) {
 
     $template->param(
         category => scalar Koha::Patron::Categories->find($categorycode),
+        is_admin_page   => 1,
     );
 
     if ( C4::Context->preference('EnhancedMessagingPreferences') ) {
