@@ -1,6 +1,102 @@
 [% USE Koha %]
 <!-- snippet for form to set borrower and patron category messaging preferences -->
 
+[% IF Koha.Preference('enableSimpleOpacMessaging') && !is_admin_page %]
+    <!-- START - Simplified form -->
+    <input type="hidden" name="simple-messaging" value="yes" />
+    <input type="hidden" name="modify" value="yes" />
+    <input type="hidden" name="">
+        <table>
+            <tr>
+                <th>Paper</th>
+                [% IF ( SMSSendDriver ) %]<th>SMS</th>[% END %]
+                <th>Email</th>
+                [% IF ( SMSSendDriver ) %]<th>SMS & Email</th>[% END %]
+            </tr>
+            [% FOREACH messaging_preference IN messaging_preferences %]
+                [% IF ( messaging_preference.Advance_Notice ) %]
+                      [% IF ( messaging_preference.takes_days ) %]
+                        [% FOREACH select_day IN messaging_preference.select_days %]
+                          [% IF ( select_day.selected ) %]
+                            <input type="hidden" name="[% messaging_preference.message_attribute_id %]-DAYS" value="[% select_day.day %]"></input>
+                          [% END %]
+                        [% END %]
+                      [% END %]
+                    <tr>
+                        <td>
+                        [% IF ( !messaging_preference.transports_sms && !messaging_preference.transports_email) %]
+                            <label class="radio">
+                              <input type="radio" name="opacmessaging-simple-radios" id="optionPaper" value="paper" checked>
+                              Paper
+                            </label>
+                        [% ELSE %]
+                            <label class="radio">
+                              <input type="radio" name="opacmessaging-simple-radios" id="optionPaper" value="paper" >
+                              Paper
+                            </label>
+                        [% END %]
+                        </td>
+                        [% IF ( messaging_preference.transport_sms ) %]
+                            [% IF ( SMSSendDriver ) %]
+                                <td>
+                                    [% IF ( messaging_preference.transports_sms ) %]
+                                        <label class="radio">
+                                          <input type="radio" name="opacmessaging-simple-radios" id="optionSMS" value="sms" checked>
+                                          SMS
+                                        </label>
+                                    [% ELSE %]
+                                        <label class="radio">
+                                          <input type="radio" name="opacmessaging-simple-radios" id="optionSMS" value="sms" >
+                                          SMS
+                                        </label>
+                                    [% END %]
+                                </td>
+                            [% END %]
+                        [% END %]
+
+                        [% IF ( messaging_preference.transport_email ) %]
+                            <td>
+                                [% IF ( messaging_preference.transports_email ) %]
+                                    <label class="radio">
+                                      <input type="radio" name="opacmessaging-simple-radios" id="optionEMAIL" value="email" checked >
+                                      Email
+                                    </label>
+                                [% ELSE %]
+                                    <label class="radio">
+                                      <input type="radio" name="opacmessaging-simple-radios" id="optionEMAIL" value="email" >
+                                      Email
+                                    </label>
+                                [% END %]
+                            </td>
+                        [% ELSE %]
+                            <td>-</td>
+                        [% END %]
+
+                        [% IF ( messaging_preference.transport_sms ) %]
+                            [% IF ( SMSSendDriver ) %]
+                                <td>
+                                    [% IF ( messaging_preference.transports_sms && messaging_preference.transports_email) %]
+                                        <label class="radio">
+                                          <input type="radio" name="opacmessaging-simple-radios" id="optionSmsAndEmail" value="SmsAndEmail" checked>
+                                          SMS and Email
+                                        </label>
+                                    [% ELSE %]
+                                        <label class="radio">
+                                          <input type="radio" name="opacmessaging-simple-radios" id="optionSmsAndEmail" value="SmsAndEmail" >
+                                          SMS and Email
+                                        </label>
+                                    [% END %]
+                                </td>
+                            [% END %]
+                        [% END %]
+                    </tr>
+                [% END %]
+            [% END # / FOREACH messaging_preferences%]
+    </table>
+    <!-- END - Simplified form  -->
+[% END %]
+
+[% IF !Koha.Preference('enableSimpleOpacMessaging') || is_admin_page %]
 <input type="hidden" name="modify" value="yes" />
 <input type="hidden" name="borrowernumber" value="[% borrowernumber | html %]" />
   <table>
@@ -195,3 +291,4 @@
     </tr>
     [% END %]
   </table>
+[% END %]
