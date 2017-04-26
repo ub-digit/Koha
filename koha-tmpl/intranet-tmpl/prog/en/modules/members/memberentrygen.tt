@@ -1621,7 +1621,8 @@ legend:hover {
                                             <p>
                                                 <label for="SMSnumber">SMS number:</label>
                                                 <input type="text" id="SMSnumber" name="SMSnumber" value="[% SMSnumber | html %]" />
-                                                <span class="hint sms_number_help">Please enter numbers only. Prefix the number with + or 00 if including the country code.</span>
+                                                <span id="missing_sms_number_error" class="required" style="display:none;">Inget sms-nummer angivet</span>
+                                                <span class="hint sms_number_help hidden">Please enter numbers only. Prefix the number with + or 00 if including the country code.</span>
                                             </p>
                                             [% IF SMSSendDriver == 'Email' && !nosms_provider_id %]
                                                 <p>
@@ -1672,6 +1673,38 @@ legend:hover {
     [% INCLUDE 'str/members-menu.inc' %]
     [% Asset.js("js/members-menu.js") | $raw %]
     <script>
+        [% IF Koha.Preference('enableSimpleMessaging') && !is_admin_page && !CAN_user_superlibrarian %]
+            $(document).ready(function() {
+                $("#missing_sms_number_error").hide();
+                $("#saverecord").attr("disabled", false);
+                if ( ($("input[name='messaging-simple-radios']:checked").val() === "sms") || ($("input[name='messaging-simple-radios']:checked").val() === "SmsAndEmail") ) {
+                    if ($("#SMSnumber").val() === "") {
+                        $("#missing_sms_number_error").show();
+                        $("#saverecord").attr("disabled", true);
+                    }
+                    else {
+                        $("#saverecord").attr("disabled", false);
+                    }
+                }
+                $("input[name='messaging-simple-radios']").change(function(e){
+                    $("#missing_sms_number_error").hide();
+                    $("#saverecord").attr("disabled", false);
+                    if( ($("input[name='messaging-simple-radios']:checked").val() === "sms") || ($("input[name='messaging-simple-radios']:checked").val() === "SmsAndEmail") ) {
+                        if ($("#SMSnumber").val() === "") {
+                            $("#missing_sms_number_error").show();
+                            $("#saverecord").attr("disabled", true);
+                        }
+                        else {
+                            $("#missing_sms_number_error").hide();
+                            $("#saverecord").attr("disabled", false);
+                        }
+                    }
+                });
+                $("#SMSnumber").on("change paste keyup", function() {
+                    $("input[name='messaging-simple-radios']").trigger("change");
+                });
+            });
+        [% END %]
         function update_cardnumber_warning(size){
             var max_len = [% maxlength_cardnumber | html %];
             if ( size >= max_len ) {
