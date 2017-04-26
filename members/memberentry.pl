@@ -35,6 +35,7 @@ use C4::Members::AttributeTypes;
 use C4::Koha;
 use C4::Log;
 use C4::Letters;
+use C4::Members::Messaging;
 use C4::Form::MessagingPreferences;
 use Koha::AuthUtils;
 use Koha::AuthorisedValues;
@@ -59,7 +60,10 @@ use vars qw($debug);
 BEGIN {
 	$debug = $ENV{DEBUG} || 0;
 }
-	
+
+my $messaging_options = C4::Members::Messaging::GetMessagingOptions();
+
+
 my $input = new CGI;
 ($debug) or $debug = $input->param('debug') || 0;
 my %data;
@@ -410,6 +414,55 @@ if ( ($op eq 'modify' || $op eq 'insert' || $op eq 'save'|| $op eq 'duplicate') 
     }
 }
 
+# do this for both save and insert  if EnhancedMessagingPreferences and simple-messaging is used
+if ( $op eq 'insert' || $op eq 'save') {
+    # if simplified form is to be used we add the params here
+    if (C4::Context->preference('EnhancedMessagingPreferences') and $input->param('setting_messaging_prefs')) {
+      if ( defined $input->param('simple-messaging') && $input->param('simple-messaging') eq 'yes') {
+          if (defined $input->param ('opacmessaging-simple-radios')) {
+              my %whichActionsToTickUsingSimpleOpacMessaging = map { $_ => 1 } (split /\|/, C4::Context->preference('whichActionsToTickUsingSimpleOpacMessaging')); # split the string to array and then convert to hash to use keys for easy checking
+              if ($input->param('opacmessaging-simple-radios') eq 'sms') {
+                  foreach my $messaging_option (@{$messaging_options})
+                  {
+                    if ($whichActionsToTickUsingSimpleOpacMessaging{$messaging_option->{'message_name'}}) {
+                        $input->param($messaging_option->{'message_attribute_id'}, "sms");
+
+                    }
+                  }
+
+              }
+              elsif ($input->param('opacmessaging-simple-radios') eq 'email') {
+                  # set all types to email
+                  foreach my $messaging_option (@{$messaging_options})
+                  {
+                    if ($whichActionsToTickUsingSimpleOpacMessaging{$messaging_option->{'message_name'}}) {
+                         $input->param($messaging_option->{'message_attribute_id'}, "email");
+                    }
+                  }
+              }
+              elsif (($input->param('opacmessaging-simple-radios') eq 'SmsAndEmail')) {
+                   # set all types to email and sms
+                  foreach my $messaging_option (@{$messaging_options})
+                  {
+                    if ($whichActionsToTickUsingSimpleOpacMessaging{$messaging_option->{'message_name'}}) {
+                      $input->param($messaging_option->{'message_attribute_id'}, "sms", "email");
+                    }
+                  }
+              }
+              elsif (($input->param('opacmessaging-simple-radios') eq 'paper')) {
+                   # set all types to do not notify
+                  foreach my $messaging_option (@{$messaging_options})
+                  {
+                    if ($whichActionsToTickUsingSimpleOpacMessaging{$messaging_option->{'message_name'}}) {
+                      $input->delete($messaging_option->{'message_attribute_id'});
+                    }
+                  }
+              }
+          }
+      }
+    }
+}
+
 # BZ 14683: Do not mixup mobile [read: other phone] with smsalertnumber
 my $sms = $input->param('SMSnumber');
 if ( defined $sms ) {
@@ -462,9 +515,13 @@ if ((!$nok) and $nodouble and ($op eq 'insert' or $op eq 'save')){
         if (C4::Context->preference('ExtendedPatronAttributes') and $input->param('setting_extended_patron_attributes')) {
             C4::Members::Attributes::SetBorrowerAttributes($borrowernumber, $extended_patron_attributes);
         }
+
+
         if (C4::Context->preference('EnhancedMessagingPreferences') and $input->param('setting_messaging_prefs')) {
             C4::Form::MessagingPreferences::handle_form_action($input, { borrowernumber => $borrowernumber }, $template, 1, $newdata{'categorycode'});
         }
+
+
         # Try to do the live sync with the Norwegian national patron database, if it is enabled
         if ( exists $data{'borrowernumber'} && C4::Context->preference('NorwegianPatronDBEnable') && C4::Context->preference('NorwegianPatronDBEnable') == 1 ) {
             NLSync({ 'borrowernumber' => $borrowernumber });
@@ -523,6 +580,7 @@ if ((!$nok) and $nodouble and ($op eq 'insert' or $op eq 'save')){
         if (C4::Context->preference('ExtendedPatronAttributes') and $input->param('setting_extended_patron_attributes')) {
             C4::Members::Attributes::SetBorrowerAttributes($borrowernumber, $extended_patron_attributes);
         }
+
         if (C4::Context->preference('EnhancedMessagingPreferences') and $input->param('setting_messaging_prefs')) {
             C4::Form::MessagingPreferences::handle_form_action($input, { borrowernumber => $borrowernumber }, $template);
         }
