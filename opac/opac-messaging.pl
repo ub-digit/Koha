@@ -54,6 +54,39 @@ my $borrower = Koha::Patrons->find( $borrowernumber )->unblessed;
 my $messaging_options = C4::Members::Messaging::GetMessagingOptions();
 
 if ( defined $query->param('modify') && $query->param('modify') eq 'yes' ) {
+    # if simplified form is to be used we add the params here
+    if ( defined $query->param('simple') && $query->param('simple') eq 'yes') {
+        if (defined $query->param ('opacmessaging-simple-radios')) {
+            my %whichActionsToTickUsingSimpleOpacMessaging = map { $_ => 1 } (split /\|/, C4::Context->preference('whichActionsToTickUsingSimpleOpacMessaging')); # split the string to array and then convert to hash to use keys for easy checking
+            if ($query->param('opacmessaging-simple-radios') eq 'sms') {
+                foreach my $messaging_option (@{$messaging_options})
+                {
+                    if ($whichActionsToTickUsingSimpleOpacMessaging{$messaging_option->{'message_name'}}) {
+                        $query->param($messaging_option->{'message_attribute_id'}, "sms");
+                    }
+                }
+            }
+            elsif ($query->param('opacmessaging-simple-radios') eq 'email') {
+                # set all types to email
+                foreach my $messaging_option (@{$messaging_options})
+                {
+                    if ($whichActionsToTickUsingSimpleOpacMessaging{$messaging_option->{'message_name'}}) {
+                         $query->param($messaging_option->{'message_attribute_id'}, "email");
+                    }
+                }
+            }
+            elsif (($query->param('opacmessaging-simple-radios') eq 'SmsAndEmail')) {
+                 # set all types to email and sms
+                foreach my $messaging_option (@{$messaging_options})
+                {
+                    if ($whichActionsToTickUsingSimpleOpacMessaging{$messaging_option->{'message_name'}}) {
+                        $query->param($messaging_option->{'message_attribute_id'}, "sms", "email");
+                    }
+                }
+            }
+        }
+    }
+
     my $sms = $query->param('SMSnumber');
     my $sms_provider_id = $query->param('sms_provider_id');
     if ( defined $sms && ( $borrower->{'smsalertnumber'} // '' ) ne $sms

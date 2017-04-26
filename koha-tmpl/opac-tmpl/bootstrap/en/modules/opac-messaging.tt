@@ -28,6 +28,7 @@
                     [% IF ( settings_updated ) %]
                         <div class="alert alert-success"><h4>Settings updated</h4></div>
                     [% END %]
+                    [% IF !Koha.Preference('enableSimpleOpacMessaging') %]
                     <form action="/cgi-bin/koha/opac-messaging.pl" method="get" name="opacmessaging">
                         <input type="hidden" name="modify" value="yes" />
 
@@ -160,6 +161,113 @@
                           <input type="submit" value="Submit changes" class="btn" /> <a class="cancel" href="/cgi-bin/koha/opac-user.pl">Cancel</a>
                         </fieldset>
                     </form>
+                    [% END %] <!-- END !enableSimpleOpacMessaging -->
+
+                    [% IF Koha.Preference('enableSimpleOpacMessaging') %]
+                        <!-- START - Simplified form -->
+                        <form action="/cgi-bin/koha/opac-messaging.pl" method="get" name="opacmessaging-simple">
+                            <input type="hidden" name="simple" value="yes" />
+                            <input type="hidden" name="modify" value="yes" />
+                                <table class="table table-bordered table-condensed table-striped">
+                                    <tr>
+                                        <th>&nbsp;</th>
+                                        [% IF ( SMSSendDriver ) %]<th>SMS</th>[% END %]
+                                        <th>Email</th>
+                                        [% IF ( SMSSendDriver ) %]<th>SMS & Email</th>[% END %]
+                                    </tr>
+                                    [% FOREACH messaging_preference IN messaging_preferences %]
+                                        [% IF ( messaging_preference.Advance_Notice ) %]
+                                            <tr>
+                                                <td>Method of communication</td>
+                                                [% IF ( messaging_preference.transport_sms ) %]
+                                                    [% IF ( SMSSendDriver ) %]
+                                                        <td>
+                                                            [% IF ( messaging_preference.transports_sms ) %]
+                                                                <label class="radio">
+                                                                  <input type="radio" name="opacmessaging-simple-radios" id="optionSMS" value="sms" checked>
+                                                                  SMS
+                                                                </label>
+                                                            [% ELSE %]
+                                                                <label class="radio">
+                                                                  <input type="radio" name="opacmessaging-simple-radios" id="optionSMS" value="sms" >
+                                                                  SMS
+                                                                </label>
+                                                            [% END %]
+                                                        </td>
+                                                    [% END %]
+                                                [% END %]
+                                                [% IF ( messaging_preference.transport_email ) %]
+                                                    <td>
+                                                        [% IF ( messaging_preference.transports_email ) %]
+                                                            <label class="radio">
+                                                              <input type="radio" name="opacmessaging-simple-radios" id="optionEMAIL" value="email" checked >
+                                                              Email
+                                                            </label>
+                                                        [% ELSE %]
+                                                            <label class="radio">
+                                                              <input type="radio" name="opacmessaging-simple-radios" id="optionEMAIL" value="email" >
+                                                              Email
+                                                            </label>
+                                                        [% END %]
+                                                    </td>
+                                                [% ELSE %]
+                                                    <td>-</td>
+                                                [% END %]
+
+                                                [% IF ( messaging_preference.transport_sms ) %]
+                                                    [% IF ( SMSSendDriver ) %]
+                                                        <td>
+                                                            [% IF ( messaging_preference.transports_sms && messaging_preference.transports_email) %]
+                                                                <label class="radio">
+                                                                  <input type="radio" name="opacmessaging-simple-radios" id="optionSmsAndEmail" value="SmsAndEmail" checked>
+                                                                  SMS and Email
+                                                                </label>
+                                                            [% ELSE %]
+                                                                <label class="radio">
+                                                                  <input type="radio" name="opacmessaging-simple-radios" id="optionSmsAndEmail" value="SmsAndEmail" >
+                                                                  SMS and Email
+                                                                </label>
+                                                            [% END %]
+                                                        </td>
+                                                    [% END %]
+                                                [% END %]
+                                            </tr>
+                                        [% END %]
+                                    [% END # / FOREACH messaging_preferences%]
+                            </table>
+                            <fieldset class="rows">
+                                [% IF ( SMSSendDriver ) %]
+                                    <ol><li><label>Notice:</label>Some charges for text messages may be incurred when using this service. Please check with your mobile service provider if you have questions.</li></ol>
+                                    <ol><li>
+                                        <label for="SMSnumber">SMS number:</label> <input type="text" id="SMSnumber" name="SMSnumber" value="[% SMSnumber %]" />
+                                        <i>Please enter numbers only. <b>(123) 456-7890</b> would be entered as <b>1234567890</b>.</i>
+                                    </li></ol>
+                                [% END %]
+
+                                [% IF ( SMSSendDriver == 'Email' ) %]
+                                    <ol><li>
+                                        <label for="sms_provider_id">SMS provider:</label>
+                                        <select id="sms_provider_id" name="sms_provider_id"/>
+                                            <option value="">Unknown</option>
+                                            [% FOREACH s IN sms_providers %]
+                                                [% IF s.id == sms_provider_id %]
+                                                    <option value="[% s.id %]" selected="selected">[% s.name %]</option>
+                                                [% ELSE %]
+                                                    <option value="[% s.id %]">[% s.name %]</option>
+                                                [% END %]
+                                            [% END %]
+                                        </select>
+                                        <i>Please contact a library staff member if you are unsure of your mobile service provider, or you do not see your provider in this list.</i>
+                                    </li></ol>
+                                [% END %]
+                            </fieldset>
+
+                            <fieldset class="action">
+                              <input type="submit" value="Submit changes" class="btn" /> <a class="cancel" href="/cgi-bin/koha/opac-user.pl">Cancel</a>
+                            </fieldset>
+                        </form>
+                        <!-- END - Simplified form  -->
+                    [% END %]
                 </div> <!-- / #usermessaging -->
                 [% ELSE %]
                     <h4>You are not allowed to call this page directly</h4>
