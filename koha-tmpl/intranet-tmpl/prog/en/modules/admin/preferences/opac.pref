@@ -1,6 +1,12 @@
 OPAC:
     Appearance:
         -
+            - pref: enableSimpleOpacMessaging
+              choices:
+                  yes: "Enable"
+                  no: "Disable"
+            -  the simple form of messaging options. This will enable the user to set sms, email or sms and email for all different events in one go.
+        -
             - For search results in the OPAC, show the item's
             - pref: OPACResultsLibrary
               choices:
