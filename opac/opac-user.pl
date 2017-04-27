@@ -352,6 +352,7 @@ $template->param(
     OpacRenewalAllowed       => C4::Context->preference("OpacRenewalAllowed"),
     userview                 => 1,
     SuspendHoldsOpac         => C4::Context->preference('SuspendHoldsOpac'),
+    ShowICalLinkInSummary    => C4::Context->preference('ShowICalLinkInSummary'),
     AutoResumeSuspendedHolds => C4::Context->preference('AutoResumeSuspendedHolds'),
     OpacHoldNotes            => C4::Context->preference('OpacHoldNotes'),
     failed_holds             => scalar $query->param('failed_holds'),
