@@ -33,6 +33,7 @@ OPAC:
             - pref: whichActionsToTickUsingSimpleOpacMessaging
               class: multi
             - (separate columns with |)
+        -
             - pref: enableOpacCatalogBrowsing
               choices:
                   yes: "Enable"
@@ -46,6 +47,12 @@ OPAC:
             - for links to bibliographic records. The external URL is
             - pref: externalSiteURL
               class: url
+        -
+            - pref: ShowICalLinkInSummary
+              choices:
+                  yes: "Enable"
+                  no: "Disable"
+            -  Show iCal link under OPAC item list.
         -
             - For search results in the OPAC, show the item's
             - pref: OPACResultsLibrary
