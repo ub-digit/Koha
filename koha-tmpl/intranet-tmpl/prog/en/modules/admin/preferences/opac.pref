@@ -370,6 +370,12 @@ OPAC:
                   yes: Enable
                   no: Disable
             - "Enable cancel button in reserves list for items that are currently on the pickup shelf."
+        -
+            - pref: enableCoverImagesInOpacList
+              choices:
+                  yes: Enable
+                  no: Disable
+            - "Show syndetics cover images in OPAC"
     Features:
         -
             - pref: opacuserlogin
