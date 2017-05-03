@@ -1,0 +1,2 @@
+INSERT IGNORE INTO systempreferences ( `variable`, `value`, `options`, `explanation`, `type`) VALUES
+('EnableCancelButtonInReservesList', '1', '', 'Show cancel button for reserved items that that are currently on the pick-up shelf.', 'YesNo');
