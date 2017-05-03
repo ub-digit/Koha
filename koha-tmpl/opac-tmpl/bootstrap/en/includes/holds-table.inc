@@ -187,7 +187,11 @@
                                     <form action="/cgi-bin/koha/opac-modrequest.pl" method="post">
                                     <input type="hidden" name="biblionumber" value="[% HOLD.biblionumber | html %]" />
                                     <input type="hidden" name="reserve_id" value="[% HOLD.reserve_id | html %]" />
+                                    [% IF Koha.Preference( 'EnableCancelButtonInReservesList' ) || RESERVE.is_waiting != 1 %]
                                     <button type="submit" name="submit" class="btn btn-mini btn-danger" onclick="return confirmDelete(MSG_CONFIRM_DELETE_HOLD);"><i class="fa fa-remove"></i> Cancel</button></form>
+                                    [% ELSE %]
+                                      </form>
+                                    [% END %]
                                 [% END %]
                             </td>
                         [% END # / IF onlyinfo %]

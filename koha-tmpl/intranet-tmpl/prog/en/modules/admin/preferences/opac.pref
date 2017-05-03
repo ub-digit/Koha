@@ -361,6 +361,12 @@ OPAC:
                   both: "both top and footer"
                   top: "top"
                   footer: "only footer"
+        -
+            - pref: EnableCancelButtonInReservesList
+              choices:
+                  yes: Enable
+                  no: Disable
+            - "Enable cancel button in reserves list for items that are currently on the pickup shelf."
     Features:
         -
             - pref: opacuserlogin
