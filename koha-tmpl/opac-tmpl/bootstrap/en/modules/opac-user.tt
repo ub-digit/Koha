@@ -355,7 +355,7 @@ Using this account is not recommended because some parts of Koha will not functi
                                     <input type="submit" class="btn" value="Renew all" />
                                 </form>
                                 [% END %]
-                                [% IF ( ShowICalLinkInSummary ) %]
+                                [% IF ( Koha.Preference('ShowICalLinkInSummary') ) %]
                                     <p><a href="opac-ics.pl">Download as iCal/.ics file</a></p>
                                 [% END %]
                             [% ELSE %]
