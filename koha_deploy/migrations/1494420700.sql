@@ -3,4 +3,4 @@ CREATE TABLE IF NOT EXISTS testing2 (
   value TEXT
 );
 INSERT INTO testing2(value) VALUES('test3');
-INSERT INTO testing2(value) VALUES('test4');
+INSERT INTO testing2(value) VALUES("test4");
