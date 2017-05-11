@@ -1,0 +1,4 @@
+#!/bin/bash
+MIGRATION_FILE=migrations/$(date +%s).sql
+touch $MIGRATION_FILE
+echo $MIGRATION_FILE
