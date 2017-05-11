@@ -1,4 +1,8 @@
 #!/bin/bash
-MIGRATION_FILE=migrations/$(date +%s).sql
+DESCRIPTION=""
+if [ ! -z "$1" ]; then
+  DESCRIPTION="_$1"
+fi
+MIGRATION_FILE=migrations/$(date +%s)${DESCRIPTION}.sql
 touch $MIGRATION_FILE
 echo $MIGRATION_FILE
