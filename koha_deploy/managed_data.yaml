@@ -1,12 +1,15 @@
 ---
 # Koha managed configuration
 systempreferences:
-  - variable: 'IntranetUserJS'
-    value:
-      source: git
-      url: https://github.com/ub-digit/ub-koha-intranet-js
-      branch: master
-      path: script.js
+  __meta__:
+    update: true
+    keys:
+      - variable
+  items:
+      variable: 'IntranetUserJS'
+      value:
+        source: file
+        path: koha_deploy/files/IntranetUserJS.js
 #plugin_data:
 #  - plugin_class: todo (libris import plugin)
 #    plugin_key: todo
