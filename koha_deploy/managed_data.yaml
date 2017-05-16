@@ -6,7 +6,7 @@ systempreferences:
     keys:
       - variable
   items:
-      variable: 'IntranetUserJS'
+    - variable: 'IntranetUserJS'
       value:
         source: file
         path: koha_deploy/files/IntranetUserJS.js
