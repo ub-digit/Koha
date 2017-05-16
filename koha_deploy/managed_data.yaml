@@ -8,7 +8,7 @@ systempreferences:
   items:
     - variable: 'IntranetUserJS'
       value:
-        source: file
+        source: release_file
         path: koha_deploy/files/IntranetUserJS.js
 #plugin_data:
 #  - plugin_class: todo (libris import plugin)
