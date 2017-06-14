@@ -1,0 +1,4 @@
+---
+# Koha plugins
+- url: https://github.com/ub-digit/koha-plugin-libris-marc-import
+  branch: master
