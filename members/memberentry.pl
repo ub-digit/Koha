@@ -26,6 +26,7 @@ use warnings;
 use CGI qw ( -utf8 );
 use List::MoreUtils qw/uniq/;
 
+
 # internal modules
 use C4::Auth;
 use C4::Context;
@@ -36,6 +37,7 @@ use C4::Members::AttributeTypes;
 use C4::Koha;
 use C4::Log;
 use C4::Letters;
+use C4::Members::Messaging;
 use C4::Form::MessagingPreferences;
 use Koha::AuthorisedValues;
 use Koha::Patron::Debarments;
@@ -53,12 +55,17 @@ if ( C4::Context->preference('NorwegianPatronDBEnable') && C4::Context->preferen
 }
 use Koha::SMS::Providers;
 
+
 use vars qw($debug);
+   
 
 BEGIN {
 	$debug = $ENV{DEBUG} || 0;
 }
-	
+
+my $messaging_options = C4::Members::Messaging::GetMessagingOptions();
+
+
 my $input = new CGI;
 ($debug) or $debug = $input->param('debug') || 0;
 my %data;
@@ -177,6 +184,7 @@ if ( $op eq 'insert' || $op eq 'modify' || $op eq 'save' || $op eq 'duplicate' )
         }
     }
 
+    
     foreach (qw(dateenrolled dateexpiry dateofbirth)) {
         next unless exists $newdata{$_};
         my $userdate = $newdata{$_} or next;
@@ -441,6 +449,8 @@ if ((!$nok) and $nodouble and ($op eq 'insert' or $op eq 'save')){
         if (C4::Context->preference('ExtendedPatronAttributes') and $input->param('setting_extended_patron_attributes')) {
             C4::Members::Attributes::SetBorrowerAttributes($borrowernumber, $extended_patron_attributes);
         }
+
+
         if (C4::Context->preference('EnhancedMessagingPreferences') and $input->param('setting_messaging_prefs')) {
             C4::Form::MessagingPreferences::handle_form_action($input, { borrowernumber => $borrowernumber }, $template, 1, $newdata{'categorycode'});
         }
@@ -502,7 +512,42 @@ if ((!$nok) and $nodouble and ($op eq 'insert' or $op eq 'save')){
         if (C4::Context->preference('ExtendedPatronAttributes') and $input->param('setting_extended_patron_attributes')) {
             C4::Members::Attributes::SetBorrowerAttributes($borrowernumber, $extended_patron_attributes);
         }
+
         if (C4::Context->preference('EnhancedMessagingPreferences') and $input->param('setting_messaging_prefs')) {
+            # if simplified form is to be used we add the params here
+            if ( defined $input->param('simple-messaging') && $input->param('simple-messaging') eq 'yes') {
+                if (defined $input->param ('opacmessaging-simple-radios')) {
+                    if ($input->param('opacmessaging-simple-radios') eq 'sms') {
+                        foreach my $messaging_option (@{$messaging_options})
+                        {
+                             $input->param($messaging_option->{'message_attribute_id'}, "sms");
+                        }
+
+                    }
+                    elsif ($input->param('opacmessaging-simple-radios') eq 'email') {
+                        # set all types to email
+                        foreach my $messaging_option (@{$messaging_options})
+                        {
+                             $input->param($messaging_option->{'message_attribute_id'}, "email");
+                        }
+                    }
+                    elsif (($input->param('opacmessaging-simple-radios') eq 'SmsAndEmail')) {
+                         # set all types to email and sms
+                        foreach my $messaging_option (@{$messaging_options})
+                        {
+                             $input->param($messaging_option->{'message_attribute_id'}, "sms", "email");
+                        }
+                    }
+                    elsif (($input->param('opacmessaging-simple-radios') eq 'paper')) {
+                         # set all types to do not notify
+                        foreach my $messaging_option (@{$messaging_options})
+                        {
+                             $input->delete($messaging_option->{'message_attribute_id'});
+                        }
+                    }
+                }
+            }
+
             C4::Form::MessagingPreferences::handle_form_action($input, { borrowernumber => $borrowernumber }, $template);
         }
 	}
