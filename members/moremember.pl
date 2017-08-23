@@ -73,7 +73,6 @@ BEGIN {
 	$debug = $ENV{DEBUG} || 0;
 }
 
-
 my $dbh = C4::Context->dbh;
 
 my $input = CGI->new;
