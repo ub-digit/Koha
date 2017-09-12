@@ -47,6 +47,8 @@ use Koha::Items;
 use Koha::Libraries;
 use Koha::Old::Hold;
 use Koha::Patrons;
+use Koha::CirculationRules;
+use Koha::Plugins::Handler;
 
 use Carp;
 use Data::Dumper;
@@ -165,6 +167,45 @@ sub AddReserve {
         $title,    $checkitem,      $found,        $itemtype
     ) = @_;
 
+    my $plugin_result = Koha::Plugins::Handler->run_matching(
+        {
+            method => 'add_reserve_before',
+            params => {
+                branch => $branch,
+                borrowernumber => $borrowernumber,
+                biblionumber => $biblionumber,
+                bibitems => $bibitems,
+                priority => $priority,
+                resdate => $resdate,
+                expdate => $expdate,
+                notes => $notes,
+                title => $title,
+                checkitem => $checkitem,
+                found => $found,
+                itemtype => $itemtype
+            }
+        }
+        );
+
+    (
+     $branch,   $borrowernumber, $biblionumber, $bibitems,
+     $priority, $resdate,        $expdate,      $notes,
+     $title,    $checkitem,      $found,        $itemtype) = (
+        $plugin_result->{'branch'},
+        $plugin_result->{'borrowernumber'},
+        $plugin_result->{'biblionumber'},
+        $plugin_result->{'bibitems'},
+        $plugin_result->{'priority'},
+        $plugin_result->{'resdate'},
+        $plugin_result->{'expdate'},
+        $plugin_result->{'notes'},
+        $plugin_result->{'title'},
+        $plugin_result->{'checkitem'},
+        $plugin_result->{'found'},
+        $plugin_result->{'itemtype'}
+    );
+
+
     $resdate = output_pref( { str => dt_from_string( $resdate ), dateonly => 1, dateformat => 'iso' })
         or output_pref({ dt => dt_from_string, dateonly => 1, dateformat => 'iso' });
 
@@ -217,6 +258,17 @@ sub AddReserve {
 
     logaction( 'HOLDS', 'CREATE', $hold->id, Dumper($hold->unblessed) )
         if C4::Context->preference('HoldsLog');
+
+    $plugin_result = Koha::Plugins::Handler->run_matching(
+        {
+            method => 'add_reserve_after',
+            params => {
+                hold => $hold
+            }
+        }
+        );
+
+    $hold = $plugin_result->{'hold'};
 
     my $reserve_id = $hold->id();
 
