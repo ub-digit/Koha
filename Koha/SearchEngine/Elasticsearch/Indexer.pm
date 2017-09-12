@@ -22,6 +22,7 @@ use Modern::Perl;
 use Try::Tiny qw( catch try );
 use List::Util qw( any );
 use base qw(Koha::SearchEngine::Elasticsearch);
+use Koha::Plugins::Handler;
 
 use Koha::Exceptions;
 use Koha::Exceptions::Elasticsearch;
@@ -98,6 +99,24 @@ Arrayref of C<MARC::Record>s.
 
 sub update_index {
     my ($self, $biblionums, $records) = @_;
+
+    # hook update_index_before for plugins
+    my $plugin_result = Koha::Plugins::Handler->run_hook(
+        {
+            method => 'update_index_before',
+            params => {
+                biblionums => $biblionums,
+                records => $records
+            },
+            engine => 'elasticsearch'
+        }
+    );
+
+    ($biblionums, $records) = (
+        $plugin_result->{'biblionums'},
+        $plugin_result->{'records'}
+    );
+    # hook stop
 
     my $documents = $self->marc_records_to_documents($records);
     my @body;
