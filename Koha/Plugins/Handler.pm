@@ -24,6 +24,7 @@ use File::Path qw(remove_tree);
 use Module::Load qw(load);
 
 use C4::Context;
+use Koha::Plugins;
 use Koha::Plugins::Methods;
 
 BEGIN {
@@ -71,6 +72,35 @@ sub run {
         warn "Plugin does not have method $plugin_method";
         return;
     }
+}
+
+=item run_matching
+
+Run all plugins in sequence matching plugin_method
+
+=cut
+
+sub run_matching {
+    my ( $class, $args ) = @_;
+    my $params = $args->{'params'};
+    return $params unless ( C4::Context->config("enable_plugins") || $args->{'enable_plugins'} );
+
+    my $plugin_method = $args->{'method'};
+    my @plugins = Koha::Plugins->new()->GetPlugins({
+        method => $plugin_method
+    });
+
+    foreach my $plugin (@plugins) {
+        $params = Koha::Plugins::Handler->run(
+            {
+                class => $plugin->{'class'},
+                method => $plugin_method,
+                params => $params
+            }
+            );
+    }
+
+    return $params;
 }
 
 =item delete
