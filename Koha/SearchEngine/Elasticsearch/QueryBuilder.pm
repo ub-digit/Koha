@@ -46,6 +46,7 @@ use List::MoreUtils qw/ each_array /;
 use Modern::Perl;
 use URI::Escape;
 use URI::QueryParam;
+use Koha::Plugins::Handler;
 
 use C4::Context;
 use Koha::Exceptions;
@@ -220,6 +221,35 @@ sub build_query_compat {
     );
     my $limit_cgi = $orig_limits && @{$orig_limits} ?
         "&" . $self->_build_limit_query_string({ 'limits' => $orig_limits }) : '';
+
+
+    my $plugin_result = Koha::Plugins::Handler->run_matching(
+        {
+            method => 'build_query_before',
+            params => {
+                operators => $operators,
+                operands => $operands,
+                indexes => $indexes,
+                orig_limits => $orig_limits,
+                sort_by => $sort_by,
+                scan => $scan,
+                lang => $lang,
+                params => $params
+            },
+            engine => 'elasticsearch'
+        }
+        );
+
+    ($operators, $operands, $indexes, $orig_limits, $sort_by, $scan, $lang, $params) = (
+        $plugin_result->{'operators'},
+        $plugin_result->{'operands'},
+        $plugin_result->{'indexes'},
+        $plugin_result->{'orig_limits'},
+        $plugin_result->{'sort_by'},
+        $plugin_result->{'scan'},
+        $plugin_result->{'lang'},
+        $plugin_result->{'params'},
+        );
 
 #die Dumper ( $self, $operators, $operands, $indexes, $orig_limits, $sort_by, $scan, $lang );
     my @sort_params  = $self->_convert_sort_fields(@$sort_by);
