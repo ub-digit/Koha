@@ -82,15 +82,13 @@ Run all plugins in sequence matching plugin_method
 
 sub run_matching {
     my ( $class, $args ) = @_;
-
-    return unless ( C4::Context->config("enable_plugins") || $args->{'enable_plugins'} );
+    my $params = $args->{'params'};
+    return $params unless ( C4::Context->config("enable_plugins") || $args->{'enable_plugins'} );
 
     my $plugin_method = $args->{'method'};
     my @plugins = Koha::Plugins->new()->GetPlugins({
         method => $plugin_method
     });
-
-    my $params = $args->{'params'};
 
     foreach my $plugin (@plugins) {
         $params = Koha::Plugins::Handler->run(
