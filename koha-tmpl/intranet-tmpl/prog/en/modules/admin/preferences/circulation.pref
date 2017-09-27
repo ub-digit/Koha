@@ -472,6 +472,13 @@ Circulation:
                   no: Allow
             - his/her auto renewals.
         -
+            - Use message preferences based on
+            - pref: UsePatronPreferencesForOverdue
+              choices:
+                  yes: individual patron preference
+                  no: patron category
+            - when sending overdue notices.
+        -
             - pref: AllowIssueWhenReserved
               choices:
                   yes: "Allow it"
