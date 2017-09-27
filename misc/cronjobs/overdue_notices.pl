@@ -39,6 +39,7 @@ use C4::Context;
 use C4::Letters;
 use C4::Overdues qw(GetFine GetOverdueMessageTransportTypes parse_overdues_letter);
 use C4::Log;
+use C4::Members::Messaging;
 use Koha::Patron::Debarments qw(AddUniqueDebarment);
 use Koha::DateUtils;
 use Koha::Calendar;
@@ -671,8 +672,15 @@ END_SQL
                     push @items, $item_info;
                 }
                 $sth2->finish;
-
-                my @message_transport_types = @{ GetOverdueMessageTransportTypes( $branchcode, $overdue_rules->{categorycode}, $i) };
+                my @message_transport_types;
+                if(C4::Context->preference('UsePatronPreferencesForOverdue')) {
+                    my $patronpref = C4::Members::Messaging::GetMessagingPreferences(
+                        { borrowernumber => $borrowernumber, message_name => "Overdue$i"});
+                    if($patronpref && $patronpref->{'transports'}) {
+                        @message_transport_types = keys($patronpref->{'transports'});
+                    }
+                }
+                @message_transport_types = @{ GetOverdueMessageTransportTypes( $branchcode, $overdue_rules->{categorycode}, $i) } unless @message_transport_types;
                 @message_transport_types = @{ GetOverdueMessageTransportTypes( q{}, $overdue_rules->{categorycode}, $i) }
                     unless @message_transport_types;
 

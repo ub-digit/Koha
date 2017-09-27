@@ -498,6 +498,13 @@ Circulation:
             - "<br />ccode: [NEWFIC,NULL,DVD]"
             - "<br />itype: [NEWBK,\"\"]"
             - "<br /> Note: the word 'NULL' can be used to block renewal on undefined fields, while an empty string \"\" will block on an empty (but defined) field."
+        -
+            - Use message preferences based on
+            - pref: UsePatronPreferencesForOverdue
+              choices:
+                  yes: individual patron preference
+                  no: patron category
+            - when sending overdue notices.
     Checkin Policy:
         -
             - pref: HoldsAutoFill
