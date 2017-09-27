@@ -20,6 +20,9 @@
           [% ELSIF ( messaging_preference.Hold_Filled ) %]Hold filled
           [% ELSIF ( messaging_preference.Item_Check_in ) %]Item check-in
           [% ELSIF ( messaging_preference.Item_Checkout ) %]Item checkout
+          [% ELSIF ( messaging_preference.Overdue1 ) %]Overdue 1
+          [% ELSIF ( messaging_preference.Overdue2 ) %]Overdue 2
+          [% ELSIF ( messaging_preference.Overdue3 ) %]Overdue 3
           [% ELSE %]Unknown [% END %]</td>
       [% IF ( messaging_preference.takes_days ) %]
       <td>
