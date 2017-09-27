@@ -34,6 +34,9 @@
           [% ELSIF ( messaging_preference.Ill_unavailable ) %]<span>Interlibrary loan unavailable</span>
           [% ELSIF ( messaging_preference.Ill_update ) %]<span>Interlibrary loan updated</span>
           [% ELSIF ( messaging_preference.Auto_Renewals ) %]<span>Auto renewal</span>
+          [% ELSIF ( messaging_preference.Overdue1 ) %]<span>Overdue 1</span>
+          [% ELSIF ( messaging_preference.Overdue2 ) %]<span>Overdue 2</span>
+          [% ELSIF ( messaging_preference.Overdue3 ) %]<span>Overdue 3</span>
           [% ELSE %]<span>Unknown</span>
           [% END %]
       </td>
