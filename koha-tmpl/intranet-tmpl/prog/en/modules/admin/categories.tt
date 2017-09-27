@@ -598,6 +598,9 @@
                                                 [% ELSIF ( prefs.Ill_unavailable ) %]Interlibrary loan unavailable
                                                 [% ELSIF ( prefs.Auto_Renewals ) %]Auto renewal
                                                 [% ELSIF ( prefs.Hold_Reminder ) %]Hold reminder
+                                                [% ELSIF ( prefs.Overdue1 ) %]Overdue 1
+                                                [% ELSIF ( prefs.Overdue2 ) %]Overdue 2
+                                                [% ELSIF ( prefs.Overdue3 ) %]Overdue 3
                                                 [% ELSE %]Unknown
                                                 [% END %]:
                                                 <strong>[% transport.transport | html %]</strong><br />

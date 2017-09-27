@@ -30,6 +30,10 @@
           [% ELSIF ( messaging_preference.Ill_ready ) %]Interlibrary loan ready
           [% ELSIF ( messaging_preference.Ill_unavailable ) %]Interlibrary loan unavailable
           [% ELSIF ( messaging_preference.Auto_Renewals ) %]Auto renewal
+          [% ELSIF ( messaging_preference.Item_Checkout ) %]Item checkout
+          [% ELSIF ( messaging_preference.Overdue1 ) %]Overdue 1
+          [% ELSIF ( messaging_preference.Overdue2 ) %]Overdue 2
+          [% ELSIF ( messaging_preference.Overdue3 ) %]Overdue 3
           [% ELSE %]Unknown [% END %]</td>
       [% IF ( messaging_preference.takes_days ) %]
       <td>
