@@ -465,6 +465,13 @@ Circulation:
                   yes: Block
                   no: Allow
             - his/her auto renewals.
+        -
+            - Use message preferences based on
+            - pref: UsePatronPreferencesForOverdue
+              choices:
+                  yes: individual patron preference
+                  no: patron category
+            - when sending overdue notices.
     Checkin Policy:
         -
             - pref: BlockReturnOfWithdrawnItems
