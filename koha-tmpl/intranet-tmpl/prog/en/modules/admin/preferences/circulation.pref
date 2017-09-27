@@ -511,6 +511,13 @@ Circulation:
                   yes: "Allow it"
                   no: "Don't allow it"
             - Allow issue when reserved.
+        -
+            - Use message preferences based on
+            - pref: UsePatronPreferencesForOverdue
+              choices:
+                  yes: individual patron preference
+                  no: patron category
+            - when sending overdue notices.
     Checkin Policy:
         -
             - pref: HoldsAutoFill
