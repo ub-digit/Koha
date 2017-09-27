@@ -421,6 +421,9 @@
                                                 [% ELSIF ( prefs.Hold_Filled ) %]Hold filled
                                                 [% ELSIF ( prefs.Item_Check_in ) %]Item check-in
                                                 [% ELSIF ( prefs.Item_Checkout ) %]Item checkout
+                                                [% ELSIF ( prefs.Overdue1 ) %]Overdue 1
+                                                [% ELSIF ( prefs.Overdue2 ) %]Overdue 2
+                                                [% ELSIF ( prefs.Overdue3 ) %]Overdue 3
                                                 [% ELSE %]Unknown
                                                 [% END %]:
                                                 <strong>[% transport.transport | html %]</strong><br />
