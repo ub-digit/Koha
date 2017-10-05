@@ -2,3 +2,5 @@
 # Koha plugins
 - url: https://github.com/ub-digit/koha-plugin-libris-marc-import
   branch: master
+- url: https://github.com/ub-digit/koha-plugin-edifact
+  branch: master
