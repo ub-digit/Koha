@@ -4,3 +4,5 @@
   branch: master
 - url: https://github.com/ub-digit/koha-plugin-edifact
   branch: master
+- url: https://github.com/ub-digit/koha-plugin-get-print-data
+  branch: master
