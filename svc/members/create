@@ -11,6 +11,7 @@ use C4::Members;
 use C4::Members::Attributes qw( SetBorrowerAttributes );
 
 use Koha::Patron::Debarments;
+use C4::Members::Messaging;
 
 use Data::Dumper;
 my $query = new CGI;
@@ -26,8 +27,9 @@ unless ($status eq "ok") {
 my %borrower = ();
 
 my $personalnumber = $query->param('personalnumber');
+my $messaging_format = $query->param('messaging_format');
 
-# Mandatory fields
+# Mandatory borrower fields
 $borrower{'cardnumber'} = $personalnumber;
 $borrower{'password'} = $personalnumber;
 $borrower{'categorycode'} = $query->param('categorycode');
@@ -35,6 +37,7 @@ $borrower{'branchcode'} = $query->param('branchcode');
 $borrower{'surname'} = $query->param('surname');
 $borrower{'address'} = $query->param('address');
 $borrower{'city'} = $query->param('city');
+$borrower{'lang'} = $query->param('lang');
 
 # Optional fields
 my $firstname = $query->param('firstname');
@@ -73,6 +76,10 @@ my $mobile = $query->param('mobile');
 if ($mobile) {
   $borrower{'mobile'} = $mobile;
 }
+my $smsalertnumber = $query->param('smsalertnumber');
+if ($smsalertnumber) {
+  $borrower{'smsalertnumber'} = $smsalertnumber;
+}
 my $email = $query->param('email');
 if ($email) {
   $borrower{'email'} = $email;
@@ -81,15 +88,25 @@ if ($email) {
 # Patron attribute fields
 my $accept_text = $query->param('accept_text');
 
-
-
 my ($borrowernumber, $password) = AddMember_Opac(%borrower);
-
-SetBorrowerAttributes($borrowernumber, [{code => "PNR", value => $personalnumber}, {code => "ACCEPT", value => $accept_text}]);
-
+SetBorrowerAttributes($borrowernumber, [{code => "PNR12", value => $personalnumber}, {code => "PNR", value => substr($personalnumber, 2)}, {code => "ACCEPT", value => $accept_text}]);
 AddDebarment({borrowernumber => $borrowernumber, type => "MANUAL", comment => "WR, Webbregistrerad"});
 
-#C4::Form::MessagingPreferences::handle_form_action($cgi, { borrowernumber => $borrowernumber }, $template, 1, C4::Context->preference('PatronSelfRegistrationDefaultCategory') ) if $borrowernumber && C4::Context->preference('EnhancedMessagingPreferences');
+# Set messaging format if parameter is set
+if ($messaging_format) {
+  my $messaging_options = C4::Members::Messaging::GetMessagingOptions();
+  my %whichActionsToTickUsingSimpleOpacMessaging = map { $_ => 1 } (split /\|/, C4::Context->preference('whichActionsToTickUsingSimpleOpacMessaging')); # split the string to array and then convert to hash to use keys for easy checking
+  foreach my $messaging_option (@{$messaging_options}) {
+    if ($whichActionsToTickUsingSimpleOpacMessaging{$messaging_option->{'message_name'}}) {
+      if ($messaging_format eq 'sms_email') {
+        C4::Members::Messaging::SetMessagingPreference({borrowernumber => $borrowernumber, message_attribute_id => $messaging_option->{'message_attribute_id'}, message_transport_types => ["sms", "email"]});
+      }
+      else {
+        C4::Members::Messaging::SetMessagingPreference({borrowernumber => $borrowernumber, message_attribute_id => $messaging_option->{'message_attribute_id'}, message_transport_types => [$messaging_format]});
+      }
+    }
+  }
+}
 
 print $query->header(-type => 'text/xml',-charset => 'utf-8', -status => '201');
 print XMLout({ borrownumber => $borrowernumber }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
