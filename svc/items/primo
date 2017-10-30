@@ -12,6 +12,14 @@ use JSON;
 use Encode qw(encode decode);
 use Data::Dumper;
 my $query = new CGI;
+# print $query->header(-access_control_allow_origin => '*\n');
+# print $query->header(-access_control_allow_headers => 'X-From-ExL-API-Gateway');
+# print $query->header(-type => 'application/json\n\n',-charset => 'utf-8');
+# -------------------------------------------------- #
+print "Access-Control-Allow-Origin: *\n";
+print "Access-Control-Allow-Headers: X-From-ExL-API-Gateway\n";
+print "Content-type: application/json\n\n";
+# -------------------------------------------------- #
 use utf8;
 #use open ':utf8';
 #binmode STDOUT, ':encoding(UTF-8)';
@@ -442,12 +450,6 @@ our %locCode2locEN = (
 # -------------------------------------------------- #
 # main                                               #{{{
 # -------------------------------------------------- #
-my ($status, $cookie, $sessionID) = check_api_auth($query, { editcatalogue => 'edit_catalogue'} );
-unless ($status eq "ok") {
-  print $query->header(-type => 'text/xml', -status => '403 Forbidden');
-  print XMLout({ status => $status }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
-  exit 0;
-}
 
 my $biblionumber = $query->param('biblionumber');
 
@@ -466,7 +468,6 @@ unless (@items) {
   exit 0;
 }
 
-print $query->header(-type => 'application/json',-charset => 'utf-8');
 #print "{\"items\":" . encode_json(\@items) . "}";
 my @resarr =();
 while(my $itemElem=shift(@items))
@@ -499,11 +500,11 @@ sub mangleItem(){
   # restricted  my %map_restricted  = ( 56 => 3);   'Finns att låna på Biblioteket för musik och dramatik'    'May be borrowed at the Music and Drama Library'   'status-may_be_borrowed_music_and_drama_library'
   # itemlost    my %map_lost        = (21 =>  4);   'Saknas'                                                  'Missing'                                          'status-missing'
   # itemlost    my %map_lost        = (16 => 1);    'Saknas'                                                  'Missing'                                          'status-missing'
-  # withdrawn   my %map_withdrawn   = (45 =>  1);
-  # withdrawn   my %map_withdrawn   = (14 => 3);
-  # notforloan  my %map_notloan     = (42 => -3);
-  # damaged     my %map_damaged     = (13 =>  2);
-  # damaged     my %map_damaged     = (24 => 1);
+  # withdrawn   my %map_withdrawn   = (45 =>  1);   'Saknas'                                                  'Missing'                                          'status-missing'
+  # withdrawn   my %map_withdrawn   = (14 => 3);    'Tillgänglig'                                             'Available'                                        'status-available'
+  # notforloan  my %map_notloan     = (42 => -3);   'Tillgänglig'                                             'Available'                                        'status-available'
+  # damaged     my %map_damaged     = (13 =>  2);   'Tillgänglig'                                             'Available'                                        'status-available'
+  # damaged     my %map_damaged     = (24 => 1);    'Tillgänglig'                                             'Available'                                        'status-available'
   # -------------------------------------------------- #
 
   my $itemref  = shift;
@@ -512,16 +513,59 @@ sub mangleItem(){
   my $tmpstr   = "";
   my %item     = %$itemref;
   my $location = $item{'location'};
+  # -------------------------------------------------- #
+
+  my ($restricted, $itemlost, $withdrawn, $statusKey, $statusSv, $statusEn);
+  $restricted = $item{'restricted'};
+  $itemlost   = $item{'itemlost'};
+  $withdrawn  = $item{'withdrawn'};
+
+  # print   "# -------------------- #\n";
+  # print   "restricted:$restricted:\n";
+  # print   "itemlost  :$itemlost:\n";
+  # print   "withdrawn :$withdrawn:\n";
+  # print Dumper(\%item);
+  # print   "# -------------------- #\n";
+
+  if ($restricted eq 5 ){
+    $statusKey      = 'status-may_be_borrowed_biomedical_library';
+    $statusSv       = 'Finns att låna på Biomedicinska biblioteket';
+    $statusEn       = 'May be borrowed at the Biomedical Library';
+  } elsif ($restricted eq 6 ){
+    $statusKey      = 'Finns att låna på Pedagogiska biblioteket';
+    $statusSv       = 'May be borrowed at the Education Library';
+    $statusEn       = 'status-may_be_borrowed_education_library';
+  } elsif ($restricted eq 4 ){
+    $statusKey      = 'Finns att låna på Konstbiblioteket';
+    $statusSv       = 'May be borrowed at the Art Library';
+    $statusEn       = 'status-may_be_borrowed_art_library';
+  } elsif ($restricted eq 3 ){
+    $statusKey      = 'Finns att låna på Biblioteket för musik och dramatik';
+    $statusSv       = 'May be borrowed at the Music and Drama Library';
+    $statusEn       = 'status-may_be_borrowed_music_and_drama_library';
+  } elsif ($itemlost eq 4 || $itemlost eq 1 || $withdrawn eq 1 ){
+    $statusKey      = 'status-missing';
+    $statusSv       = 'Saknas';
+    $statusEn       = 'Missing';
+  } else {
+    $statusKey      = 'status-available';
+    $statusSv       = 'Tillgänglig';
+    $statusEn       = 'Available';
+  }
+  # -------------------------------------------------- #
   my %tmpout = (
-    location => $item{'location'},
+    location       => $location,
     locationNameSv => $locCode2locSV{$location},
     locationNameEn => $locCode2locEN{$location},
     callNumber     => $item{'itemcallnumber'},
-    statusKey      => 'status-missing',
-    statusSv       => 'Saknas',
-    statusEn       => 'Missing',
+    statusKey      => $statusKey,
+    statusSv       => $statusSv,
+    statusEn       => $statusEn,
     units          => $item{'enumchron'},
     recallableDate => $item{'datedue'},
+    restricted  => $restricted,
+    itemlost    => $itemlost,
+    withdrawn   => $withdrawn,
     );
   return \%tmpout;
 }
