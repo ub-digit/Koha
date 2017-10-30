@@ -461,15 +461,15 @@ unless ($biblionumber) {
 
 #my $reserves = C4::Reserves::GetReservesFromBiblionumber({biblionumber => $biblionumber});
 my @items = C4::Items::GetItemsInfo( $biblionumber );
+my @resarr = ();
 
-unless (@items) {
-  print $query->header(-type => 'text/xml', -status => '500');
-  print XMLout({ status => "Unrecognized error", error_code => 'unrecognizedError' }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
-  exit 0;
-}
+# unless (@items) {
+#   print $query->header(-type => 'text/xml', -status => '500');
+#   print XMLout({ status => "Unrecognized error", error_code => 'unrecognizedError' }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+#   exit 0;
+# }
 
 #print "{\"items\":" . encode_json(\@items) . "}";
-my @resarr =();
 while(my $itemElem=shift(@items))
 {
   push(@resarr, &mangleItem($itemElem));
