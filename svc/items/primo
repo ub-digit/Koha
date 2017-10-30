@@ -1,0 +1,530 @@
+#!/usr/bin/perl
+# -------------------------------------------------- #
+# header                                             #{{{
+# -------------------------------------------------- #
+#use strict;
+use warnings;
+use CGI qw ( -utf8 );
+use C4::Auth qw/check_api_auth/;
+use XML::Simple;
+use C4::Items;
+use JSON;
+use Encode qw(encode decode);
+use Data::Dumper;
+my $query = new CGI;
+use utf8;
+#use open ':utf8';
+#binmode STDOUT, ':encoding(UTF-8)';
+open KOLLA, ">/tmp/kolla.txt" or die "Can't open > /tmp/kolla.txt: $!";
+binmode KOLLA,  ':encoding(UTF-8)';
+
+#}}}
+# -------------------------------------------------- #
+# %locCode2locSV                                     #
+# location code to swedish location string           #{{{
+# -------------------------------------------------- #
+our %locCode2locSV = (
+  400000 =>  'Biomedicinska biblioteket',
+  400001 =>  'Biomedicinska biblioteket - Måste beställas fram',
+  400002 =>  'Biomedicinska biblioteket - Måste beställas fram',
+  400003 =>  'Biomedicinska biblioteket Plan 1-4, Tidskrifter',
+  400004 =>  'Biomedicinska biblioteket Plan 5',
+  400005 =>  'Biomedicinska biblioteket Plan 3, Botantidskrifter',
+  400006 =>  'Biomedicinska biblioteket Plan 5',
+  400008 =>  'Biomedicinska biblioteket Plan 5',
+  400009 =>  'Biomedicinska biblioteket Plan 5',
+  400010 =>  'Biomedicinska biblioteket Plan 3',
+  400011 =>  'Biomedicinska biblioteket Plan 1-4, Tidskrifter',
+  400012 =>  'Biomedicinska biblioteket Plan 1-4, Tidskrifter',
+  400013 =>  'Biomedicinska biblioteket Plan 1-4, Tidskrifter',
+  400014 =>  'Biomedicinska biblioteket Låneexpeditionen',
+  400020 =>  'Biomedicinska biblioteket - Måste beställas fram',
+  400030 =>  'Biomedicinska biblioteket Plan 4',
+  400032 =>  'Biomedicinska biblioteket Plan 3',
+  400033 =>  'Biomedicinska biblioteket Plan 3',
+  400040 =>  'Biomedicinska biblioteket',
+  400041 =>  'Biomedicinska biblioteket Tjänsterum',
+  400050 =>  'Biomedicinska biblioteket Låneexpeditionen',
+  400051 =>  'Biomedicinska biblioteket Låneexpeditionen',
+  400060 =>  'Studietorget Hälsovetarbacken',
+  400088 =>  'Biomedicinska biblioteket Plan 1-4, Tidskrifter',
+  400089 =>  'Biomedicinska biblioteket Plan 1-4, Tidskrifter',
+  420000 =>  'Samhällsvetenskapliga biblioteket',
+  420001 =>  'Samhällsvetenskapliga biblioteket - Entréplan',
+  420002 =>  'Samhällsvetenskapliga biblioteket - Entréplan, Läsesal',
+  420003 =>  'Samhällsvetenskapliga biblioteket - Entréplan, Information och lån',
+  420004 =>  'Samhällsvetenskapliga biblioteket',
+  420005 =>  'Samhällsvetenskapliga biblioteket Plan 4, Referensböcker',
+  420006 =>  'Samhällsvetenskapliga biblioteket',
+  420010 =>  'Samhällsvetenskapliga biblioteket - Entréplan, Läsesal, Referensböcker',
+  420011 =>  'Samhällsvetenskapliga biblioteket',
+  420020 =>  'Samhällsvetenskapliga biblioteket - Plan 4, Mikrofilmer',
+  420029 =>  'Samhällsvetenskapliga biblioteket - Plan 5, Referensböcker',
+  420030 =>  'Samhällsvetenskapliga biblioteket - Plan 5',
+  420031 =>  'Samhällsvetenskapliga biblioteket - Plan 5, Tidskrifter',
+  420088 =>  'Samhällsvetenskapliga biblioteket',
+  420089 =>  'Samhällsvetenskapliga biblioteket',
+  430000 =>  'Biomedicinska biblioteket',
+  430004 =>  'Botaniska trädgården - Måste beställas fram',
+  430010 =>  'Biomedicinska biblioteket',
+  430088 =>  'Biomedicinska biblioteket',
+  430089 =>  'Biomedicinska biblioteket',
+  440000 =>  'Humanistiska biblioteket',
+  440001 =>  'Humanistiska biblioteket',
+  440002 =>  'Humanistiska biblioteket - Plan 5, Tidskrifter',
+  440003 =>  'Humanistiska biblioteket - Måste beställas fram',
+  440004 =>  'Humanistiska biblioteket - Plan 5, Tidskrifter',
+  440005 =>  'Humanistiska biblioteket - Måste beställas fram',
+  440006 =>  'Humanistiska biblioteket - Måste beställas fram',
+  440007 =>  'Humanistiska biblioteket',
+  440008 =>  'Humanistiska biblioteket - Måste beställas fram',
+  440009 =>  'Humanistiska biblioteket - Måste beställas fram',
+  440010 =>  'Humanistiska biblioteket - Måste beställas fram',
+  440012 =>  'Humanistiska biblioteket - Plan 5, Tidskrifter',
+  440013 =>  'Humanistiska biblioteket - Måste beställas fram',
+  440014 =>  'Humanistiska biblioteket - Plan 5, Tidskrifter',
+  440015 =>  'Humanistiska biblioteket - Måste beställas fram',
+  440017 =>  'Humanistiska biblioteket - Måste beställas fram',
+  440018 =>  'Humanistiska biblioteket - Måste beställas fram',
+  440019 =>  'Humanistiska biblioteket - Måste beställas fram',
+  440020 =>  'Humanistiska biblioteket - Måste beställas fram',
+  440021 =>  'Humanistiska biblioteket - Måste beställas fram',
+  440022 =>  'Humanistiska biblioteket - Plan 5, Tidskrifter',
+  440023 =>  'Humanistiska biblioteket - Måste beställas fram',
+  440024 =>  'Humanistiska biblioteket - Plan 5, Tidskrifter',
+  440025 =>  'Humanistiska biblioteket - Måste beställas fram',
+  440026 =>  'Humanistiska biblioteket - Plan 6',
+  440027 =>  'Humanistiska biblioteket - Måste beställas fram',
+  440028 =>  'Humanistiska biblioteket - Måste beställas fram',
+  440029 =>  'Humanistiska biblioteket - Måste beställas fram',
+  440030 =>  'Humanistiska biblioteket - Måste beställas fram',
+  440031 =>  'Humanistiska biblioteket - Måste beställas fram',
+  440032 =>  'Humanistiska biblioteket - Måste beställas fram',
+  440033 =>  'Humanistiska biblioteket - Plan 5',
+  440035 =>  'Humanistiska biblioteket - Måste beställas fram',
+  440036 =>  'Humanistiska biblioteket - Måste beställas fram',
+  440040 =>  'Humanistiska biblioteket - Måste beställas fram',
+  440042 =>  'Humanistiska biblioteket - Måste beställas fram',
+  440045 =>  'Humanistiska biblioteket - Måste beställas fram',
+  440046 =>  'Humanistiska biblioteket - Måste beställas fram',
+  440047 =>  'Humanistiska biblioteket - Måste beställas fram',
+  440050 =>  'Humanistiska biblioteket - Måste beställas fram',
+  440051 =>  'Humanistiska biblioteket - Måste beställas fram',
+  440052 =>  'Humanistiska biblioteket - Måste beställas fram',
+  440053 =>  'Humanistiska biblioteket - Plan 5 Väst',
+  440054 =>  'Humanistiska biblioteket - Måste beställas fram',
+  440055 =>  'Humanistiska biblioteket - Plan 5 Öst',
+  440056 =>  'Humanistiska biblioteket - Måste beställas fram',
+  440057 =>  'Humanistiska biblioteket - Måste beställas fram',
+  440058 =>  'Humanistiska biblioteket - Måste beställas fram',
+  440059 =>  'Humanistiska biblioteket - Måste beställas fram',
+  440060 =>  'Humanistiska biblioteket - Plan 6A',
+  440061 =>  'Humanistiska biblioteket - Plan 6',
+  440062 =>  'Humanistiska biblioteket - Entréhallen',
+  440063 =>  'Humanistiska biblioteket - Plan 6B',
+  440064 =>  'Humanistiska biblioteket - Plan 6',
+  440065 =>  'Humanistiska biblioteket - Måste beställas fram',
+  440066 =>  'Humanistiska biblioteket - Plan 6A Öst',
+  440067 =>  'Humanistiska biblioteket - Måste beställas fram',
+  440068 =>  'Humanistiska biblioteket - Iberoamerikanska samlingen',
+  440069 =>  'Humanistiska biblioteket - Herbert Blomstedt Collection - Måste beställas fram',
+  440070 =>  'Humanistiska biblioteket KvinnSam - Entréplan, Referensböcker',
+  440073 =>  'Humanistiska biblioteket KvinnSam - Entréplan',
+  440074 =>  'Humanistiska biblioteket KvinnSam - Entréplan, Tidskrifter',
+  440075 =>  'Humanistiska biblioteket - Referensböcker',
+  440076 =>  'Humanistiska biblioteket - Bibliografi',
+  440077 =>  'Humanistiska biblioteket - Tjänste',
+  440078 =>  'Humanistiska biblioteket - Bibliografi',
+  440079 =>  'Humanistiska biblioteket - Referensböcker',
+  440080 =>  'Humanistiska biblioteket - Måste beställas fram',
+  440081 =>  'Humanistiska biblioteket - Måste beställas fram',
+  440082 =>  'Humanistiska biblioteket - Måste beställas fram',
+  440083 =>  'Humanistiska biblioteket - Måste beställas fram',
+  440084 =>  'Humanistiska biblioteket Ljud- och videoarkivet - Måste beställas fram',
+  440085 =>  'Humanistiska biblioteket Ljud- och videoarkivet - Måste beställas fram',
+  440086 =>  'Humanistiska biblioteket - Måste beställas fram',
+  440088 =>  'Humanistiska biblioteket',
+  440089 =>  'Humanistiska biblioteket',
+  440090 =>  'Humanistiska biblioteket - Måste beställas fram',
+  440091 =>  'Humanistiska biblioteket - Måste beställas fram',
+  440093 =>  'Humanistiska biblioteket - Måste beställas fram',
+  440094 =>  'Humanistiska biblioteket - Måste beställas fram',
+  440095 =>  'Humanistiska biblioteket - Måste beställas fram',
+  440096 =>  'Humanistiska biblioteket - Måste beställas fram',
+  440098 =>  'Humanistiska biblioteket - Måste beställas fram',
+  440099 =>  'Humanistiska biblioteket - Fjärrlån',
+  440200 =>  'Humanistiska biblioteket Ljud- och videoarkivet - Överförd till Kungl. biblioteket (KB)',
+  470000 =>  'Pedagogiska biblioteket',
+  470002 =>  'Pedagogiska biblioteket -- Ej hemlån',
+  470003 =>  'Pedagogiska biblioteket',
+  470004 =>  'Pedagogiska biblioteket - Nedre plan',
+  470005 =>  'Pedagogiska biblioteket - Nedre plan',
+  470006 =>  'Pedagogiska biblioteket',
+  470007 =>  'Pedagogiska biblioteket - Nedre plan',
+  470008 =>  'Pedagogiska biblioteket - Barn / ungdom',
+  470009 =>  'Pedagogiska biblioteket',
+  470010 =>  'Pedagogiska biblioteket',
+  470011 =>  'Pedagogiska biblioteket - Låneexpeditionen',
+  470012 =>  'Pedagogiska biblioteket',
+  470013 =>  'Pedagogiska biblioteket - Broschyrer',
+  470015 =>  'Pedagogiska biblioteket - Nedre plan',
+  470016 =>  'Pedagogiska biblioteket - Nedre plan, Läromedel',
+  470088 =>  'Pedagogiska biblioteket',
+  470089 =>  'Pedagogiska biblioteket',
+  470099 =>  'Pedagogiska biblioteket - Fjärrlån',
+  480000 =>  'Ekonomiska biblioteket',
+  480001 =>  'Ekonomiska biblioteket - Måste beställas fram',
+  480002 =>  'Ekonomiska biblioteket - Måste beställas fram',
+  480004 =>  'Ekonomiska biblioteket - Plan 3, Referensböcker',
+  480005 =>  'Ekonomiska biblioteket',
+  480006 =>  'Ekonomiska biblioteket - Plan 4',
+  480009 =>  'Ekonomiska biblioteket - Måste beställas fram',
+  480010 =>  'Ekonomiska biblioteket - Plan 1',
+  480011 =>  'Ekonomiska biblioteket - Läsesal, Tidskrifter',
+  480012 =>  'Ekonomiska biblioteket -- Ej hemlån',
+  480015 =>  'Ekonomiska biblioteket - Plan 5',
+  480025 =>  'Ekonomiska biblioteket - Plan 5, Juridik',
+  480040 =>  'Ekonomiska biblioteket - Statistik',
+  480050 =>  'Ekonomiska biblioteket - Plan 4',
+  480088 =>  'Ekonomiska biblioteket',
+  480089 =>  'Ekonomiska biblioteket',
+  480091 =>  'Ekonomiska biblioteket - Balkong 1',
+  480092 =>  'Ekonomiska biblioteket - Balkong 2',
+  480093 =>  'Ekonomiska biblioteket - Balkong 3',
+  480099 =>  'Ekonomiska biblioteket - Fjärrlån',
+  490000 =>  'Geovetenskapliga biblioteket',
+  490002 =>  'Geovetenskapliga biblioteket - Måste beställas fram',
+  490003 =>  'Geovetenskapliga biblioteket',
+  490004 =>  'Geovetenskapliga biblioteket -- Ej hemlån',
+  490005 =>  'Geovetenskapliga biblioteket - Måste beställas fram',
+  490006 =>  'Geovetenskapliga biblioteket - Läsesal, Tidskrifter',
+  490008 =>  'Geovetenskapliga biblioteket - Referensböcker',
+  490088 =>  'Geovetenskapliga biblioteket',
+  490089 =>  'Geovetenskapliga biblioteket',
+  490099 =>  'Geovetenskapliga biblioteket - Fjärrlån',
+  500000 =>  'Studietorget Campus Linné',
+  500001 =>  'Studietorget Campus Linné - Iberoamerikanska samlingen',
+  500002 =>  'Studietorget Campus Linné - Referensböcker',
+  500003 =>  'Studietorget Campus Linné - Fjärrlån',
+  600000 =>  'Konstbiblioteket',
+  600001 =>  'Konstbiblioteket',
+  600002 =>  'Konstbiblioteket',
+  600003 =>  'Konstbiblioteket -- Ej hemlån',
+  600004 =>  'Konstbiblioteket',
+  600005 =>  'Konstbiblioteket',
+  600006 =>  'Konstbiblioteket',
+  600099 =>  'Konstbiblioteket - Fjärrlån',
+  620000 =>  'Biblioteket för musik och dramatik',
+  620001 =>  'Biblioteket för musik och dramatik',
+  620002 =>  'Biblioteket för musik och dramatik',
+  620003 =>  'Biblioteket för musik och dramatik -- Ej hemlån',
+  620004 =>  'Biblioteket för musik och dramatik',
+  620005 =>  'Biblioteket för musik och dramatik',
+  620006 =>  'Biblioteket för musik och dramatik',
+  620007 =>  'Biblioteket för musik och dramatik',
+  620008 =>  'Biblioteket för musik och dramatik - Noter',
+  620010 =>  'Biblioteket för musik och dramatik - Pjäser',
+  620099 =>  'Biblioteket för musik och dramatik - Fjärrlån'
+);
+#}}}
+# -------------------------------------------------- #
+# %locCode2locEN                                     #
+# location code to english location string           #{{{
+# -------------------------------------------------- #
+our %locCode2locEN = (
+  400000 =>  'Biomedical Library',
+  400001 =>  'Biomedical Library - Please request',
+  400002 =>  'Biomedical Library - Please request',
+  400003 =>  'Biomedical Library - Floor 1-3, Journals (before 1980 must be requested)',
+  400004 =>  'Biomedical Library - Floor 5',
+  400005 =>  'Biomedical Library - Floor 3, Botanical journals',
+  400006 =>  'Biomedical Library - Floor 5',
+  400008 =>  'Biomedical Library - Floor 5',
+  400009 =>  'Biomedical Library - Floor 5 -- Non-circulating',
+  400010 =>  'Biomedical Library - Floor 3',
+  400011 =>  'Biomedical Library - Floor 1-3, Journals (before 1980 must be requested)',
+  400012 =>  'Biomedical Library - Floor 1-3, Journals (before 1980 must be requested)',
+  400013 =>  'Biomedical Library - Floor 1-3, Journals (before 1980 must be requested)',
+  400014 =>  'Biomedical Library - Circulation desk',
+  400020 =>  'Biomedical Library - Please request',
+  400030 =>  'Biomedical Library - Floor 4',
+  400032 =>  'Biomedical Library - Floor 3',
+  400033 =>  'Biomedical Library - Floor 3',
+  400040 =>  'Biomedical Library',
+  400041 =>  'Biomedical Library - Staff',
+  400050 =>  'Biomedical Library - Circulation desk',
+  400051 =>  'Biomedical Library - Circulation desk',
+  400060 =>  'Learning Centre Hälsovetarbacken -- Non-circulating',
+  400088 =>  'Biomedical Library - Floor 1-3, Journals (before 1980 must be requested)',
+  400089 =>  'Biomedical Library - Floor 1-3, Journals (before 1980 must be requested)',
+  400099 =>  'Biomedical Library - Inter-library loan',
+  420000 =>  'Social Sciences Library',
+  420001 =>  'Social Sciences Library - Entrance floor',
+  420002 =>  'Social Sciences Library - Entrance floor, Reading room',
+  420003 =>  'Social Sciences Library - Entrance floor, Information and loans',
+  420004 =>  'Social Sciences Library ',
+  420005 =>  'Social Sciences Library - Floor 4, Reference books',
+  420006 =>  'Social Sciences Library',
+  420010 =>  'Social Sciences Library - Entrance floor, Reading room, Reference books',
+  420011 =>  'Social Sciences Library ',
+  420020 =>  'Social Sciences Library - Floor 4, Microfilm',
+  420029 =>  'Social Sciences Library - Floor 5, Reference books',
+  420030 =>  'Social Sciences Library - Floor 5',
+  420031 =>  'Social Sciences Library - Floor 5, Journals',
+  420088 =>  'Social Sciences Library',
+  420089 =>  'Social Sciences Library',
+  430000 =>  'Biomedical Library',
+  430004 =>  'Botanical Garden - Please request',
+  430010 =>  'Biomedical Library',
+  430088 =>  'Biomedical Library',
+  430089 =>  'Biomedical Library',
+  440000 =>  'Humanities Library',
+  440001 =>  'Humanities Library',
+  440002 =>  'Humanities Library - Floor 5, Journals',
+  440003 =>  'Humanities Library - Please request',
+  440004 =>  'Humanities Library - Floor 5, Journals',
+  440005 =>  'Humanities Library - Please request',
+  440006 =>  'Humanities Library - Please request',
+  440007 =>  'Humanities Library',
+  440008 =>  'Humanities Library - Please request',
+  440009 =>  'Humanities Library - Please request',
+  440010 =>  'Humanities Library - Please request',
+  440012 =>  'Humanities Library - Floor 5, Journals',
+  440013 =>  'Humanities Library - Please request',
+  440014 =>  'Humanities Library - Floor 5, Journals',
+  440015 =>  'Humanities Library - Please request',
+  440017 =>  'Humanities Library - Please request',
+  440018 =>  'Humanities Library - Please request',
+  440019 =>  'Humanities Library - Please request',
+  440020 =>  'Humanities Library - Please request',
+  440021 =>  'Humanities Library - Please request',
+  440022 =>  'Humanities Library - Floor 5, Journals',
+  440023 =>  'Humanities Library - Please request',
+  440024 =>  'Humanities Library - Floor 5, Journals',
+  440025 =>  'Humanities Library - Please request',
+  440026 =>  'Humanities Library - Floor 6',
+  440027 =>  'Humanities Library - Please request',
+  440028 =>  'Humanities Library - Please request',
+  440029 =>  'Humanities Library - Please request',
+  440030 =>  'Humanities Library - Please request',
+  440031 =>  'Humanities Library - Please request',
+  440032 =>  'Humanities Library - Please request',
+  440033 =>  'Humanities Library - Floor 5',
+  440035 =>  'Humanities Library - Please request',
+  440036 =>  'Humanities Library - Please request',
+  440040 =>  'Humanities Library - Please request',
+  440042 =>  'Humanities Library - Please request',
+  440045 =>  'Humanities Library - Please request',
+  440046 =>  'Humanities Library - Please request',
+  440047 =>  'Humanities Library - Please request',
+  440050 =>  'Humanities Library - Please request',
+  440051 =>  'Humanities Library - Please request',
+  440052 =>  'Humanities Library - Please request',
+  440053 =>  'Humanities Library - Floor 5 West',
+  440054 =>  'Humanities Library - Please request',
+  440055 =>  'Humanities Library - Floor 5 East',
+  440056 =>  'Humanities Library - Please request',
+  440057 =>  'Humanities Library - Please request',
+  440058 =>  'Humanities Library - Please request',
+  440059 =>  'Humanities Library - Please request',
+  440060 =>  'Humanities Library - Floor 6A',
+  440061 =>  'Humanities Library - Floor 6',
+  440062 =>  'Humanities Library - Entrance hall',
+  440063 =>  'Humanities Library - Floor 6B',
+  440064 =>  'Humanities Library - Floor 6',
+  440065 =>  'Humanities Library - Please request',
+  440066 =>  'Humanities Library - Floor 6A East',
+  440067 =>  'Humanities Library - Please request',
+  440068 =>  'Humanities Library - Ibero-American Collection',
+  440069 =>  'Humanities Library - Herbert Blomstedt Collection - Please request',
+  440070 =>  'Humanities Library KvinnSam - Entrance floor, Reference books',
+  440073 =>  'Humanities Library KvinnSam - Entrance floor',
+  440074 =>  'Humanities Library KvinnSam - Entrance floor, Journals',
+  440075 =>  'Humanities Library - Reference books',
+  440076 =>  'Humanities Library - Bibliographies',
+  440077 =>  'Humanities Library - Staff',
+  440078 =>  'Humanities Library - Bibliographies',
+  440079 =>  'Humanities Library - Reference books',
+  440080 =>  'Humanities Library - Please request',
+  440081 =>  'Humanities Library - Please request',
+  440082 =>  'Humanities Library - Please request',
+  440083 =>  'Humanities Library - Please request',
+  440084 =>  'Humanities Library Sound and Video Archives - Please request',
+  440085 =>  'Humanities Library Sound and Video Archives - Please request',
+  440086 =>  'Humanities Library - Please request',
+  440088 =>  'Humanities Library',
+  440089 =>  'Humanities Library',
+  440090 =>  'Humanities Library - Please request',
+  440091 =>  'Humanities Library - Please request',
+  440093 =>  'Humanities Library - Please request',
+  440094 =>  'Humanities Library - Please request',
+  440095 =>  'Humanities Library - Please request',
+  440096 =>  'Humanities Library - Please request',
+  440098 =>  'Humanities Library - Please request',
+  440099 =>  'Humanities Library - Inter-library loan',
+  440200 =>  'Humanities Library Sound and Video Archives - Transferred to the Royal Library (RL) in Stockholm. Copies can be requested from RL.',
+  460000 =>  'Departmental Libraries',
+  470000 =>  'Education Library',
+  470002 =>  'Education Library -- Non-circulating',
+  470003 =>  'Education Library',
+  470004 =>  'Education Library - Lower level',
+  470005 =>  'Education Library - Lower level',
+  470006 =>  'Education Library',
+  470007 =>  'Education Library - Lower level',
+  470008 =>  'Education Library - Children / youth',
+  470009 =>  'Education Library',
+  470010 =>  'Education Library',
+  470011 =>  'Education Library - Circulation desk',
+  470012 =>  'Education Library',
+  470013 =>  'Education Library - Brochures',
+  470015 =>  'Education Library - Lower level',
+  470016 =>  'Education Library - Lower level, Education material',
+  470088 =>  'Education Library',
+  470089 =>  'Education Library',
+  470099 =>  'Education Library - Inter-library loan',
+  470100 =>  'Lindholmen Library',
+  480000 =>  'Economics Library',
+  480001 =>  'Economics Library - Please request',
+  480002 =>  'Economics Library - Please request',
+  480004 =>  'Economics Library - Floor 3, Reference books',
+  480005 =>  'Economics Library',
+  480006 =>  'Economics Library - Floor 4',
+  480009 =>  'Economics Library - Please request',
+  480010 =>  'Economics Library - Floor 1',
+  480011 =>  'Economics Library - Reading room, Journals',
+  480012 =>  'Economics Library -- Non-circulating',
+  480015 =>  'Economics Library - Floor 5',
+  480025 =>  'Economics Library - Floor 5, Law',
+  480040 =>  'Economics Library - Statistics',
+  480050 =>  'Economics Library - Floor 4',
+  480088 =>  'Economics Library',
+  480089 =>  'Economics Library',
+  480091 =>  'Economics Library - Balcony 1',
+  480092 =>  'Economics Library - Balcony 2',
+  480093 =>  'Economics Library - Balcony 3',
+  480099 =>  'Economics Library - Inter-library loan',
+  490000 =>  'Earth Sciences Library',
+  490002 =>  'Earth Sciences Library - Please request',
+  490003 =>  'Earth Sciences Library',
+  490004 =>  'Earth Sciences Library -- Non-circulating',
+  490005 =>  'Earth Sciences Library - Please request',
+  490006 =>  'Earth Sciences Library - Reading room, Journals',
+  490008 =>  'Earth Sciences Library - Reference books',
+  490088 =>  'Earth Sciences Library',
+  490089 =>  'Earth Sciences Library',
+  490099 =>  'Earth Sciences Library - Inter-library loan',
+  500000 =>  'Learning Centre Campus Linné',
+  500001 =>  'Learning Centre Campus Linné - Ibero-American Collection',
+  500002 =>  'Learning Centre Campus Linné - Reference books',
+  500003 =>  'Learning Centre Campus Linné - Inter-library loan',
+  600000 =>  'Art Library',
+  600001 =>  'Art Library',
+  600002 =>  'Art Library',
+  600003 =>  'Art Library -- Non-circulating',
+  600004 =>  'Art Library',
+  600005 =>  'Art Library',
+  600006 =>  'Art Library',
+  600099 =>  'Art Library - Inter-library loan',
+  620000 =>  'Music and Drama Library',
+  620001 =>  'Music and Drama Library',
+  620002 =>  'Music and Drama Library',
+  620003 =>  'Music and Drama Library -- Non-circulating',
+  620004 =>  'Music and Drama Library',
+  620005 =>  'Music and Drama Library',
+  620006 =>  'Music and Drama Library',
+  620007 =>  'Music and Drama Library',
+  620008 =>  'Music and Drama Library - Sheet music',
+  620010 =>  'Music and Drama Library - Plays',
+  620099 =>  'Music and Drama Library - Inter-library loan',
+  660000 =>  'Learning Center Hälsovetarbacken -- Non-circulating'
+);
+#}}}
+# -------------------------------------------------- #
+# main                                               #{{{
+# -------------------------------------------------- #
+my ($status, $cookie, $sessionID) = check_api_auth($query, { editcatalogue => 'edit_catalogue'} );
+unless ($status eq "ok") {
+  print $query->header(-type => 'text/xml', -status => '403 Forbidden');
+  print XMLout({ status => $status }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+  exit 0;
+}
+
+my $biblionumber = $query->param('biblionumber');
+
+unless ($biblionumber) {
+  print $query->header(-type => 'text/xml', -status => '400');
+  print XMLout({ status => "Biblionumber is required", error_code => 'biblionumberIsMissing' }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+  exit 0;
+}
+
+#my $reserves = C4::Reserves::GetReservesFromBiblionumber({biblionumber => $biblionumber});
+my @items = C4::Items::GetItemsInfo( $biblionumber );
+
+unless (@items) {
+  print $query->header(-type => 'text/xml', -status => '500');
+  print XMLout({ status => "Unrecognized error", error_code => 'unrecognizedError' }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+  exit 0;
+}
+
+print $query->header(-type => 'application/json',-charset => 'utf-8');
+#print "{\"items\":" . encode_json(\@items) . "}";
+my @resarr =();
+while(my $itemElem=shift(@items))
+{
+  push(@resarr, &mangleItem($itemElem));
+}
+
+
+print "{\"items\":" . encode_json(\@resarr) . "}";
+# print Dumper(\@resarr);
+#print XMLout({items => \@items}, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+#}}}
+# -------------------------------------------------- #
+# subs                                               ##{{{
+# -------------------------------------------------- #
+sub mangleItem(){
+  #print "{\"location\":$res[1],";
+  #print "\"locationNameSv\":\"$res[2]\",";
+  #print "\"locationNameEn\":\"$res[3]\",";
+  #print "\"callNumber\":\"$res[4]\",";
+  #print "\"units\":\"$res[5]\",";
+  #print "\"statusKey\":\"$res[6]\",";
+  #print "\"statusSv\":\"$res[7]\",";
+  #print "\"statusEn\":\"$res[8]\",";
+  #print "\"recallableDate\":\"$res[10]\"}";
+  # -------------------------------------------------- #
+  # restricted  my %map_restricted  = ( 6 =>  5);   'Finns att låna på Biomedicinska biblioteket'             'May be borrowed at the Biomedical Library'        'status-may_be_borrowed_biomedical_library'
+  # restricted  my %map_restricted  = ( 51 => 6);   'Finns att låna på Pedagogiska biblioteket'               'May be borrowed at the Education Library'         'status-may_be_borrowed_education_library'
+  # restricted  my %map_restricted  = ( 54 => 4);   'Finns att låna på Konstbiblioteket'                      'May be borrowed at the Art Library'               'status-may_be_borrowed_art_library'
+  # restricted  my %map_restricted  = ( 56 => 3);   'Finns att låna på Biblioteket för musik och dramatik'    'May be borrowed at the Music and Drama Library'   'status-may_be_borrowed_music_and_drama_library'
+  # itemlost    my %map_lost        = (21 =>  4);   'Saknas'                                                  'Missing'                                          'status-missing'
+  # itemlost    my %map_lost        = (16 => 1);    'Saknas'                                                  'Missing'                                          'status-missing'
+  # withdrawn   my %map_withdrawn   = (45 =>  1);
+  # withdrawn   my %map_withdrawn   = (14 => 3);
+  # notforloan  my %map_notloan     = (42 => -3);
+  # damaged     my %map_damaged     = (13 =>  2);
+  # damaged     my %map_damaged     = (24 => 1);
+  # -------------------------------------------------- #
+
+  my $itemref  = shift;
+  my @tmp      = ();
+  my %tmpout;
+  my $tmpstr   = "";
+  my %item     = %$itemref;
+  my $location = $item{'location'};
+  my %tmpout = (
+    location => $item{'location'},
+    locationNameSv => $locCode2locSV{$location},
+    locationNameEn => $locCode2locEN{$location},
+    callNumber     => $item{'itemcallnumber'},
+    statusKey      => 'status-missing',
+    statusSv       => 'Saknas',
+    statusEn       => 'Missing',
+    units          => $item{'enumchron'},
+    recallableDate => $item{'datedue'},
+    );
+  return \%tmpout;
+}
+#}}}
+# -------------------------------------------------- #
+exit 0;
