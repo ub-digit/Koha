@@ -11,6 +11,8 @@ use C4::Items;
 use JSON;
 use Encode qw(encode decode);
 use Data::Dumper;
+use Koha::Biblios;
+use DateTime;
 my $query = new CGI;
 # print $query->header(-access_control_allow_origin => '*\n');
 # print $query->header(-access_control_allow_headers => 'X-From-ExL-API-Gateway');
@@ -459,7 +461,64 @@ unless ($biblionumber) {
   exit 0;
 }
 
-#my $reserves = C4::Reserves::GetReservesFromBiblionumber({biblionumber => $biblionumber});
+# -------------------------------------------------- #
+my $biblio   = Koha::Biblios->find( $biblionumber );
+my $holds    = $biblio->holds;
+my $reserves = $holds->unblessed;
+my ($itemnumber, $found);
+#my %in2f;
+# print "# holds--------------------------------------------- #\n";
+# print Dumper($holds);
+# print "# reserves------------------------------------------ #\n";
+# print Dumper($reserves);
+# print "# -------------------------------------------------- #\n";
+#my $reserves = C4::Reserves::GetReservesFromBiblionumber({biblionumber => $biblionumber}); # OLD???
+# -------------------------------------------------- #
+# reserves is a ref to list of hash refs             #
+# -------------------------------------------------- #
+
+
+our %statusKey2Sv = (
+  'status-on_hold'                                 => 'Reserverad',
+  'status-delayed'                                 => 'Försenad',
+  'status-on_loan'                                 => 'Utlånad',
+  'status-requested_in_transit'                    => 'Beställd - Under transport',
+  'status-requested'                               => 'Beställd',
+  'status-missing'                                 => 'Saknas',
+  'status-may_be_borrowed_biomedical_library'      => 'Finns att låna på Biomedicinska biblioteket',
+  'status-may_be_borrowed_education_library'       => 'Finns att låna på Pedagogiska biblioteket',
+  'status-may_be_borrowed_art_library'             => 'Finns att låna på Konstbiblioteket',
+  'status-may_be_borrowed_music_and_drama_library' => 'Finns att låna på Biblioteket för musik och dramatik',
+  'status-available'                               => 'Tillgänglig',
+);
+our %statusKey2En = (
+  'status-on_hold'                                 => 'On hold',
+  'status-delayed'                                 => 'Delayed',
+  'status-on_loan'                                 => 'On loan',
+  'status-requested_in_transit'                    => 'Requested - In transit',
+  'status-requested'                               => 'Requested',
+  'status-missing'                                 => 'Missing',
+  'status-may_be_borrowed_biomedical_library'      => 'May be borrowed at the Biomedical Library',
+  'status-may_be_borrowed_education_library'       => 'May be borrowed at the Education Library',
+  'status-may_be_borrowed_art_library'             => 'May be borrowed at the Art Library',
+  'status-may_be_borrowed_music_and_drama_library' => 'May be borrowed at the Music and Drama Library',
+  'status-available'                               => 'Available',
+);
+# -------------------------------------------------- #
+
+
+foreach my $href (@$reserves) {
+  my %hr = %$href;
+  $itemnumber = $hr{'itemnumber'};
+  $found = $hr{'found'};
+  #  if ($itemnumber){$in2f{$itemnumber} = $found;}
+}
+
+#print Dumper(\%in2f);
+
+
+
+# -------------------------------------------------- #
 my @items = C4::Items::GetItemsInfo( $biblionumber );
 my @resarr = ();
 
@@ -515,11 +574,12 @@ sub mangleItem(){
   my $location = $item{'location'};
   # -------------------------------------------------- #
 
-  my ($restricted, $itemlost, $withdrawn, $statusKey, $statusSv, $statusEn);
-  $restricted = $item{'restricted'};
-  $itemlost   = $item{'itemlost'};
-  $withdrawn  = $item{'withdrawn'};
-
+  my ($restricted, $itemlost, $withdrawn, $today, $datedue, $statusKey);
+  $today = DateTime->now(time_zone => "local")->ymd();  # YYYY-MM-DD
+  $restricted   = $item{'restricted'};
+  $itemlost     = $item{'itemlost'};
+  $withdrawn    = $item{'withdrawn'};
+  $datedue      = $item{'datedue'} or "";                     # YYYY-MM-DD hh:mm:ss
   # print   "# -------------------- #\n";
   # print   "restricted:$restricted:\n";
   # print   "itemlost  :$itemlost:\n";
@@ -527,30 +587,21 @@ sub mangleItem(){
   # print Dumper(\%item);
   # print   "# -------------------- #\n";
 
-  if ($restricted eq 5 ){
-    $statusKey      = 'status-may_be_borrowed_biomedical_library';
-    $statusSv       = 'Finns att låna på Biomedicinska biblioteket';
-    $statusEn       = 'May be borrowed at the Biomedical Library';
-  } elsif ($restricted eq 6 ){
-    $statusKey      = 'Finns att låna på Pedagogiska biblioteket';
-    $statusSv       = 'May be borrowed at the Education Library';
-    $statusEn       = 'status-may_be_borrowed_education_library';
-  } elsif ($restricted eq 4 ){
-    $statusKey      = 'Finns att låna på Konstbiblioteket';
-    $statusSv       = 'May be borrowed at the Art Library';
-    $statusEn       = 'status-may_be_borrowed_art_library';
-  } elsif ($restricted eq 3 ){
-    $statusKey      = 'Finns att låna på Biblioteket för musik och dramatik';
-    $statusSv       = 'May be borrowed at the Music and Drama Library';
-    $statusEn       = 'status-may_be_borrowed_music_and_drama_library';
-  } elsif ($itemlost eq 4 || $itemlost eq 1 || $withdrawn eq 1 ){
-    $statusKey      = 'status-missing';
-    $statusSv       = 'Saknas';
-    $statusEn       = 'Missing';
-  } else {
-    $statusKey      = 'status-available';
-    $statusSv       = 'Tillgänglig';
-    $statusEn       = 'Available';
+  if ($itemlost eq 4 || $itemlost eq 1 || $withdrawn eq 1 ){$statusKey = 'status-missing';}
+  elsif ($datedue)                                         {
+    if   ($datedue gt $today )                             {$statusKey = 'status-on_loan';}
+    else                                                   {$statusKey = 'status-delayed';}
+  }
+  elsif (($hr{'itemnumber'}) && (not $item{'onloan'})) {
+    if    ( not $hr{'found'})                              {$statusKey =  'status-requested';}
+    elsif ( $hr{'found'} == "T" )                          {$statusKey =  'status-requested_in_transit';}
+    elsif ( $hr{'found'} == "W" )                          {$statusKey =  'status-on_hold';}
+  }
+  elsif ($restricted eq 5 )                                {$statusKey = 'status-may_be_borrowed_biomedical_library';}
+  elsif ($restricted eq 6 )                                {$statusKey = 'status-may_be_borrowed_education_library'; }
+  elsif ($restricted eq 4 )                                {$statusKey = 'status-may_be_borrowed_art_library';}
+  elsif ($restricted eq 3 )                                {$statusKey = 'status-may_be_borrowed_music_and_drama_library';}
+  else                                                     {$statusKey = 'status-available';
   }
   # -------------------------------------------------- #
   my %tmpout = (
@@ -559,13 +610,13 @@ sub mangleItem(){
     locationNameEn => $locCode2locEN{$location},
     callNumber     => $item{'itemcallnumber'},
     statusKey      => $statusKey,
-    statusSv       => $statusSv,
-    statusEn       => $statusEn,
+    statusSv       => $statusKey2Sv{$statusKey},
+    statusEn       => $statusKey2En{$statusKey},
     units          => $item{'enumchron'},
-    recallableDate => $item{'datedue'},
-    restricted  => $restricted,
-    itemlost    => $itemlost,
-    withdrawn   => $withdrawn,
+    recallableDate => $datedue,                             # om ej null (innebär datum) i förh t. idag:senare: utlånad, tidigare: försenad
+    restricted     => $restricted,
+    itemlost       => $itemlost,
+    withdrawn      => $withdrawn,
     );
   return \%tmpout;
 }
