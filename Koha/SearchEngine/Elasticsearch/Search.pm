@@ -199,8 +199,9 @@ sub search_auth_compat {
             # I wonder if these should be real values defined in the mapping
             # rather than hard-coded conversions.
             my $record    = $_[0];
+
             # Handle legacy nested arrays indexed with splitting enabled.
-            my $authid = $record->{ 'Local-number' }[0];
+            my $authid = $record->{ 'local-number' }[0];
             $authid = @$authid[0] if (ref $authid eq 'ARRAY');
 
             $result{authid} = $authid;
@@ -258,7 +259,7 @@ sub count_auth_use {
         query => {
             bool => {
 #                query  => { match_all => {} },
-                filter => { term      => { an => $authid } }
+                filter => { term      => { 'authority-number' => $authid } }
             }
         }
     };
@@ -431,13 +432,13 @@ sub _convert_facets {
     # TODO let the library define the order using the interface.
     my %type_to_label = (
         'gub-format' => { order => 1, label => 'Format', },
-        author   => { order => 1, label => 'Authors', },
-        itype    => { order => 2, label => 'ItemTypes', },
+        author => { order => 1, label => 'Authors', },
+        itype => { order => 2, label => 'ItemTypes', },
         location => { order => 3, label => 'Location', },
         'su-geo' => { order => 4, label => 'Places', },
-        se       => { order => 5, label => 'Series', },
-        subject  => { order => 6, label => 'Topics', },
-        ccode    => { order => 7, label => 'CollectionCodes',},
+        'title-series' => { order => 5, label => 'Series', },
+        subject => { order => 6, label => 'Topics', },
+        ccode => { order => 7, label => 'CollectionCodes',},
         holdingbranch => { order => 8, label => 'HoldingLibrary' },
         homebranch => { order => 9, label => 'HomeLibrary' }
     );
