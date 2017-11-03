@@ -202,7 +202,7 @@ sub search_auth_compat {
             # rather than hard-coded conversions.
             # Our results often come through as nested arrays, to fix this
             # requires changes in catmandu.
-            my $authid = $record->{ 'Local-number' }[0][0];
+            my $authid = $record->{ 'local-number' }[0][0];
             $result{authid} = $authid;
 
             # TODO put all this info into the record at index time so we
@@ -262,7 +262,7 @@ sub count_auth_use {
         query => {
             bool => {
 #                query  => { match_all => {} },
-                filter => { term      => { an => $authid } }
+                filter => { term      => { 'authority-number' => $authid } }
             }
         }
     };
@@ -425,13 +425,13 @@ sub _convert_facets {
     # things that zebra uses.
     # TODO let the library define the order using the interface.
     my %type_to_label = (
-        author   => { order => 1, label => 'Authors', },
-        itype    => { order => 2, label => 'ItemTypes', },
+        author => { order => 1, label => 'Authors', },
+        itype => { order => 2, label => 'ItemTypes', },
         location => { order => 3, label => 'Location', },
         'su-geo' => { order => 4, label => 'Places', },
-        se       => { order => 5, label => 'Series', },
-        subject  => { order => 6, label => 'Topics', },
-        ccode    => { order => 7, label => 'CollectionCodes',},
+        'title-series' => { order => 5, label => 'Series', },
+        subject => { order => 6, label => 'Topics', },
+        ccode => { order => 7, label => 'CollectionCodes',},
         holdingbranch => { order => 8, label => 'HoldingLibrary' },
         homebranch => { order => 9, label => 'HomeLibrary' }
     );
