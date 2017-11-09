@@ -418,6 +418,13 @@
 
                         [% IF ( item.withdrawn ) %]
                             <span class="wdn">Withdrawn</span>
+                            [% IF withdrawnloop %]
+                                [% FOREACH withdrawnloo IN withdrawnloop %]
+                                    [% IF withdrawnloo.authorised_value == item.withdrawn %]
+                                        <span>([% withdrawnloo.lib %])</span>
+                                    [% END %]
+                                [% END %]
+                            [% END %]
                         [% END %]
 
                         [% IF ( item.damaged ) %]
