@@ -66,6 +66,24 @@ sub update_index {
         $self->_sanitise_records($biblionums, $records);
     }
 
+    # hook update_index_before for plugins
+    my $plugin_result = Koha::Plugins::Handler->run_matching(
+        {
+            method => 'update_index_before',
+            params => {
+                biblionums => $biblionums,
+                records => $records
+            },
+            engine => 'elasticsearch'
+        }
+    );
+
+    ($biblionums, $records) = (
+        $plugin_result->{'biblionums'},
+        $plugin_result->{'records'}
+    );
+    # hook stop
+
     if (C4::Context->preference('ExperimentalElasticsearchIndexing')) {
         $self->ensure_mappings_updated();
         $self->bulk_index($records);
