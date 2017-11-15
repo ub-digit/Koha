@@ -38,6 +38,7 @@
                 </div>
             </div>
             <div class="span10">
+                <h1>Personal details</h1>
                 [% IF action == 'edit' %]
                     <div id="update-account">
                 [% ELSE %]
