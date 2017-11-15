@@ -1,6 +1,13 @@
 OPAC:
     Appearance:
         -
+            - pref: OPACShowCancelButtonWhenInWaitingStatus
+              choices:
+                  yes: Yes
+                  no: "No"
+            - "Hide cancel button in holds table when status is waiting (Found=W)"
+        -
+        -
             - pref: OPACUserSummary
               choices:
                   yes: Show
