@@ -239,7 +239,12 @@ sub is_cancelable {
 
     return 1 unless $self->is_found();
     return 0 if $self->is_in_transit();
-    return 1 if $self->is_waiting();
+    if (!C4::Context->preference('OPACShowCancelButtonWhenInWaitingStatus')) {
+        return 1 if $self->is_waiting();
+    }
+    else {
+        return 0 if $self->is_waiting();
+    }
     return 0;
 }
 
