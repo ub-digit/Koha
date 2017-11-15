@@ -1,6 +1,12 @@
 OPAC:
     Appearance:
         -
+            - pref: OPACRedirect
+              choices:
+                  yes: "Enable"
+                  no: "Disable"
+            - "redirect from homepage to userpage"
+        -
             - pref: OPACUserSummary
               choices:
                   yes: Show
