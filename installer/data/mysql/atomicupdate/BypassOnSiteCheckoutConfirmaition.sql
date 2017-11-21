@@ -1,0 +1,2 @@
+INSERT IGNORE INTO systempreferences ( `variable`, `value`, `options`, `explanation`, `type`) VALUES
+('BypassOnSiteCheckoutConfirmaition', '', '', 'Bypass confirmation when On-site is ticked and item notforloan has any of the listed statuses. Example -3|-2|-1', 'free');
