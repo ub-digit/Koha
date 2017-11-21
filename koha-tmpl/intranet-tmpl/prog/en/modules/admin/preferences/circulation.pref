@@ -465,6 +465,10 @@ Circulation:
                   yes: Block
                   no: Allow
             - his/her auto renewals.
+        -
+            - Bypass confirmation when On-site is ticked and item notforloan has any of the listed statuses.
+            - pref: BypassOnSiteCheckoutConfirmaition
+            - (Separated by pipe -3|-2|-1)
     Checkin Policy:
         -
             - pref: BlockReturnOfWithdrawnItems
