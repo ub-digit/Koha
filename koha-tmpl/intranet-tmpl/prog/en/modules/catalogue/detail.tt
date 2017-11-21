@@ -417,7 +417,7 @@
                         [% END %]
 
                         [% IF ( item.withdrawn ) %]
-                            <span class="wdn">Withdrawn</span>
+                            <span class="wdn" style="display: inline-block">Withdrawn</span>
                             [% IF withdrawnloop %]
                                 [% FOREACH withdrawnloo IN withdrawnloop %]
                                     [% IF withdrawnloo.authorised_value == item.withdrawn %]
