@@ -936,8 +936,14 @@ sub CanBookBeIssued {
             $issuingimpossible{NOT_FOR_LOAN} = 1;
             $issuingimpossible{item_notforloan} = $item_object->notforloan;
         }else{
-            $needsconfirmation{NOT_FOR_LOAN_FORCING} = 1;
-            $needsconfirmation{item_notforloan} = $item_object->notforloan;
+            # Check if we should override check out confirmation when item's notforloan status matches
+            # any of the statusue in syspref BypassOnSiteCheckoutConfirmaition AND on site checkout is ticked
+            my @status_list = split(/\|/, Koha::Config::SysPrefs->find('BypassOnSiteCheckoutConfirmaition')->value);
+            if( $item_object->notforloan ~~ @status_list && $onsite_checkout){
+                # Item notforloan status match AND onsite checkout is ticked
+                $needsconfirmation{NOT_FOR_LOAN_FORCING} = 1;
+                $needsconfirmation{item_notforloan} = $item_object->notforloan;
+            }
         }
     }
     else {
