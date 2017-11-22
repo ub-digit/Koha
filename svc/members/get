@@ -7,6 +7,7 @@ use CGI qw ( -utf8 );
 use C4::Auth qw/check_api_auth/;
 use C4::Members;
 use C4::Reserves;
+use Koha::Patron::Debarments qw(GetDebarments);
 use Koha::Patrons;
 use XML::Simple;
 
@@ -31,6 +32,7 @@ unless ($borrower) {
 
 my $flags = C4::Members::patronflags($borrower->unblessed);
 my $borrowernumber = $borrower->unblessed->{'borrowernumber'};
+my $debarments = GetDebarments({borrowernumber => $borrowernumber});
 my $issues = C4::Members::GetAllIssues($borrowernumber);
 my @reserves = $borrower->holds->unblessed;
 
@@ -38,6 +40,7 @@ print $query->header(-type => 'text/xml',-charset => 'utf-8');
 
 print XMLout({
 flags => $flags,
+debarments => $debarments,
 borrower => $borrower->unblessed,
 issues => $issues,
 reserves => \@reserves }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
