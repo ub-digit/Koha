@@ -467,6 +467,8 @@ my $holds    = $biblio->holds;
 my $reserves = $holds->unblessed;
 my ($itemnumber, $found);
 #my %in2f;
+#print "# biblio  ------------------------------------------ #\n";
+# print Dumper(\$biblio);
 # print "# holds--------------------------------------------- #\n";
 # print Dumper($holds);
 # print "# reserves------------------------------------------ #\n";
@@ -521,6 +523,7 @@ foreach my $href (@$reserves) {
 # -------------------------------------------------- #
 my @items = C4::Items::GetItemsInfo( $biblionumber );
 my @resarr = ();
+#print Dumper(\@items);
 
 # unless (@items) {
 #   print $query->header(-type => 'text/xml', -status => '500');
@@ -529,10 +532,23 @@ my @resarr = ();
 # }
 
 #print "{\"items\":" . encode_json(\@items) . "}";
-while(my $itemElem=shift(@items))
+
+
+
+# -------------------------------------------------- #
+my $il = scalar @items;
+for (my $c=0;$c < $il; $c++)
 {
-  push(@resarr, &mangleItem($itemElem));
+
+  push(@resarr, &mangleItem($items[$c]));
 }
+# -------------------------------------------------- #
+
+# while(my $itemElem=shift(@items))
+# {
+#   push(@resarr, &mangleItem($itemElem));
+# }
+# -------------------------------------------------- #
 
 
 print "{\"items\":" . encode_json(\@resarr) . "}";
@@ -566,14 +582,15 @@ sub mangleItem(){
   # damaged     my %map_damaged     = (24 => 1);    'Tillgänglig'                                             'Available'                                        'status-available'
   # -------------------------------------------------- #
 
-  my $itemref  = shift;
-  my @tmp      = ();
+  my $itemref   = shift;
+  my @tmp       = ();
   my %tmpout;
-  my $tmpstr   = "";
-  my %item     = %$itemref;
-  my $location = $item{'location'};
+  my $tmpstr    = "";
+  my %item      = %$itemref;
+  my $location  = $item{'location'};
   # -------------------------------------------------- #
-
+  $issn         = $item{'issn'};
+  if ($issn){return;}
   my ($restricted, $itemlost, $withdrawn, $today, $datedue, $statusKey);
   $today = DateTime->now(time_zone => "local")->ymd();  # YYYY-MM-DD
   $restricted   = $item{'restricted'};
