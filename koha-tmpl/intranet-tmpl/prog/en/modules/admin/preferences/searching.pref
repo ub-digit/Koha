@@ -92,6 +92,13 @@ Searching:
                   yes: Enable
                   no: Disable
             - "browsing search results from the bibliographic record detail page in staff client."
+        -
+            - When indexing records with ElasticSearch,
+            - pref: QueueElasticSearchIndexing
+              default: 0
+              choices:
+                  yes: queue them for background indexing.
+                  no: index them immediately.
     Search Form:
         -
             - Load the unlogged history to the next user.
