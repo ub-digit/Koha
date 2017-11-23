@@ -292,7 +292,12 @@ it to be updated by a regular index cron job in the future.
 
 sub update_index_background {
     my $self = shift;
-    $self->update_index(@_);
+    # If QueueElasticSearchIndexing is true, record will be stored in "zebraqueue" after this
+    # anyway. Use that for scheduled reindexing instead of doing it immediately.
+    # If false (default), just call immediate indexing.
+    if(!C4::Context->preference("QueueElasticSearchIndexing")) {
+        $self->update_index(@_);
+    }
 }
 
 =head2 delete_index($biblionums)
