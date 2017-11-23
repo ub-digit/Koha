@@ -1,0 +1,1 @@
+INSERT IGNORE INTO systempreferences (`variable`, `value`, `options`, `explanation`, `type`) VALUES ('QueueElasticSearchIndexing', '0', NULL, 'Queue indexing of record for scheduled background indexing', 'YesNo');
