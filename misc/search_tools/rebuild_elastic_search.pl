@@ -64,6 +64,13 @@ Only index the supplied biblionumber, mostly for testing purposes. May be
 repeated. This also applies to authorities via authid, so if you're using it,
 you probably only want to do one or the other at a time.
 
+=item B<-Q|--queue>
+
+Reindex items stored in zebraqueue only. Indexed items will be removed when indexed.
+If used with --authorities or --biblios, they act as filters on the zebraqueue.
+Using --bnumber has no relevance with queue and will be ignored.
+Any use of --delete will also be ignored.
+
 =item B<-v|--verbose>
 
 By default, this program only emits warnings and errors. This makes it talk
@@ -95,8 +102,9 @@ use Pod::Usage;
 my $verbose = 0;
 my $commit = 5000;
 my ($delete, $help, $man);
-my ($index_biblios, $index_authorities);
+my ($index_biblios, $index_authorities, $index_queue);
 my (@biblionumbers);
+my $dbh;
 
 $|=1; # flushes output
 
@@ -106,6 +114,7 @@ GetOptions(
     'a|authorities' => \$index_authorities,
     'b|biblios' => \$index_biblios,
     'bn|bnumber=i' => \@biblionumbers,
+    'Q|queue'          => \$index_queue,
     'v|verbose+'       => \$verbose,
     'h|help'           => \$help,
     'man'              => \$man,
@@ -116,13 +125,17 @@ unless ($index_authorities || $index_biblios) {
     $index_authorities = $index_biblios = 1;
 }
 
+if($index_queue) {
+    $delete = 0;
+}
+
 pod2usage(1) if $help;
 pod2usage( -exitstatus => 0, -verbose => 2 ) if $man;
 
 sanity_check();
 
 my $next;
-if ($index_biblios) {
+if ($index_biblios && !$index_queue) {
     _log(1, "Indexing biblios\n");
     if (@biblionumbers) {
         $next = sub {
@@ -138,7 +151,7 @@ if ($index_biblios) {
     }
     do_reindex($next, $Koha::SearchEngine::Elasticsearch::BIBLIOS_INDEX);
 }
-if ($index_authorities) {
+if ($index_authorities && !$index_queue) {
     _log(1, "Indexing authorities\n");
     if (@biblionumbers) {
         $next = sub {
@@ -154,6 +167,23 @@ if ($index_authorities) {
         }
     }
     do_reindex($next, $Koha::SearchEngine::Elasticsearch::AUTHORITIES_INDEX);
+}
+if ($index_queue) {
+    $dbh = C4::Context->dbh;
+    if($index_biblios) {
+        _log(1, "Indexing queued bibliographic records.\n");
+        my ($ids, $record_ids, $records) = fetch_queued_records({biblios => $index_biblios});
+        my $count = do_queued_reindex($ids, $record_ids, $records, $Koha::SearchEngine::Elasticsearch::BIBLIOS_INDEX);
+        mark_ids_as_done($ids);
+        _log(1, "Indexed $count queued bibliographic records.\n");
+    }
+    if($index_authorities) {
+        _log(1, "Indexing queued authority records.\n");
+        my ($ids, $record_ids, $records) = fetch_queued_records({authorities => $index_authorities});
+        my $count = do_queued_reindex($ids, $record_ids, $records, $Koha::SearchEngine::Elasticsearch::AUTHORITIES_INDEX);
+        mark_ids_as_done($ids);
+        _log(1, "Indexed $count queued authority records.\n");
+    }
 }
 
 sub do_reindex {
@@ -206,6 +236,18 @@ sub do_reindex {
     _log( 1, "Total $count records indexed\n" );
 }
 
+# Do queued reindex. This is based off an id list, not an iterator
+sub do_queued_reindex {
+    my ($ids, $record_ids, $records, $index_name) = @_;
+    my $indexer = Koha::SearchEngine::Elasticsearch::Indexer->new( { index => $index_name } );
+    my $count = @{$ids};
+
+    $indexer->update_index($record_ids, $records);
+
+    return $count;
+}
+
+
 # Checks some basic stuff to ensure that it's sane before we start.
 sub sanity_check {
     # Do we have an elasticsearch block defined?
@@ -223,4 +265,76 @@ sub _log {
     my ($level, $msg) = @_;
 
     print $msg if ($verbose >= $level);
+}
+
+# Fetch record ids from zebraqueue, filtered if necessary
+# Record ids that were fetched gets their done value set to 2,
+# which will indicate a "being processed" state.
+# Once all fetched records are indexed, done values will be set to 1.
+# This makes identifying missed batches easier, and will prevent multiple
+# runs of the same script from indexing the same records.
+# TODO: Handle cleanup of rows with done == 2
+sub fetch_queued_records {
+    my ($params) = @_;
+    my @conditions = ();
+    my @bind_params = ();
+
+    if($params->{biblios}) {
+        push(@conditions, "server = ?");
+        push(@bind_params, "biblioserver");
+    } elsif($params->{authorities}) {
+        push(@conditions, "server = ?");
+        push(@bind_params, "authorityserver");
+    }
+
+    my $query = "SELECT id, biblio_auth_number
+                             FROM zebraqueue
+                             WHERE done = 0
+                             AND operation = 'specialUpdate'";
+    if(@conditions) {
+        $query .= " AND ";
+    }
+    $query .= join(" AND ", @conditions);
+    $query .= " ORDER BY id DESC";
+    $query .= " LIMIT 1";
+
+    my $sth = $dbh->prepare($query);
+    $sth->execute(@bind_params);
+    my $entries = $sth->fetchall_arrayref({});
+    $sth->finish();
+
+    my @ids = ();
+    my @record_ids = ();
+    my @records = ();
+    foreach my $entry (@{$entries}) {
+        my $record_id = $entry->{biblio_auth_number};
+        push(@ids, $entry->{id});
+        push(@record_ids, $record_id);
+
+        if($params->{biblios}) {
+            my $r = Koha::BiblioUtils->get_from_biblionumber($record_id, item_data => 1 );
+            push(@records, $r->record);
+        }
+        if($params->{authorities}) {
+            my $r = Koha::MetadataRecord::Authority->get_from_authid($record_id);
+            push(@records, $r->record);
+        }
+    }
+
+    $sth = $dbh->prepare("UPDATE zebraqueue SET done = 2 WHERE id IN (?)");
+    $sth->execute(@ids);
+    $sth->finish();
+    return (\@ids, \@record_ids, \@records);
+}
+
+# Remove records from zebraqueue, after indexing has been performed.
+# NOTE! This is zebraqueue id's, not biblio_auth_number
+sub mark_ids_as_done {
+    my ($ids) = @_;
+
+    my $query = "UPDATE zebraqueue SET done = 1 WHERE id IN (?)";
+
+    my $sth = $dbh->prepare($query);
+    $sth->execute(@{$ids});
+    $sth->finish();
 }
