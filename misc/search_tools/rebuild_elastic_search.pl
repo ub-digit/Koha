@@ -71,6 +71,18 @@ If used with --authorities or --biblios, they act as filters on the zebraqueue.
 Using --bnumber has no relevance with queue and will be ignored.
 Any use of --delete will also be ignored.
 
+=item B<-n|--concurrent>=C<count>
+
+Only available with -Q.
+If number of posts in zebraqueue with "done=2" is higher than <commit>*<concurrent>,
+there are already things running. Exit this process if so.
+TODO: Make better handling in case there are leftover rows in the table.
+
+Reindex items stored in zebraqueue only. Indexed items will be removed when indexed.
+If used with --authorities or --biblios, they act as filters on the zebraqueue.
+Using --bnumber has no relevance with queue and will be ignored.
+Any use of --delete will also be ignored.
+
 =item B<-v|--verbose>
 
 By default, this program only emits warnings and errors. This makes it talk
@@ -101,6 +113,7 @@ use Pod::Usage;
 
 my $verbose = 0;
 my $commit = 5000;
+my $concurrent = 1;
 my ($delete, $help, $man);
 my ($index_biblios, $index_authorities, $index_queue);
 my (@biblionumbers);
@@ -114,6 +127,7 @@ GetOptions(
     'a|authorities' => \$index_authorities,
     'b|biblios' => \$index_biblios,
     'bn|bnumber=i' => \@biblionumbers,
+    'n|concurrent=i'   => \$concurrent,
     'Q|queue'          => \$index_queue,
     'v|verbose+'       => \$verbose,
     'h|help'           => \$help,
@@ -170,6 +184,13 @@ if ($index_authorities && !$index_queue) {
 }
 if ($index_queue) {
     $dbh = C4::Context->dbh;
+
+    # Exit if there are too many concurrent records in progress already.
+    if(is_past_concurrency_limit()) {
+        _log(1, "Too many records in progress already.\n");
+        exit(0);
+    }
+
     if($index_biblios) {
         _log(1, "Indexing queued bibliographic records.\n");
         my ($ids, $record_ids, $records) = fetch_queued_records({biblios => $index_biblios});
@@ -296,7 +317,10 @@ sub fetch_queued_records {
     }
     $query .= join(" AND ", @conditions);
     $query .= " ORDER BY id DESC";
-    $query .= " LIMIT 1";
+    $query .= " LIMIT ?";
+
+    # Add commit count as limit
+    push(@bind_params, $commit);
 
     my $sth = $dbh->prepare($query);
     $sth->execute(@bind_params);
@@ -304,11 +328,25 @@ sub fetch_queued_records {
     $sth->finish();
 
     my @ids = ();
+    # Extract queue-ids from result before fetching records.
+    foreach my $entry (@{$entries}) {
+        push(@ids, $entry->{id});
+    }
+
+    if(!@ids) {
+        return ([], [], []);
+    }
+
+    # Mark fetched items
+    my $id_str = join(",", @ids);
+    $sth = $dbh->prepare("UPDATE zebraqueue SET done = 2 WHERE id IN (".$id_str.")");
+    $sth->execute();
+    $sth->finish();
+
     my @record_ids = ();
     my @records = ();
     foreach my $entry (@{$entries}) {
         my $record_id = $entry->{biblio_auth_number};
-        push(@ids, $entry->{id});
         push(@record_ids, $record_id);
 
         if($params->{biblios}) {
@@ -321,9 +359,6 @@ sub fetch_queued_records {
         }
     }
 
-    $sth = $dbh->prepare("UPDATE zebraqueue SET done = 2 WHERE id IN (?)");
-    $sth->execute(@ids);
-    $sth->finish();
     return (\@ids, \@record_ids, \@records);
 }
 
@@ -331,10 +366,28 @@ sub fetch_queued_records {
 # NOTE! This is zebraqueue id's, not biblio_auth_number
 sub mark_ids_as_done {
     my ($ids) = @_;
+    my $id_str = join(",", @{$ids});
+    if(!$id_str) {
+        return;
+    }
 
-    my $query = "UPDATE zebraqueue SET done = 1 WHERE id IN (?)";
+    my $query = "UPDATE zebraqueue SET done = 1 WHERE id IN (".$id_str.")";
 
     my $sth = $dbh->prepare($query);
-    $sth->execute(@{$ids});
+    $sth->execute();
     $sth->finish();
+}
+
+# Check if there are too many records in progress already.
+# TRUE if too many, FALSE if not.
+sub is_past_concurrency_limit {
+    my $sth = $dbh->prepare("SELECT COUNT(*) FROM zebraqueue WHERE done = 2");
+    $sth->execute();
+    my $count = $sth->fetchall_arrayref->[0]->[0];
+    $sth->finish();
+    if($count >= ($commit * $concurrent)) {
+        return 1;
+    } else {
+        return 0;
+    }
 }
