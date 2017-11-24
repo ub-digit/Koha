@@ -184,26 +184,35 @@ if ($index_authorities && !$index_queue) {
 }
 if ($index_queue) {
     $dbh = C4::Context->dbh;
+    my $still_records_left_to_index = 1;
 
-    # Exit if there are too many concurrent records in progress already.
-    if(is_past_concurrency_limit()) {
-        _log(1, "Too many records in progress already.\n");
-        exit(0);
-    }
+    while($still_records_left_to_index) {
+        my ($ids, $record_ids, $records);
+        # Exit if there are too many concurrent records in progress already.
+        if(is_past_concurrency_limit()) {
+            _log(1, "Too many records in progress already.\n");
+            exit(0);
+        }
 
-    if($index_biblios) {
-        _log(1, "Indexing queued bibliographic records.\n");
-        my ($ids, $record_ids, $records) = fetch_queued_records({biblios => $index_biblios});
-        my $count = do_queued_reindex($ids, $record_ids, $records, $Koha::SearchEngine::Elasticsearch::BIBLIOS_INDEX);
-        mark_ids_as_done($ids);
-        _log(1, "Indexed $count queued bibliographic records.\n");
-    }
-    if($index_authorities) {
-        _log(1, "Indexing queued authority records.\n");
-        my ($ids, $record_ids, $records) = fetch_queued_records({authorities => $index_authorities});
-        my $count = do_queued_reindex($ids, $record_ids, $records, $Koha::SearchEngine::Elasticsearch::AUTHORITIES_INDEX);
-        mark_ids_as_done($ids);
-        _log(1, "Indexed $count queued authority records.\n");
+        if($index_biblios) {
+            _log(1, "Indexing queued bibliographic records.\n");
+            ($ids, $record_ids, $records) = fetch_queued_records({biblios => $index_biblios});
+            my $count = do_queued_reindex($ids, $record_ids, $records, $Koha::SearchEngine::Elasticsearch::BIBLIOS_INDEX);
+            mark_ids_as_done($ids);
+            _log(1, "Indexed $count queued bibliographic records.\n");
+        }
+        if($index_authorities) {
+            _log(1, "Indexing queued authority records.\n");
+            ($ids, $record_ids, $records) = fetch_queued_records({authorities => $index_authorities});
+            my $count = do_queued_reindex($ids, $record_ids, $records, $Koha::SearchEngine::Elasticsearch::AUTHORITIES_INDEX);
+            mark_ids_as_done($ids);
+            _log(1, "Indexed $count queued authority records.\n");
+        }
+
+        # Check if we're out of records
+        if(!@{$ids}) {
+            $still_records_left_to_index = 0;
+        }
     }
 }
 
