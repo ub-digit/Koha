@@ -21,6 +21,7 @@ use Carp;
 use Modern::Perl;
 use base qw(Koha::SearchEngine::Elasticsearch);
 use Data::Dumper;
+use Koha::Plugins::Handler;
 
 # For now just marc, but we can do anything here really
 use Catmandu::Importer::MARC;
