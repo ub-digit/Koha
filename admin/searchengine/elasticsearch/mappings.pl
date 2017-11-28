@@ -122,11 +122,24 @@ if ( $op eq 'edit' ) {
 }
 elsif( $op eq 'reset' ) {
     # TODO Move this feature to the interface
-    my $sure = $input->param('i_know_what_i_am_doing');
-    if ( $sure ) {
-        Koha::SearchMarcMaps->search->delete;
+    if ( $input->param('i_know_what_i_am_doing') ) {
         Koha::SearchEngine::Elasticsearch->reset_elasticsearch_mappings;
         $update_mappings->();
+    }
+}
+elsif( $op eq 'add' ) {
+    if ( $input->param('i_know_what_i_am_doing') ) {
+        Koha::SearchEngine::Elasticsearch->sync_elasticsearch_mappings({ 'insert_only' => 1 });
+    }
+}
+elsif( $op eq 'revert' ) {
+    if ( $input->param('i_know_what_i_am_doing') ) {
+        Koha::SearchEngine::Elasticsearch->sync_elasticsearch_mappings({ 'revert_mappings' => 1 });
+    }
+}
+elsif( $op eq 'merge' ) {
+    if ( $input->param('i_know_what_i_am_doing') ) {
+        Koha::SearchEngine::Elasticsearch->sync_elasticsearch_mappings();
     }
 }
 
