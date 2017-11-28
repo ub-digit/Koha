@@ -39,6 +39,7 @@ use MARC::File::XML;
 use MIME::Base64;
 use Encode qw(encode);
 use Business::ISBN;
+use Koha::Database;
 
 __PACKAGE__->mk_ro_accessors(qw( index ));
 __PACKAGE__->mk_accessors(qw( sort_fields ));
@@ -276,26 +277,61 @@ sub _get_elasticsearch_mapping {
     return;
 }
 
-sub reset_elasticsearch_mappings {
-    my ( $reset_fields ) = @_;
+sub sync_elasticsearch_mappings {
+    my ($self, $options) = @_;
+    $options //= {};
     my $mappings_yaml = C4::Context->config('elasticsearch_index_mappings');
     $mappings_yaml ||= C4::Context->config('intranetdir') . '/admin/searchengine/elasticsearch/mappings.yaml';
     my $indexes = LoadFile( $mappings_yaml );
 
     while ( my ( $index_name, $fields ) = each %$indexes ) {
         while ( my ( $field_name, $data ) = each %$fields ) {
-            my $field_type = $data->{type};
-            my $field_label = $data->{label};
             my $staff_client = exists $data->{staff_client} ? $data->{staff_client} : 1;
             my $opac = exists $data->{opac} ? $data->{opac} : 1;
-            my $mappings = $data->{mappings};
-            my $search_field = Koha::SearchFields->find_or_create({ name => $field_name, label => $field_label, type => $field_type, staff_client => $staff_client, opac => $opac }, { key => 'name' });
-            for my $mapping ( @$mappings ) {
-                my $marc_field = Koha::SearchMarcMaps->find_or_create({ index_name => $index_name, marc_type => $mapping->{marc_type}, marc_field => $mapping->{marc_field} });
-                $search_field->add_to_search_marc_maps($marc_field, { facet => $mapping->{facet} || 0, suggestible => $mapping->{suggestible} || 0, sort => $mapping->{sort}, search => $mapping->{search} || 1 } );
+
+            my $search_field = Koha::SearchFields->find({ 'name' => $field_name });
+            if ($search_field) {
+                next if $options->{insert_only};
+            }
+            else {
+                my $rs = Koha::SearchFields->_resultset()->create({ name => $field_name, label => $data->{label}, type => $data->{type}, staff_client => $staff_client, opac => $opac });
+                $search_field = Koha::SearchFields->object_class->_new_from_dbic($rs);
+            }
+            if ($options->{revert_mappings}) {
+                # Delete all current marc_targets for field
+                my $rs = $search_field->_result()->search_marc_maps();
+                while (my $marc_map = $rs->next) {
+                    $search_field->_result()->remove_from_search_marc_maps($marc_map);
+                    # Check if other search fields uses mapping, if not delete
+                    $marc_map->delete unless (defined $marc_map->search_fields()->first);
+                }
+            }
+            for my $mapping ( @{$data->{mappings}} ) {
+                my $marc_field = Koha::SearchMarcMaps->find_or_create({
+                    index_name => $index_name,
+                    marc_type => $mapping->{marc_type},
+                    marc_field => $mapping->{marc_field}
+                });
+                # If merging mappings relation may already exist, remove to avoid duplicate entry
+                if(!($options->{revert_mappings} || $options->{insert_only})) {
+                    $search_field->_result()->remove_from_search_marc_maps($marc_field->_result());
+                }
+                $search_field->add_to_search_marc_maps($marc_field, {
+                    facet => $mapping->{facet} || 0,
+                    suggestible => $mapping->{suggestible} || 0,
+                    sort => $mapping->{sort},
+                    search => $mapping->{search} || 1
+                });
             }
         }
     }
+}
+
+sub reset_elasticsearch_mappings {
+    my $self = shift;
+    Koha::SearchFields->search->delete;
+    Koha::SearchMarcMaps->search->delete;
+    $self->sync_elasticsearch_mappings();
 }
 
 # This overrides the accessor provided by Class::Accessor so that if
