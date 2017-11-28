@@ -95,6 +95,12 @@ a.add, a.delete {
           [% t("Mappings updated successfully.") | $raw %]
         [% CASE 'success_on_reset' %]
           [% t("Mappings have been reset successfully.") | $raw %]
+        [% CASE 'success_on_add' %]
+          [% t("Mappings have been added successfully.") | $raw %]
+        [% CASE 'success_on_revert' %]
+          [% t("Mappings have been reverted successfully.") | $raw %]
+        [% CASE 'success_on_merge' %]
+          [% t("Mappings have been merged successfully.") | $raw %]
         [% CASE %]
           [% m.code | html %]
         [% END %]
@@ -139,6 +145,45 @@ a.add, a.delete {
             <br>
             <form method="post">
                 <button type="submit" class="deny"><i class="fa fa-fw fa-remove"></i> No, do not reset mappings</button>
+            </form>
+        </div>
+    [% END %]
+    [% IF add_confirm %]
+        <div class="dialog alert">
+            <h3>The current mappings you see on the screen will be presevred and mappings for new fields found in mappings.yam file will be added.</h3>
+            <form method="post">
+                <input type="hidden" name="op" value="add_confirmed" />
+                <button type="submit" class="approve"><i class="fa fa-fw fa-check"></i> Yes, add mappings</button>
+            </form>
+            <br>
+            <form method="post">
+                <button type="submit" class="deny"><i class="fa fa-fw fa-remove"></i> No, do not add mappings</button>
+            </form>
+        </div>
+    [% END %]
+    [% IF revert_confirm %]
+        <div class="dialog alert">
+            <h3>The current mappings you see on the screen will be reset to defaults if the field is also found in the mappings.yaml file.</h3>
+            <form method="post">
+                <input type="hidden" name="op" value="revert_confirmed" />
+                <button type="submit" class="approve"><i class="fa fa-fw fa-check"></i> Yes, revert mappings</button>
+            </form>
+            <br>
+            <form method="post">
+                <button type="submit" class="deny"><i class="fa fa-fw fa-remove"></i> No, do not revert mappings</button>
+            </form>
+        </div>
+    [% END %]
+    [% IF merge_confirm %]
+        <div class="dialog alert">
+            <h3>The current mappings you see on the screen will be preserved but new field mappings in mappings.yaml will be appended.</h3>
+            <form method="post">
+                <input type="hidden" name="op" value="merge_confirmed" />
+                <button type="submit" class="approve"><i class="fa fa-fw fa-check"></i> Yes, merge mappings</button>
+            </form>
+            <br>
+            <form method="post">
+                <button type="submit" class="deny"><i class="fa fa-fw fa-remove"></i> No, do not merge mappings</button>
             </form>
         </div>
     [% END %]
@@ -446,6 +491,9 @@ a.add, a.delete {
         <p>
             <button class="btn btn-default" type="submit" name="op" value="edit"><i class="fa fa-hdd-o" aria-hidden="true"></i> Save</button>
             <button class="btn btn-default" type="submit" name="op" value="reset_confirm"><i class="fa fa-refresh" aria-hidden="true"></i> Reset Mappings</button>
+            <button class="btn btn-default" type="submit" name="op" value="add_confirm"><i class="fa fa-plus" aria-hidden="true"></i> Add Mappings</button>
+            <button class="btn btn-default" type="submit" name="op" value="revert_confirm"><i class="fa fa-undo" aria-hidden="true"></i> Revert Mappings</button>
+            <button class="btn btn-default" type="submit" name="op" value="merge_confirm"></i> <i class="fa fa-plus-square" aria-hidden="true"></i> Merge Mappings</button>
         </p>
     </form>
 

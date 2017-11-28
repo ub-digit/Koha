@@ -40,6 +40,7 @@ use MARC::File::XML;
 use MIME::Base64;
 use Encode qw(encode);
 use Business::ISBN;
+use Koha::Database;
 
 __PACKAGE__->mk_ro_accessors(qw( index ));
 __PACKAGE__->mk_accessors(qw( sort_fields ));
@@ -277,6 +278,7 @@ sub _get_elasticsearch_field_config {
     return;
 }
 
+<<<<<<< HEAD
 =head2 _load_elasticsearch_mappings
 
 Load Elasticsearch mappings in the format of mappings.yaml.
@@ -286,6 +288,11 @@ $indexes = _load_elasticsearch_mappings();
 =cut
 
 sub _load_elasticsearch_mappings {
+=======
+sub sync_elasticsearch_mappings {
+    my ($self, $options) = @_;
+    $options //= {};
+>>>>>>> Bug 19707 - Add new operations for synchronizing Elasticsearch mappings
     my $mappings_yaml = C4::Context->config('elasticsearch_index_mappings');
     $mappings_yaml ||= C4::Context->config('intranetdir') . '/admin/searchengine/elasticsearch/mappings.yaml';
     return LoadFile( $mappings_yaml );
@@ -306,15 +313,33 @@ sub reset_elasticsearch_mappings {
 
             $sf_params{name} = $field_name;
 
-            my $search_field = Koha::SearchFields->find_or_create( \%sf_params, { key => 'name' } );
-
-            my $mappings = $data->{mappings};
-            for my $mapping ( @$mappings ) {
+            my $search_field = Koha::SearchFields->find({ 'name' => $field_name });
+            if ($search_field) {
+                next if $options->{insert_only};
+            }
+            else {
+                my $rs = Koha::SearchFields->_resultset()->create(\%sf_params);
+                $search_field = Koha::SearchFields->object_class->_new_from_dbic($rs);
+            }
+            if ($options->{revert_mappings}) {
+                # Delete all current marc_targets for field
+                my $rs = $search_field->_result()->search_marc_maps();
+                while (my $marc_map = $rs->next) {
+                    $search_field->_result()->remove_from_search_marc_maps($marc_map);
+                    # Check if other search fields uses mapping, if not delete
+                    $marc_map->delete unless (defined $marc_map->search_fields()->first);
+                }
+            }
+            for my $mapping ( @{$data->{mappings}} ) {
                 my $marc_field = Koha::SearchMarcMaps->find_or_create({
                     index_name => $index_name,
                     marc_type => $mapping->{marc_type},
                     marc_field => $mapping->{marc_field}
                 });
+                # If merging mappings relation may already exist, remove to avoid duplicate entry
+                if(!($options->{revert_mappings} || $options->{insert_only})) {
+                    $search_field->_result()->remove_from_search_marc_maps($marc_field->_result());
+                }
                 $search_field->add_to_search_marc_maps($marc_field, {
                     facet => $mapping->{facet} || 0,
                     suggestible => $mapping->{suggestible} || 0,
@@ -324,6 +349,13 @@ sub reset_elasticsearch_mappings {
             }
         }
     }
+}
+
+sub reset_elasticsearch_mappings {
+    my $self = shift;
+    Koha::SearchFields->search->delete;
+    Koha::SearchMarcMaps->search->delete;
+    $self->sync_elasticsearch_mappings();
 }
 
 # This overrides the accessor provided by Class::Accessor so that if
