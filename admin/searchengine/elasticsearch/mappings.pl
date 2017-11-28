@@ -166,14 +166,33 @@ if ( $op eq 'edit' ) {
     }
 }
 elsif( $op eq 'reset_confirmed' ) {
-    Koha::SearchMarcMaps->delete;
-    Koha::SearchFields->delete;
     Koha::SearchEngine::Elasticsearch->reset_elasticsearch_mappings;
     $clear_cache->();
     push @messages, { type => 'message', code => 'success_on_reset' };
 }
 elsif( $op eq 'reset_confirm' ) {
     $template->param( reset_confirm => 1 );
+}
+elsif( $op eq 'add_confirmed' ) {
+    Koha::SearchEngine::Elasticsearch->sync_elasticsearch_mappings({ 'insert_only' => 1 });
+    push @messages, { type => 'message', code => 'success_on_add' };
+}
+elsif( $op eq 'add_confirm' ) {
+    $template->param( add_confirm => 1 );
+}
+elsif( $op eq 'revert_confirmed' ) {
+    Koha::SearchEngine::Elasticsearch->sync_elasticsearch_mappings({ 'revert_mappings' => 1 });
+    push @messages, { type => 'message', code => 'success_on_revert' };
+}
+elsif( $op eq 'revert_confirm' ) {
+    $template->param( revert_confirm => 1 );
+}
+elsif( $op eq 'merge_confirmed' ) {
+    Koha::SearchEngine::Elasticsearch->sync_elasticsearch_mappings();
+    push @messages, { type => 'message', code => 'success_on_merge' };
+}
+elsif( $op eq 'merge_confirm' ) {
+    $template->param( merge_confirm => 1 );
 }
 
 my @indexes;
