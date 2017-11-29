@@ -48,6 +48,7 @@ use Koha::Acquisition::Baskets;
 use Koha::Acquisition::Currencies;
 use Koha::Acquisition::Orders;
 use Koha::Acquisition::Booksellers;
+use Koha::Acquisition::Currencies;
 use Koha::Patrons;
 
 my $input = new CGI;
@@ -265,6 +266,11 @@ if ($op eq ""){
                         # in this case, the price will be x100 when unformatted ! Replace the . by a , to get a proper price calculation
                         $price =~ s/\./,/ if C4::Context->preference("CurrencyFormat") eq "FR";
                         $price = Koha::Number::Price->new($price)->unformat;
+                        # RECALCALCULATE PRICE BASED ON CURRENCY
+                        my $currency_code = $bookseller->listprice;
+                        my $currency = Koha::Acquisition::Currencies->find($currency_code);
+                        my $currency_rate = $currency->rate;
+                        $price = $price * $currency_rate;
                         $orderinfo{tax_rate} = $bookseller->tax_rate;
                         my $c = $c_discount ? $c_discount : $bookseller->discount / 100;
                         $orderinfo{discount} = $c;
@@ -306,13 +312,14 @@ if ($op eq ""){
             my $patron = Koha::Patrons->find( $loggedinuser );
             # get quantity in the MARC record (1 if none)
             my $quantity = GetMarcQuantity($marcrecord, C4::Context->preference('marcflavour')) || 1;
+            my $uncertainprice = C4::Context->preference('AcqUncertainPriceWhenImporting');
             my %orderinfo = (
                 biblionumber       => $biblionumber,
                 basketno           => $cgiparams->{'basketno'},
                 quantity           => $c_quantity,
                 branchcode         => $patron->branchcode,
                 budget_id          => $c_budget_id,
-                uncertainprice     => 1,
+                uncertainprice     => $uncertainprice,
                 sort1              => $c_sort1,
                 sort2              => $c_sort2,
                 order_internalnote => $cgiparams->{'all_order_internalnote'},
@@ -327,6 +334,11 @@ if ($op eq ""){
                 # in this case, the price will be x100 when unformatted ! Replace the . by a , to get a proper price calculation
                 $price =~ s/\./,/ if C4::Context->preference("CurrencyFormat") eq "FR";
                 $price = Koha::Number::Price->new($price)->unformat;
+                # RECALCALCULATE PRICE BASED ON CURRENCY
+                my $currency_code = $bookseller->listprice;
+                my $currency = Koha::Acquisition::Currencies->find($currency_code);
+                my $currency_rate = $currency->rate;
+                $price = $price * $currency_rate;
                 $orderinfo{tax_rate} = $bookseller->tax_rate;
                 my $c = $c_discount ? $c_discount : $bookseller->discount / 100;
                 $orderinfo{discount} = $c;
