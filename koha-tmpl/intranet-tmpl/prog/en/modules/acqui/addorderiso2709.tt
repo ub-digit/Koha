@@ -556,7 +556,7 @@
                 if (! $("#all_budget_id").val() ) {
                     // If there is no default fund
                     var error = 0;
-                    $("select[name='budget_id']").each(function() {
+                    $(".biblio.selected select[name='budget_id']").each(function() {
                         if (!$(this).val()) {
                             error++;
                         }
