@@ -356,15 +356,20 @@ sub fetch_queued_records {
     my @records = ();
     foreach my $entry (@{$entries}) {
         my $record_id = $entry->{biblio_auth_number};
-        push(@record_ids, $record_id);
 
         if($params->{biblios}) {
-            my $r = Koha::BiblioUtils->get_from_biblionumber($record_id, item_data => 1 );
-            push(@records, $r->record);
+            my $record = C4::Biblio::GetMarcBiblio({ biblionumber => $record_id, embed_items => 1 });
+            if ($record) {
+                push(@record_ids, $record_id);
+                push(@records, $record);
+            }
         }
         if($params->{authorities}) {
             my $r = Koha::MetadataRecord::Authority->get_from_authid($record_id);
-            push(@records, $r->record);
+            if($r) {
+                push(@record_ids, $record_id);
+                push(@records, $r->record);
+            }
         }
     }
 
