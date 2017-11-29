@@ -319,13 +319,14 @@ if ($op eq ""){
             my $patron = Koha::Patrons->find( $loggedinuser );
             # get quantity in the MARC record (1 if none)
             my $quantity = GetMarcQuantity($marcrecord, C4::Context->preference('marcflavour')) || 1;
+            my $uncertainprice = C4::Context->preference('AcqUncertainPriceWhenImporting');
             my %orderinfo = (
                 biblionumber       => $biblionumber,
                 basketno           => $cgiparams->{'basketno'},
                 quantity           => $c_quantity,
                 branchcode         => $patron->branchcode,
                 budget_id          => $c_budget_id,
-                uncertainprice     => 1,
+                uncertainprice     => $uncertainprice,
                 sort1              => $c_sort1,
                 sort2              => $c_sort2,
                 order_internalnote => $cgiparams->{'all_order_internalnote'},
