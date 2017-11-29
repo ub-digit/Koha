@@ -1,6 +1,12 @@
 Acquisitions:
     Policy:
         -
+            - When importing from a staged-file
+            - pref: AcqUncertainPriceWhenImporting
+              choices:
+                  yes: use uncertainprice.
+                  no: do not use uncertain price.
+        -
             - Create an item when
             - pref: AcqCreateItem
               choices:
