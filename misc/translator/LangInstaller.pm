@@ -325,7 +325,7 @@ sub install_prefs {
         $self->{file} = $file;
         # First, keys are replaced (tab titles)
         $pref = do {
-            my %pref = map { 
+            my %pref = map {
                 $self->get_trans_text( $self->{file} ) || $_ => $pref->{$_}
             } keys %$pref;
             \%pref;
@@ -384,11 +384,29 @@ sub install_tmpl {
             # if not installing MARC po file, ignore all MARC files
             @nomarc      = ( 'marc21', 'unimarc', 'normarc' ) if ( $trans->{name} !~ /MARC/ ); # hardcoded MARC variants
 
+            my $source_path = "$self->{path_po}/$self->{lang}$trans->{suffix}";
+            if (-e "$self->{path_po}/$self->{lang}-local$trans->{suffix}") {
+                $source_path = "/tmp/$self->{lang}-merged$trans->{suffix}";
+                print
+                    "    Local file found: \n",
+                    "    $self->{path_po}/$self->{lang}-local$trans->{suffix}\n",
+                    "    Do merge with: \n",
+                    "    $self->{path_po}/$self->{lang}$trans->{suffix}\n",
+                    "    To: \n",
+                    "    $source_path\n"
+                    if $self->{verbose};
+                system
+                    "msgcat " .
+                    "$self->{path_po}/$self->{lang}-local$trans->{suffix} " .
+                    "$self->{path_po}/$self->{lang}$trans->{suffix} " .
+                    "-o $source_path " .
+                    "--use-first";
+            }
             system
                 "$self->{process} install " .
                 "-i $trans_dir " .
                 "-o $lang_dir  ".
-                "-s $self->{path_po}/$self->{lang}$trans->{suffix} -r " .
+                "-s $source_path -r " .
                 "$marc " .
                 ( @files   ? ' -f ' . join ' -f ', @files : '') .
                 ( @nomarc  ? ' -n ' . join ' -n ', @nomarc : '');
@@ -780,7 +798,7 @@ LangInstaller.pm - Handle templates and preferences translation
 
 =head2 new
 
-Create a new instance of the installer object. 
+Create a new instance of the installer object.
 
 =head2 create
 
