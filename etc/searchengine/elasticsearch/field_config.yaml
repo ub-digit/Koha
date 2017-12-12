@@ -8,6 +8,11 @@ general:
     record:
       store: true
       type: text
+    marc_xml:
+      store: true
+      type: text
+      analyzer: keyword
+      index: false
 # Search fields
 search:
   boolean:

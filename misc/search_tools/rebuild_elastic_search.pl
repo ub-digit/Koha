@@ -160,11 +160,20 @@ sub do_reindex {
     my ( $next, $index_name ) = @_;
 
     my $indexer = Koha::SearchEngine::Elasticsearch::Indexer->new( { index => $index_name } );
-    if ($delete) {
 
+    if ($delete) {
         # We know it's safe to not recreate the indexer because update_index
         # hasn't been called yet.
         $indexer->drop_index();
+        if (C4::Context->preference('ExperimentalElasticsearchIndexing')) {
+            # Catmandu will create index for us in update_index, so without it we
+            # to create it ourselves
+            $indexer->create_index();
+        }
+    }
+    elsif (C4::Context->preference('ExperimentalElasticsearchIndexing') && !$indexer->index_exists) {
+        # Create index if does not exist
+        $indexer->create_index();
     }
 
     my $count        = 0;
