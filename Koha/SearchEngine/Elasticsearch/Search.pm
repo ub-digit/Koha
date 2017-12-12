@@ -48,9 +48,7 @@ use Koha::SearchEngine::QueryBuilder;
 use Koha::SearchEngine::Search;
 use MARC::Record;
 use Catmandu::Store::ElasticSearch;
-use MIME::Base64 qw( encode_base64 );
 use MARC::File::XML ( BinaryEncoding => 'utf8', RecordFormat => uc C4::Context->preference('marcflavour') );
-use MARC::Batch;
 
 use Data::Dumper; #TODO remove
 use Carp qw(cluck);
