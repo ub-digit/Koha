@@ -425,3 +425,9 @@ Administration:
               choices:
                 Zebra: Zebra
                 Elasticsearch: Elasticsearch
+        -
+            - pref: ExperimentalElasticsearchIndexing
+              choices:
+                yes: Enable
+                no: "Don't enable"
+            - "experimental faster indexing, only relevant if using Elasticsearch."
