@@ -1,0 +1,1 @@
+INSERT IGNORE INTO systempreferences (variable, value, explanation, options, type) VALUES ('ExperimentalElasticsearchIndexing', '0', 'Enable optimized experimental Elasticsearch indexing', NULL, 'YesNo');
