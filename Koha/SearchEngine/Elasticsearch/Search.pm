@@ -48,7 +48,7 @@ use Koha::SearchEngine::QueryBuilder;
 use Koha::SearchEngine::Search;
 use MARC::Record;
 use Catmandu::Store::ElasticSearch;
-
+use MARC::File::XML;
 use Data::Dumper; #TODO remove
 use Carp qw(cluck);
 
@@ -156,15 +156,13 @@ sub search_compat {
     my $results = $self->search($query, undef, $results_per_page, %options);
 
     # Convert each result into a MARC::Record
-    my (@records, $index);
-    $index = $offset; # opac-search expects results to be put in the
-        # right place in the array, according to $offset
+    my @records;
+    # opac-search expects results to be put in the
+    # right place in the array, according to $offset
+    my $index = $offset;
     $results->each(sub {
-            # The results come in an array for some reason
-            my $marc_json = $_[0]->{record};
-            my $marc = $self->json2marc($marc_json);
-            $records[$index++] = $marc;
-        });
+        $records[$index++] = $self->decode_record_from_result(@_);
+    });
     # consumers of this expect a name-spaced result, we provide the default
     # configuration.
     my %result;
@@ -195,14 +193,16 @@ sub search_auth_compat {
     $res->each(
         sub {
             my %result;
-            my $record    = $_[0];
-            my $marc_json = $record->{record};
 
             # I wonder if these should be real values defined in the mapping
             # rather than hard-coded conversions.
             # Our results often come through as nested arrays, to fix this
             # requires changes in catmandu.
-            my $authid = $record->{ 'Local-number' }[0][0];
+            my $record    = $_[0];
+            my $authid = C4::Context->preference('ExperimentalElasticsearchIndexing') ?
+                $record->{ 'Local-number' }[0] :
+                $record->{ 'Local-number' }[0][0];
+
             $result{authid} = $authid;
 
             # TODO put all this info into the record at index time so we
@@ -218,7 +218,7 @@ sub search_auth_compat {
             # it's not reproduced here yet.
             my $authtype           = $rs->single;
             my $auth_tag_to_report = $authtype->auth_tag_to_report;
-            my $marc               = $self->json2marc($marc_json);
+            my $marc               = $self->decode_record_from_result(@_);
             my $mainentry          = $marc->field($auth_tag_to_report);
             my $reported_tag;
             if ($mainentry) {
@@ -341,9 +341,7 @@ sub simple_search_compat {
     my $results = $self->search($query, undef, $max_results, %options);
     my @records;
     $results->each(sub {
-            # The results come in an array for some reason
-            my $marc_json = $_[0]->{record};
-            my $marc = $self->json2marc($marc_json);
+            my $marc = $self->decode_record_from_result(@_);
             push @records, $marc;
         });
     return (undef, \@records, $results->total);
@@ -363,6 +361,26 @@ sub extract_biblionumber {
     my ( $self, $searchresultrecord ) = @_;
     return Koha::SearchEngine::Search::extract_biblionumber( $searchresultrecord );
 }
+
+=head2 decode_record_from_result
+    my $marc_record = $self->decode_record_from_result(@result);
+
+Extracts marc data from Elasticsearch result and decodes to MARC::Record object
+
+=cut
+
+sub decode_record_from_result {
+    # Result is passed in as array, will get flattened
+    # and first element will be $result
+    my ( $self, $result ) = @_;
+    if (C4::Context->preference('ExperimentalElasticsearchIndexing')) {
+        return MARC::Record->new_from_xml($result->{marc_xml}, 'UTF-8', uc C4::Context->preference('marcflavour'));
+    }
+    else {
+        return $self->json2marc($result->{record});
+    }
+}
+
 
 =head2 json2marc
 
