@@ -34,7 +34,6 @@ use Search::Elasticsearch;
 use Try::Tiny;
 use YAML::Syck;
 
-use MIME::Base64 qw( encode_base64 );
 use List::Util qw( sum0 );
 use Search::Elasticsearch;
 use MARC::File::XML ( BinaryEncoding => 'utf8', RecordFormat => uc C4::Context->preference('marcflavour') );
