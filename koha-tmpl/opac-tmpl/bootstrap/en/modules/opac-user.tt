@@ -517,10 +517,12 @@ Using this account is not recommended because some parts of Koha will not functi
                                                 [% END # /IF jacketcell %]
 
                                                 <td>
-                                                    <a class="title" href="/cgi-bin/koha/opac-detail.pl?bib=[% OVERDUE.biblionumber %]">[% OVERDUE.title |html %] [% FOREACH subtitl IN OVERDUE.subtitle %] [% subtitl.subfield %][% END %]
-                                                    </a>
+                                                 [% IF !Koha.Preference('enableOpacCatalogBrowsing') && Koha.Preference('linkToExternalSite') %]
+                                                    <a class="title" href="[% Koha.Preference('externalSiteURL') %]?id=[% OVERDUE.biblionumber %]">[% OVERDUE.title |html %] [% FOREACH subtitl IN OVERDUE.subtitle %] [% subtitl.subfield %][% END %]</a>
+                                                [% ELSE %]
+                                                    <a class="title" href="/cgi-bin/koha/opac-detail.pl?bib=[% OVERDUE.biblionumber %]">[% OVERDUE.title |html %] [% FOREACH subtitl IN OVERDUE.subtitle %] [% subtitl.subfield %][% END %]</a>
+                                                [% END %]
                                                     <span class="item-details">[% OVERDUE.author %]</span></td>
-
                                                 [% UNLESS ( item_level_itypes ) %]
                                                     <td>
                                                         [% IF ( OVERDUE.imageurl ) %]
