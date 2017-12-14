@@ -1,0 +1,62 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+use CGI qw ( -utf8 );
+use C4::Auth qw/check_api_auth/;
+use C4::Members;
+use C4::Members::Attributes qw( GetBorrowerAttributeValue );
+use Koha::Patrons;
+use XML::Simple;
+
+my $query = new CGI;
+binmode STDOUT, ':encoding(UTF-8)';
+
+my ($status, $cookie, $sessionID) = check_api_auth($query, { editcatalogue => 'edit_catalogue'} );
+unless ($status eq "ok") {
+  print $query->header(-type => 'text/xml', -status => '403 Forbidden');
+  print XMLout({ status => $status }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+  exit 0;
+}
+my $cardnumber= $query->url_param('cardnumber');
+my $personalnumber = $query->url_param('personalnumber');
+
+unless ($cardnumber) {
+  print $query->header(-type => 'text/xml', -status => '404');
+  print XMLout({ status => "Cardnumber is required", error_code => "cardnumberIsRequired"  }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+  exit 0;
+}
+
+unless ($personalnumber) {
+  print $query->header(-type => 'text/xml', -status => '404');
+  print XMLout({ status => "Personalnumber is required", error_code => "personalnumberIsRequired"  }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+  exit 0;
+}
+
+my $patrons = Koha::Patrons->search({cardnumber => $cardnumber});
+my $borrower = $patrons->next;
+
+my $match = "false";
+
+unless ($borrower) {
+  #print $query->header(-type => 'text/xml', -status => '404');
+  # print XMLout({ status => "Borrower not found", error_code => "borrowerNotFound"  }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+  print $query->header(-type => 'text/xml',-charset => 'utf-8');
+  print XMLout({match => $match}, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+  exit 0;
+}
+
+my $borrowernumber = $borrower->unblessed->{'borrowernumber'};
+
+my $pnr12 = GetBorrowerAttributeValue($borrowernumber, "PNR12");
+my $pnr = GetBorrowerAttributeValue($borrowernumber, "PNR");
+
+if (($pnr12 and (($personalnumber eq $pnr12) or ($personalnumber eq substr($pnr12, 2)))) or ($pnr and (($personalnumber eq $pnr) or (substr($personalnumber, 2) eq $pnr)))) {
+  $match = "true";
+}
+
+print $query->header(-type => 'text/xml',-charset => 'utf-8');
+print XMLout({match => $match}, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+
+exit 0;
