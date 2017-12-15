@@ -144,34 +144,60 @@ of C<C4::Items>
 
 Return item information, for a given itemnumber or barcode.
 The return value is a hashref mapping item column
-names to values.  If C<$serial> is true, include serial publication data.
+names to values, or undef if item was not found.  If C<$serial> is true, include serial publication data.
 
 =cut
 
 sub GetItem {
-    my ($itemnumber,$barcode, $serial) = @_;
+    my ($itemnumber, $barcode, $serial) = @_;
+    my $items = GetItems($itemnumber ? [$itemnumber] : undef, $barcode ? [$barcode] : undef, $serial);
+    return @{$items} ? $items->[0] : undef;
+}
+
+=head2 GetItems
+
+  $item = GetItems($itemnumber,$barcode,$serial);
+
+Return list of item information, for given itemnumbers or barcodes.
+The return value is an arrayref with hashrefs mapping item column
+names to values, or an empty arrayref if no items were found.
+If C<$serial> is true, include serial publication data.
+
+=cut
+
+sub GetItems {
+    my ($itemnumbers, $barcodes, $serial) = @_;
     my $dbh = C4::Context->dbh;
+    my $items_data = [];
 
-    my $item;
-    if ($itemnumber) {
-        $item = Koha::Items->find( $itemnumber );
-    } else {
-        $item = Koha::Items->find( { barcode => $barcode } );
+    # Important: If 'item-level_itypes' preference is not set Koha::Item::effective_itemtype()
+    # will be equal to $item->{itype} and it is possible to fetch the data directly from items table.
+    # This will have a much smaller footprint then unblessing the item objects fetched through
+    # find/search. If more calculated attributes are added in the future, this code will need
+    # to account for that.
+    if (C4::Context->preference('item-level_itypes')) {
+        $items_data = Koha::Items->search_unblessed($itemnumbers ? $itemnumbers : { barcode => $barcodes });
     }
-
-    return unless ( $item );
-
-    my $data = $item->unblessed();
-    $data->{itype} = $item->effective_itemtype(); # set the correct itype
-
+    else {
+        my @items = Koha::Items->search(
+            $itemnumbers ? { itemnumber => { IN => $itemnumbers } } : { barcode => { IN => $barcodes } }
+        );
+        foreach my $item (@items) {
+            my $data = $item->unblessed();
+            # Set the correct itype
+            $data->{itype} = $item->effective_itemtype();
+            push @{$items_data}, $data;
+        }
+    }
     if ($serial) {
-        my $ssth = $dbh->prepare("SELECT serialseq,publisheddate from serialitems left join serial on serialitems.serialid=serial.serialid where serialitems.itemnumber=?");
-        $ssth->execute( $data->{'itemnumber'} );
-        ( $data->{'serialseq'}, $data->{'publisheddate'} ) = $ssth->fetchrow_array();
+        foreach my $data (@{$items_data}) {
+            my $ssth = $dbh->prepare("SELECT serialseq,publisheddate from serialitems left join serial on serialitems.serialid=serial.serialid where serialitems.itemnumber=?");
+            $ssth->execute( $data->{'itemnumber'} );
+            ( $data->{'serialseq'}, $data->{'publisheddate'} ) = $ssth->fetchrow_array();
+        }
     }
-
-    return $data;
-}    # sub GetItem
+    return $items_data;
+}
 
 =head2 CartToShelf
 
@@ -1481,13 +1507,13 @@ sub GetMarcItem {
     # while the other treats the MARC representation as authoritative
     # under certain circumstances.
 
-    my $itemrecord = GetItem($itemnumber);
+    my $itemrecord = ref($itemnumber) ? $itemnumber : GetItem($itemnumber);
 
     # Tack on 'items.' prefix to column names so that C4::Biblio::TransformKohaToMarc will work.
     # Also, don't emit a subfield if the underlying field is blank.
 
-    
-    return Item2Marc($itemrecord,$biblionumber);
+
+    return Item2Marc($itemrecord, $biblionumber);
 
 }
 sub Item2Marc {
