@@ -1004,18 +1004,52 @@ sub GetUsedMarcStructure {
     return $sth->fetchall_arrayref( {} );
 }
 
+=pod
+
 =head2 GetMarcSubfieldStructure
+
+  my $structure = GetMarcSubfieldStructure($frameworkcode, [$params]);
+
+Returns a reference to hash representing MARC subfield structure
+for framework with framework code C<$frameworkcode>, C<$params> is
+optional and may contain additional options.
+
+=over 4
+
+=item C<$frameworkcode>
+
+The framework code.
+
+=item C<$params>
+
+An optional hash reference with additional options.
+The following options are supported:
+
+=over 4
+
+=item unsafe
+
+Pass { unsafe => 1 } do disable cached object cloning,
+and instead get a shared reference, resulting in better
+performance (but care must be taken so that retured object
+is never modified).
+
+Note: If you call GetMarcSubfieldStructure with unsafe => 1, do not modify or
+even autovivify its contents. It is a cached/shared data structure. Your
+changes would be passed around in subsequent calls.
+
+=back
 
 =cut
 
 sub GetMarcSubfieldStructure {
-    my ( $frameworkcode ) = @_;
+    my ( $frameworkcode, $params ) = @_;
 
     $frameworkcode //= '';
 
     my $cache     = Koha::Caches->get_instance();
     my $cache_key = "MarcSubfieldStructure-$frameworkcode";
-    my $cached    = $cache->get_from_cache($cache_key);
+    my $cached  = $cache->get_from_cache($cache_key, { unsafe => ($params && $params->{unsafe}) });
     return $cached if $cached;
 
     my $dbh = C4::Context->dbh;
@@ -1059,7 +1093,7 @@ sub GetMarcFromKohaField {
     return unless $kohafield;
     # The next call uses the Default framework since it is AUTHORITATIVE
     # for all Koha to MARC mappings.
-    my $mss = GetMarcSubfieldStructure( '' ); # Do not change framework
+    my $mss = GetMarcSubfieldStructure( '', { unsafe => 1 } ); # Do not change framework
     my @retval;
     foreach( @{ $mss->{$kohafield} } ) {
         push @retval, $_->{tagfield}, $_->{tagsubfield};
@@ -1086,7 +1120,7 @@ sub GetMarcSubfieldStructureFromKohaField {
 
     # The next call uses the Default framework since it is AUTHORITATIVE
     # for all Koha to MARC mappings.
-    my $mss = GetMarcSubfieldStructure(''); # Do not change framework
+    my $mss = GetMarcSubfieldStructure( '', { unsafe => 1 } ); # Do not change framework
     return unless $mss->{$kohafield};
     return wantarray ? @{$mss->{$kohafield}} : $mss->{$kohafield}->[0];
 }
@@ -2155,7 +2189,7 @@ sub TransformKohaToMarc {
 
     # In the next call we use the Default framework, since it is considered
     # authoritative for Koha to Marc mappings.
-    my $mss = GetMarcSubfieldStructure( '' ); # do not change framework
+    my $mss = GetMarcSubfieldStructure( '', { unsafe => 1 } ); # do not change framewok
     my $tag_hr = {};
     while ( my ($kohafield, $value) = each %$hash ) {
         foreach my $fld ( @{ $mss->{$kohafield} } ) {
@@ -2573,7 +2607,7 @@ sub TransformMarcToKoha {
 
     # The next call acknowledges Default as the authoritative framework
     # for Koha to MARC mappings.
-    my $mss = GetMarcSubfieldStructure(''); # Do not change framework
+    my $mss = GetMarcSubfieldStructure( '', { unsafe => 1 } ); # Do not change framework
     foreach my $kohafield ( keys %{ $mss } ) {
         my ( $table, $column ) = split /[.]/, $kohafield, 2;
         next unless $tables{$table};
