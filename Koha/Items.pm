@@ -53,6 +53,48 @@ sub object_class {
     return 'Koha::Item';
 }
 
+sub search_unblessed {
+    my ($self, $conditions) = @_;
+    my $items = [];
+    my $field_name;
+    if (ref($conditions) eq 'HASH') {
+        my %valid_condition_fields = (
+            'barcode' => undef,
+            'itemnumber' => undef,
+        );
+        foreach my $field (keys %{$conditions}) {
+            die ("Invalid condition: \"$field\"") unless exists $valid_condition_fields{$field};
+        }
+    }
+    else {
+        $conditions = {
+            'itemnumber' => $conditions,
+        };
+    }
+    # Only accepts one condition
+    my ($field, $values) = (%{$conditions});
+
+    if (ref($values) eq 'ARRAY' && @{$values} == 1) {
+        ($values) = @{$values};
+    }
+    if (!ref($values)) {
+        my $item = C4::Context->dbh->selectrow_hashref(qq{SELECT * FROM items WHERE $field = ?}, undef, $values);
+        push @{$items}, $item;
+    }
+    elsif (ref($values) eq 'ARRAY') {
+        my $in = join ', ', (('?') x @{$values});
+        my $sth = C4::Context->dbh->prepare(qq{SELECT * FROM items WHERE $field IN($in)});
+        $sth->execute(@{$values});
+        while (my $item = $sth->fetchrow_hashref) {
+            push @{$items}, $item;
+        }
+    }
+    else {
+        die("Invalid $field value");
+    }
+    return $items;
+}
+
 =head1 AUTHOR
 
 Kyle M Hall <kyle@bywatersolutions.com>

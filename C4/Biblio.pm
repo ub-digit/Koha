@@ -2813,6 +2813,8 @@ sub EmbedItemsInMarcBiblio {
 
     $itemnumbers = [] unless defined $itemnumbers;
 
+    # Could this be moved lower down and run only when items
+    # exists for improved performance? Probably..
     my $frameworkcode = GetFrameworkCode($biblionumber);
     _strip_item_fields($marc, $frameworkcode);
 
@@ -2820,16 +2822,38 @@ sub EmbedItemsInMarcBiblio {
     my $dbh = C4::Context->dbh;
     my $sth = $dbh->prepare("SELECT itemnumber FROM items WHERE biblionumber = ?");
     $sth->execute($biblionumber);
+    my @all_itemnumbers;
+    while ( my ($itemnumber) = $sth->fetchrow_array ) {
+        push @all_itemnumbers, $itemnumber;
+    }
+    # Remove invalid item numbers by intersecting with all valid item numbers
+    if(@$itemnumbers) {
+        my %h = map { $_ => undef } @{$itemnumbers};
+        $itemnumbers = [grep { exists $h{$_} } @all_itemnumbers];
+    }
+    else {
+        $itemnumbers = \@all_itemnumbers;
+    }
+    # If no item numbers then no point in continuing
+    return unless (@{$itemnumbers});
+
     my @item_fields;
     my ( $itemtag, $itemsubfield ) = GetMarcFromKohaField( "items.itemnumber", $frameworkcode );
     my @items;
     my $opachiddenitems = $opac
       && ( C4::Context->preference('OpacHiddenItems') !~ /^\s*$/ );
     require C4::Items;
-    while ( my ($itemnumber) = $sth->fetchrow_array ) {
-        next if @$itemnumbers and not grep { $_ == $itemnumber } @$itemnumbers;
-        my $i = $opachiddenitems ? C4::Items::GetItem($itemnumber) : undef;
-        push @items, { itemnumber => $itemnumber, item => $i };
+
+    if ($opachiddenitems) {
+        foreach my $itemnumber (@{$itemnumbers}) {
+            push @items, { itemnumber => $itemnumber, item => undef };
+        }
+    }
+    else {
+        my $items = C4::Items::GetItems($itemnumbers);
+        foreach my $item (@$items) {
+            push @items, { itemnumber => $item->{itemnumber}, item => $item };
+        }
     }
     my @hiddenitems =
       $opachiddenitems
@@ -2837,9 +2861,9 @@ sub EmbedItemsInMarcBiblio {
       : ();
     # Convert to a hash for quick searching
     my %hiddenitems = map { $_ => 1 } @hiddenitems;
-    foreach my $itemnumber ( map { $_->{itemnumber} } @items ) {
-        next if $hiddenitems{$itemnumber};
-        my $item_marc = C4::Items::GetMarcItem( $biblionumber, $itemnumber );
+    foreach my $item (@items) {
+        next if $hiddenitems{$item->{itemnumber}};
+        my $item_marc = C4::Items::GetMarcItem( $biblionumber, $item->{item} );
         push @item_fields, $item_marc->field($itemtag);
     }
     $marc->append_fields(@item_fields);
