@@ -688,9 +688,13 @@ sub dbh
     my $self = shift;
     my $params = shift;
     my $sth;
+    state $dbh;
 
     unless ( $params->{new} ) {
-        return Koha::Database->schema->storage->dbh;
+        unless ($dbh) {
+            $dbh = Koha::Database->schema->storage->dbh;
+        }
+        return $dbh;
     }
 
     return Koha::Database->schema({ new => 1 })->storage->dbh;
