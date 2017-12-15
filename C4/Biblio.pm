@@ -2757,9 +2757,10 @@ sub EmbedItemsInMarcBiblio {
         carp 'EmbedItemsInMarcBiblio: No MARC record passed';
         return;
     }
-
     $itemnumbers = [] unless defined $itemnumbers;
 
+    # Could this be moved lower down and run only when items
+    # exists for improved performance? Probably..
     my $frameworkcode = GetFrameworkCode($biblionumber);
     _strip_item_fields($marc, $frameworkcode);
 
@@ -2767,26 +2768,36 @@ sub EmbedItemsInMarcBiblio {
     my $dbh = C4::Context->dbh;
     my $sth = $dbh->prepare("SELECT itemnumber FROM items WHERE biblionumber = ?");
     $sth->execute($biblionumber);
-    my @item_fields;
-    my ( $itemtag, $itemsubfield ) = GetMarcFromKohaField( "items.itemnumber", $frameworkcode );
-    my @items;
-    my $opachiddenitems = $opac
-      && ( C4::Context->preference('OpacHiddenItems') !~ /^\s*$/ );
-    require C4::Items;
+    my @all_itemnumbers;
     while ( my ($itemnumber) = $sth->fetchrow_array ) {
-        next if @$itemnumbers and not grep { $_ == $itemnumber } @$itemnumbers;
-        my $i = $opachiddenitems ? C4::Items::GetItem($itemnumber) : undef;
-        push @items, { itemnumber => $itemnumber, item => $i };
+        push @all_itemnumbers, $itemnumber;
     }
-    my @hiddenitems =
-      $opachiddenitems
-      ? C4::Items::GetHiddenItemnumbers( map { $_->{item} } @items )
-      : ();
-    # Convert to a hash for quick searching
-    my %hiddenitems = map { $_ => 1 } @hiddenitems;
-    foreach my $itemnumber ( map { $_->{itemnumber} } @items ) {
-        next if $hiddenitems{$itemnumber};
-        my $item_marc = C4::Items::GetMarcItem( $biblionumber, $itemnumber );
+    # Remove invalid item numbers by intersecting with all valid item numbers
+    if(@$itemnumbers) {
+        my %h = map { $_ => undef } @{$itemnumbers};
+        $itemnumbers = [grep { exists $h{$_} } @all_itemnumbers];
+    }
+    else {
+        $itemnumbers = \@all_itemnumbers;
+    }
+    # If no item numbers then no point in continuing
+    return unless (@{$itemnumbers});
+
+    my $opachiddenitems = $opac
+        && ( C4::Context->preference('OpacHiddenItems') !~ /^\s*$/ );
+    require C4::Items;
+
+    my $items = C4::Items::GetItems($itemnumbers);
+    if ($opachiddenitems) {
+        my %hidden_items = map { $_ => undef } C4::Items::GetHiddenItemnumbers(@{$items});
+        # Reduce items to non hidden items
+        $items = [grep { !(exists $hidden_items{$_->{itemnumber}}) } @{$items}];
+    }
+
+    my ($itemtag) = GetMarcFromKohaField("items.itemnumber", $frameworkcode);
+    my @item_fields;
+    foreach my $item (@{$items}) {
+        my $item_marc = C4::Items::GetMarcItem($biblionumber, $item);
         push @item_fields, $item_marc->field($itemtag);
     }
     $marc->append_fields(@item_fields);
