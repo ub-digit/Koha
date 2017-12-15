@@ -44,7 +44,9 @@ my $location = 'My Location';
 
 subtest 'General Add, Get and Del tests' => sub {
 
-    plan tests => 16;
+    plan tests => 25;
+
+    my $item_barcode = 123;
 
     $schema->storage->txn_begin;
 
@@ -61,28 +63,96 @@ subtest 'General Add, Get and Del tests' => sub {
     my ($bibnum, $bibitemnum) = get_biblio();
 
     # Add an item.
-    my ($item_bibnum, $item_bibitemnum, $itemnumber) = AddItem({ homebranch => $library->{branchcode}, holdingbranch => $library->{branchcode}, location => $location, itype => $itemtype->{itemtype} } , $bibnum);
+    my ($item_bibnum, $item_bibitemnum, $itemnumber) = AddItem({
+            homebranch => $library->{branchcode},
+            holdingbranch => $library->{branchcode},
+            location => $location,
+            itype => $itemtype->{itemtype},
+            barcode => $item_barcode
+        }, $bibnum
+    );
     cmp_ok($item_bibnum, '==', $bibnum, "New item is linked to correct biblionumber.");
     cmp_ok($item_bibitemnum, '==', $bibitemnum, "New item is linked to correct biblioitemnumber.");
 
     # Get item.
     my $getitem = GetItem($itemnumber);
     cmp_ok($getitem->{'itemnumber'}, '==', $itemnumber, "Retrieved item has correct itemnumber.");
+    cmp_ok($getitem->{'barcode'}, '==', $item_barcode, "Retrieved item has correct barcode.");
     cmp_ok($getitem->{'biblioitemnumber'}, '==', $item_bibitemnum, "Retrieved item has correct biblioitemnumber.");
     is( $getitem->{location}, $location, "The location should not have been modified" );
     is( $getitem->{permanent_location}, $location, "The permanent_location should have been set to the location value" );
 
+    $getitem = GetItem(undef, $item_barcode);
+    cmp_ok($getitem->{'itemnumber'}, '==', $itemnumber, "Item retrieved by barcode has correct itemnumber.");
+
     # Modify item; setting barcode.
-    ModItem({ barcode => '987654321' }, $bibnum, $itemnumber);
+    $item_barcode = '987654321';
+    ModItem({ barcode => $item_barcode }, $bibnum, $itemnumber);
     my $moditem = GetItem($itemnumber);
-    cmp_ok($moditem->{'barcode'}, '==', '987654321', 'Modified item barcode successfully to: '.$moditem->{'barcode'} . '.');
+    cmp_ok($moditem->{'barcode'}, '==', $item_barcode, 'Modified item barcode successfully to: ' . $moditem->{'barcode'} . '.');
+
+	# Update some more properties to get larger coverage
+	my $item_properties = {
+		'dateaccessioned' => '2012-12-12',
+		'datelastborrowed' => '2013-12-12',
+		'datelastseen' => '2013-12-12',
+		'notforloan' => '0',
+		'damaged' => '0',
+		'itemlost' => '0',
+		'itemcallnumber' => '1234',
+		'restricted' => '0',
+	};
+
+    # Clone item propreties since ModItem modifies this argument
+    # causing later tests to fail
+    ModItem({%{$item_properties}}, $bibnum, $itemnumber);
+
+	# Search unblessed tests
+	my $search_conditions = {
+		'itemnumber' => $itemnumber,
+	};
+	my ($item_object) = Koha::Items->search($search_conditions);
+	my $item_object_data = $item_object->unblessed;
+	cmp_ok($item_object_data->{'itemnumber'}, '==', $itemnumber, "Item object retrieved by Koha::Items->search using \"itemnumber\" condition has correct itemnumber.");
+
+	# Intersect with updated properties
+	my $updated_item_properties = { map { ($_ => $item_object_data->{$_}) } keys %{$item_properties} };
+
+	is_deeply($updated_item_properties, $item_properties, "Updated item properties have correct values.");
+
+    my ($item_data) = Koha::Items->search_unblessed($search_conditions);
+	cmp_ok(
+		$item_data->{'itemnumber'},
+		'==',
+		$itemnumber,
+		"Item data retrieved by Koha::Items->search_unblessed using \"itemnumber\" condition has correct itemnumber."
+	);
+
+    ($item_data) = Koha::Items->search_unblessed({ 'barcode' => $item_barcode });
+	cmp_ok(
+		$item_data->{'itemnumber'},
+		'==',
+		$itemnumber,
+		"Item data retrieved by Koha::Items->search_unblessed using \"barcode\" condition has correct itemnumber."
+	);
+
+	is_deeply($item_object_data, $item_data, "Item data retrieved by unblessing item object is identical to item data from Koha::Items->search_unblessed.");
 
     # Delete item.
     DelItem({ biblionumber => $bibnum, itemnumber => $itemnumber });
     my $getdeleted = GetItem($itemnumber);
     is($getdeleted->{'itemnumber'}, undef, "Item deleted as expected.");
 
-    ($item_bibnum, $item_bibitemnum, $itemnumber) = AddItem({ homebranch => $library->{branchcode}, holdingbranch => $library->{branchcode}, location => $location, permanent_location => 'my permanent location', itype => $itemtype->{itemtype} } , $bibnum);
+    ($item_bibnum, $item_bibitemnum, $itemnumber) = AddItem({
+            homebranch => $library->{branchcode},
+            holdingbranch => $library->{branchcode},
+            location => $location,
+            permanent_location => 'my permanent location',
+            itype => $itemtype->{itemtype},
+            barcode => $item_barcode
+        },
+        $bibnum
+    );
     $getitem = GetItem($itemnumber);
     is( $getitem->{location}, $location, "The location should not have been modified" );
     is( $getitem->{permanent_location}, 'my permanent location', "The permanent_location should not have modified" );
@@ -100,6 +170,11 @@ subtest 'General Add, Get and Del tests' => sub {
     t::lib::Mocks::mock_preference('item-level_itypes', '1');
     $getitem = GetItem($itemnumber);
     is( $getitem->{itype}, $itemtype->{itemtype}, "Itemtype set correctly when using item-level_itypes" );
+    # Good to test this since different code for retrieving items is run in GetItems() depending on item-level_itypes preference
+    is( $getitem->{itemnumber}, $itemnumber, "Item successfully retrieved by itemnumber when using item-level_itypes" );
+    $getitem = GetItem(undef, $item_barcode);
+    is( $getitem->{itemnumber}, $itemnumber, "Item successfully retrieved by barcode when using item-level_itypes" );
+
     t::lib::Mocks::mock_preference('item-level_itypes', '0');
     $getitem = GetItem($itemnumber);
     is( $getitem->{itype}, undef, "Itemtype set correctly when not using item-level_itypes" );
