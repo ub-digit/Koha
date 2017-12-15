@@ -1083,13 +1083,13 @@ sub GetUsedMarcStructure {
 =cut
 
 sub GetMarcSubfieldStructure {
-    my ( $frameworkcode ) = @_;
+    my ( $frameworkcode, $params ) = @_;
 
     $frameworkcode //= '';
 
     my $cache     = Koha::Caches->get_instance();
     my $cache_key = "MarcSubfieldStructure-$frameworkcode";
-    my $cached    = $cache->get_from_cache($cache_key);
+    my $cached  = $cache->get_from_cache($cache_key, { unsafe => ($params && $params->{unsafe}) });
     return $cached if $cached;
 
     my $dbh = C4::Context->dbh;
@@ -1133,7 +1133,7 @@ sub GetMarcFromKohaField {
     return unless $kohafield;
     # The next call uses the Default framework since it is AUTHORITATIVE
     # for all Koha to MARC mappings.
-    my $mss = GetMarcSubfieldStructure( '' ); # Do not change framework
+    my $mss = GetMarcSubfieldStructure( '', { unsafe => 1 } ); # Do not change framework
     my @retval;
     foreach( @{ $mss->{$kohafield} } ) {
         push @retval, $_->{tagfield}, $_->{tagsubfield};
@@ -1160,7 +1160,7 @@ sub GetMarcSubfieldStructureFromKohaField {
 
     # The next call uses the Default framework since it is AUTHORITATIVE
     # for all Koha to MARC mappings.
-    my $mss = GetMarcSubfieldStructure(''); # Do not change framework
+    my $mss = GetMarcSubfieldStructure( '', { unsafe => 1 } ); # Do not change framework
     return unless $mss->{$kohafield};
     return wantarray ? @{$mss->{$kohafield}} : $mss->{$kohafield}->[0];
 }
@@ -2225,7 +2225,7 @@ sub TransformKohaToMarc {
 
     # In the next call we use the Default framework, since it is considered
     # authoritative for Koha to Marc mappings.
-    my $mss = GetMarcSubfieldStructure( '' ); # do not change framework
+    my $mss = GetMarcSubfieldStructure( '', { unsafe => 1 } ); # do not change framewok
     my $tag_hr = {};
     while ( my ($kohafield, $value) = each %$hash ) {
         foreach my $fld ( @{ $mss->{$kohafield} } ) {
@@ -2638,7 +2638,7 @@ sub TransformMarcToKoha {
 
     # The next call acknowledges Default as the authoritative framework
     # for Koha to MARC mappings.
-    my $mss = GetMarcSubfieldStructure(''); # Do not change framework
+    my $mss = GetMarcSubfieldStructure( '', { unsafe => 1 } ); # Do not change framework
     foreach my $kohafield ( keys %{ $mss } ) {
         my ( $table, $column ) = split /[.]/, $kohafield, 2;
         next unless $tables{$table};
