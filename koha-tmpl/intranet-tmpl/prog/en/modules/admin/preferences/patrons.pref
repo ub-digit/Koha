@@ -208,7 +208,12 @@ Patrons:
                yes: Allow only superlibrarians
                no: Allow all permitted users
          - "to access/change superlibrarian privileges. Note: A permitted user needs to have the 'permissions' flag (if no superlibrarian)."
-
+     -
+         - pref: AutoApprovePatronProfileSettings
+           choices:
+               yes: Enable
+               no: Disable
+         - "Automatically approve Patron profile changes."
     "Norwegian patron database":
      -
          - pref: NorwegianPatronDBEnable
