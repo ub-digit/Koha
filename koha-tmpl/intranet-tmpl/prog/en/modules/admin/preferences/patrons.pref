@@ -234,6 +234,12 @@ Patrons:
          - "to access/change superlibrarian privileges."
          - "<br><strong>NOTE:</strong> A permitted user needs to have the 'permissions' flag (if no superlibrarian)."
 
+     -
+         - pref: AutoApprovePatronProfileSettings
+           choices:
+               yes: Enable
+               no: Disable
+         - "Automatically approve Patron profile changes."
     Privacy:
      -
          - Use the following URL
