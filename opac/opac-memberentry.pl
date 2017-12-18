@@ -25,6 +25,7 @@ use String::Random qw( random_string );
 
 use C4::Auth;
 use C4::Output;
+use C4::Context;
 use C4::Members;
 use C4::Members::Attributes qw( GetBorrowerAttributes );
 use C4::Form::MessagingPreferences;
@@ -281,6 +282,11 @@ elsif ( $action eq 'update' ) {
             }
 
             my $m = Koha::Patron::Modification->new( \%borrower_changes )->store();
+            #Automatically approve patron profile changes if set in syspref
+
+            if (C4::Context->preference('AutoApprovePatronProfileSettings')) {
+                $m->approve();
+            }
 
             my $patron = Koha::Patrons->find( $borrowernumber );
             $template->param( borrower => $patron->unblessed );
