@@ -173,12 +173,12 @@
                                         <th>&nbsp;</th>
                                         [% IF ( SMSSendDriver ) %]<th>SMS</th>[% END %]
                                         <th>Email</th>
-                                        [% IF ( SMSSendDriver ) %]<th>SMS & Email</th>[% END %]
+                                        [% IF ( SMSSendDriver ) %]<th>Email and SMS</th>[% END %]
                                     </tr>
                                     [% FOREACH messaging_preference IN messaging_preferences %]
                                         [% IF ( messaging_preference.Advance_Notice ) %]
                                             <tr>
-                                                <td>Method of communication</td>
+                                                <td>Reminders and notifications</td>
                                                 [% IF ( messaging_preference.transport_sms ) %]
                                                     [% IF ( SMSSendDriver ) %]
                                                         <td>
@@ -220,12 +220,12 @@
                                                             [% IF ( messaging_preference.transports_sms && messaging_preference.transports_email) %]
                                                                 <label class="radio">
                                                                   <input type="radio" name="opacmessaging-simple-radios" id="optionSmsAndEmail" value="SmsAndEmail" checked>
-                                                                  SMS and Email
+                                                                  Email and SMS
                                                                 </label>
                                                             [% ELSE %]
                                                                 <label class="radio">
                                                                   <input type="radio" name="opacmessaging-simple-radios" id="optionSmsAndEmail" value="SmsAndEmail" >
-                                                                  SMS and Email
+                                                                  Email and SMS
                                                                 </label>
                                                             [% END %]
                                                         </td>
