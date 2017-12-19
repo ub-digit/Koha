@@ -48,8 +48,7 @@ use Koha::SearchEngine::QueryBuilder;
 use Koha::SearchEngine::Search;
 use MARC::Record;
 use Catmandu::Store::ElasticSearch;
-use MARC::File::XML ( BinaryEncoding => 'utf8', RecordFormat => uc C4::Context->preference('marcflavour') );
-
+use MARC::File::XML;
 use Data::Dumper; #TODO remove
 use Carp qw(cluck);
 
@@ -161,10 +160,11 @@ sub search_compat {
     # opac-search expects results to be put in the
     # right place in the array, according to $offset
     my $index = $offset;
+    my $marcflavour = uc C4::Context->preference('marcflavour');
     if (C4::Context->preference('ExperimentalElasticsearchIndexing')) {
         $results->each(sub {
                 my $xml = $_[0]->{marc_xml};
-                my $record = MARC::Record->new_from_xml($xml);
+                my $record = MARC::Record->new_from_xml($xml, 'UTF-8', $marcflavour);
                 $records[$index++] = $record;
             });
     }

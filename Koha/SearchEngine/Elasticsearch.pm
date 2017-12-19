@@ -339,60 +339,62 @@ sub sort_fields {
 }
 
 sub marc_records_to_documents {
-	my ($self, $records) = @_;
-	my $rules = $self->get_marc_mapping_rules();
-	my $control_fields_rules = $rules->{control_fields};
-	my $data_fields_rules = $rules->{data_fields};
-	my @record_documents;
+    my ($self, $records) = @_;
+    my $rules = $self->get_marc_mapping_rules();
+    my $control_fields_rules = $rules->{control_fields};
+    my $data_fields_rules = $rules->{data_fields};
+    my $marcflavour = lc C4::Context->preference('marcflavour');
 
-	sub _process_mappings {
-		my ($mappings, $data, $record_document) = @_;
-		foreach my $mapping (@{$mappings}) {
-			my ($target, $options) = @{$mapping};
-			my $_data = $data;
+    my @record_documents;
+
+    sub _process_mappings {
+        my ($mappings, $data, $record_document) = @_;
+        foreach my $mapping (@{$mappings}) {
+            my ($target, $options) = @{$mapping};
+            my $_data = $data;
             $record_document->{$target} //= [];
-			if ($options->{substr}) {
+            if ($options->{substr}) {
                 my ($offset, $length) = @{$options->{substr}};
-				$_data = substr $data, $offset, $length;
-			}
+                $_data = substr $data, $offset, $length;
+            }
             if ($options->{property}) {
                 $_data = {
                     $options->{property} => $_data
                 }
             }
-			push @{$record_document->{$target}}, $_data;
-		}
-	}
-	foreach my $record (@{$records}) {
-		my $record_document = {};
-		my $mappings = $rules->{leader};
-		if ($mappings) {
-			_process_mappings($mappings, $record->leader(), $record_document);
-		}
-		foreach my $field ($record->fields()) {
-			if($field->is_control_field()) {
-				my $mappings = $control_fields_rules->{$field->tag()};
-				if ($mappings) {
-					_process_mappings($mappings, $field->data(), $record_document);
-				}
-			}
-			else {
-				my $subfields_mappings = $data_fields_rules->{$field->tag()};
-				if ($subfields_mappings) {
-					my $wildcard_mappings = $subfields_mappings->{'*'};
-					foreach my $subfield ($field->subfields()) {
-						my ($code, $data) = @{$subfield};
-						my $mappings = $subfields_mappings->{$code} // [];
-						if ($wildcard_mappings) {
-							$mappings = [@{$mappings}, @{$wildcard_mappings}];
-						}
-						if (@{$mappings}) {
-							_process_mappings($mappings, $data, $record_document);
-						}
-					}
-				}
-			}
-		}
+            push @{$record_document->{$target}}, $_data;
+        }
+    }
+    foreach my $record (@{$records}) {
+        my $record_document = {};
+        my $mappings = $rules->{leader};
+        if ($mappings) {
+            _process_mappings($mappings, $record->leader(), $record_document);
+        }
+        foreach my $field ($record->fields()) {
+            if($field->is_control_field()) {
+                my $mappings = $control_fields_rules->{$field->tag()};
+                if ($mappings) {
+                    _process_mappings($mappings, $field->data(), $record_document);
+                }
+            }
+            else {
+                my $subfields_mappings = $data_fields_rules->{$field->tag()};
+                if ($subfields_mappings) {
+                    my $wildcard_mappings = $subfields_mappings->{'*'};
+                    foreach my $subfield ($field->subfields()) {
+                        my ($code, $data) = @{$subfield};
+                        my $mappings = $subfields_mappings->{$code} // [];
+                        if ($wildcard_mappings) {
+                            $mappings = [@{$mappings}, @{$wildcard_mappings}];
+                        }
+                        if (@{$mappings}) {
+                            _process_mappings($mappings, $data, $record_document);
+                        }
+                    }
+                }
+            }
+        }
         foreach my $field (keys %{$rules->{defaults}}) {
             unless (defined $record_document->{$field}) {
                 $record_document->{$field} = $rules->{defaults}->{$field};
@@ -408,10 +410,11 @@ sub marc_records_to_documents {
         }
         # TODO: Perhaps should check if $records_document non empty, but really should never be the case
         # TODO: Fix this mess, would be nice id could be sent along instead
-        $record_document->{'marc_xml'} = $record->as_xml();
+        $record->encoding('UTF-8');
+        $record_document->{'marc_xml'} = $record->as_xml_record($marcflavour);
         my $id = $record->subfield('999', 'c');
-		push @record_documents, [$id, $record_document];
-	}
+        push @record_documents, [$id, $record_document];
+    }
     return \@record_documents;
 }
 
@@ -427,11 +430,11 @@ sub get_marc_mapping_rules {
         my %mapping_defaults = ();
         my @mappings;
 
-		my $substr_args = undef;
+        my $substr_args = undef;
         if ($range) {
             my ($offset, $end) = map(int, split /-/, $range, 2);
-			$substr_args = [$offset];
-			push @{$substr_args}, (defined $end ? $end - $offset : 1);
+            $substr_args = [$offset];
+            push @{$substr_args}, (defined $end ? $end - $offset : 1);
         }
         my $default_options = {};
         if ($substr_args) {
