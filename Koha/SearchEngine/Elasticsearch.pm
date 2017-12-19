@@ -343,6 +343,8 @@ sub marc_records_to_documents {
 	my $rules = $self->get_marc_mapping_rules();
 	my $control_fields_rules = $rules->{control_fields};
 	my $data_fields_rules = $rules->{data_fields};
+    my $marcflavour = lc C4::Context->preference('marcflavour');
+
 	my @record_documents;
 
 	sub _process_mappings {
@@ -408,7 +410,8 @@ sub marc_records_to_documents {
         }
         # TODO: Perhaps should check if $records_document non empty, but really should never be the case
         # TODO: Fix this mess, would be nice id could be sent along instead
-        $record_document->{'marc_xml'} = $record->as_xml();
+        $record->encoding('UTF-8');
+        $record_document->{'marc_xml'} = $record->as_xml_record($marcflavour);
         my $id = $record->subfield('999', 'c');
 		push @record_documents, [$id, $record_document];
 	}
