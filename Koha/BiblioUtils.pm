@@ -111,29 +111,69 @@ The iterator is a Koha::MetadataIterator object.
 =cut
 
 sub get_all_biblios_iterator {
+    my ($self, $params) = @_;
+    my $batched;
+    my $batch_size;
+    if ($params) {
+        $batched //= $params->{batched};
+        $batch_size = $params->{batch_size} || 2000;
+    }
+
     my $database = Koha::Database->new();
     my $schema   = $database->schema();
-    my $rs =
-      $schema->resultset('Biblio')->search( {},
-        { columns => [qw/ biblionumber /] } );
-    my $next_func = sub {
-        # Warn and skip bad records, otherwise we break the loop
-        while (1) {
-            my $row = $rs->next();
-            return if !$row;
-            my $marc = C4::Biblio::GetMarcBiblio({
-                biblionumber => $row->biblionumber,
-                embed_items  => 1 });
-            my $next = eval {
-                __PACKAGE__->new($marc, $row->biblionumber);
-            };
-            if ($@) {
-                warn "Something went wrong reading record for biblio $row->biblionumber: $@\n";
-                next;
+    my $rs = $schema->resultset('Biblio')->search(
+        {},
+        { columns => [qw/ biblionumber /] }
+    );
+
+    my $next_func;
+    if ($batched) {
+        my @marc_records_batch;
+        $next_func = sub {
+            unless (@marc_records_batch) {
+                #Batch empty, nead to buffer up more records
+                my $limit = $batch_size;
+                my @biblionumbers;
+                while ($limit--) {
+                    my $row = $rs->next();
+                    last if !$row;
+                    push @biblionumbers, $row->biblionumber;
+                }
+                if (@biblionumbers) {
+                    my $marc_records = C4::Biblio::GetMarcBiblios({
+                        biblionumbers => \@biblionumbers,
+                        embed_items => 1
+                    });
+                    while (my ($biblionumber, $marc_record) = each %{$marc_records}) {
+                        my $next = __PACKAGE__->new($marc_record, $biblionumber);
+                        push @marc_records_batch, $next;
+                    }
+                }
             }
-            return $next;
-        }
-    };
+            return pop @marc_records_batch;
+        };
+    }
+    else {
+        $next_func = sub {
+            # Warn and skip bad records, otherwise we break the loop
+            while (1) {
+                my $row = $rs->next();
+                return if !$row;
+                my $marc = C4::Biblio::GetMarcBiblio({
+                    biblionumber => $row->biblionumber,
+                    embed_items => 1
+                });
+                my $next = eval {
+                    __PACKAGE__->new($marc, $row->biblionumber);
+                };
+                if ($@) {
+                    warn "Something went wrong reading record for biblio $row->biblionumber: $@\n";
+                    next;
+                }
+                return $next;
+            }
+        };
+    }
     return Koha::MetadataIterator->new($next_func);
 }
 
