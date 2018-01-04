@@ -106,8 +106,8 @@ sub search_unblessed {
         push @{$items}, $item;
     }
     elsif (ref($values) eq 'ARRAY') {
-        my $in = join ', ', (('?') x @{$values});
-        my $sth = C4::Context->dbh->prepare(qq{SELECT * FROM items WHERE $field IN($in)});
+        my $in_placeholders = join ', ', (('?') x @{$values});
+        my $sth = C4::Context->dbh->prepare(qq{SELECT * FROM items WHERE $field IN($in_placeholders)});
         $sth->execute(@{$values});
         while (my $item = $sth->fetchrow_hashref) {
             push @{$items}, $item;
