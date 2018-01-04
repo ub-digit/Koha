@@ -131,7 +131,7 @@ if ($index_biblios) {
             return ($r, Koha::BiblioUtils->get_from_biblionumber($r, item_data => 1 ));
         };
     } else {
-        my $records = Koha::BiblioUtils->get_all_biblios_iterator();
+        my $records = Koha::BiblioUtils->get_all_biblios_iterator({ batched => 1 });
         $next = sub {
             $records->next();
         }
