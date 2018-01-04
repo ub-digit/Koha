@@ -1165,6 +1165,26 @@ sub GetMarcSubfieldStructureFromKohaField {
     return wantarray ? @{$mss->{$kohafield}} : $mss->{$kohafield}->[0];
 }
 
+
+sub GetMarcBiblio {
+    my ($params) = @_;
+
+    if (not defined $params) {
+        carp 'GetMarcBiblio called without parameters';
+        return;
+    }
+    my $biblionumber = $params->{biblionumber};
+
+    if (not defined $biblionumber) {
+        carp 'GetMarcBiblio called with undefined biblionumber';
+        return;
+    }
+    delete $params->{biblionumber};
+    $params->{biblionumbers} = [$biblionumber];
+    my ($biblio) = GetMarcBiblios($params);
+    return $biblio;
+}
+
 =head2 GetMarcBiblio
 
   my $record = GetMarcBiblio({
@@ -1198,52 +1218,65 @@ OpacHiddenItems to be applied.
 
 =cut
 
-sub GetMarcBiblio {
+sub GetMarcBiblios {
     my ($params) = @_;
 
     if (not defined $params) {
-        carp 'GetMarcBiblio called without parameters';
+        carp 'GetMarcBiblios called without parameters';
         return;
     }
 
-    my $biblionumber = $params->{biblionumber};
+    my $biblionumbers = $params->{biblionumbers};
     my $embeditems   = $params->{embed_items} || 0;
     my $opac         = $params->{opac} || 0;
 
-    if (not defined $biblionumber) {
-        carp 'GetMarcBiblio called with undefined biblionumber';
+    if (not defined $biblionumbers) {
+        carp 'GetMarcBiblio called with undefined biblionumbers';
         return;
     }
 
-    my $dbh          = C4::Context->dbh;
-    my $sth          = $dbh->prepare("SELECT biblioitemnumber FROM biblioitems WHERE biblionumber=? ");
-    $sth->execute($biblionumber);
-    my $row     = $sth->fetchrow_hashref;
-    my $biblioitemnumber = $row->{'biblioitemnumber'};
-    my $marcxml = GetXmlBiblio( $biblionumber );
-    $marcxml = StripNonXmlChars( $marcxml );
-    my $frameworkcode = GetFrameworkCode($biblionumber);
-    MARC::File::XML->default_record_format( C4::Context->preference('marcflavour') );
-    my $record = MARC::Record->new();
+    my $in_placeholders = join ', ', (('?') x @{$biblionumbers});
+    my $dbh = C4::Context->dbh;
+    my $sth = $dbh->prepare("SELECT biblionumber, biblioitemnumber FROM biblioitems WHERE biblionumber IN ($in_placeholders)");
+    $sth->execute(@{$biblionumbers});
 
-    if ($marcxml) {
-        $record = eval {
-            MARC::Record::new_from_xml( $marcxml, "utf8",
-                C4::Context->preference('marcflavour') );
-        };
-        if ($@) { warn " problem with :$biblionumber : $@ \n$marcxml"; }
-        return unless $record;
+    my %marc_records;
+    my ($biblionumber, $biblioitemnumber);
+    my $marc_flavour = C4::Context->preference('marcflavour');
+    while (my $biblio_keys = $sth->fetchrow_arrayref) {
+        ($biblionumber, $biblioitemnumber) = @{$biblio_keys};
 
-        C4::Biblio::_koha_marc_update_bib_ids( $record, $frameworkcode, $biblionumber,
-            $biblioitemnumber );
-        C4::Biblio::EmbedItemsInMarcBiblio( $record, $biblionumber, undef, $opac )
-          if ($embeditems);
+        my $marcxml = GetXmlBiblio( $biblionumber );
+        $marcxml = StripNonXmlChars( $marcxml );
+        my $frameworkcode = GetFrameworkCode($biblionumber);
+        MARC::File::XML->default_record_format( $marc_flavour );
+        my $record = MARC::Record->new();
 
-        return $record;
+        if ($marcxml) {
+            $record = eval {
+                MARC::Record::new_from_xml( $marcxml, "utf8", $marc_flavour);
+            };
+            if ($@) { warn " problem with :$biblionumber : $@ \n$marcxml"; }
+            next unless $record;
+
+            C4::Biblio::_koha_marc_update_bib_ids(
+                $record,
+                $frameworkcode,
+                $biblionumber,
+                $biblioitemnumber
+            );
+            $marc_records{$biblionumber} = $record;
+        }
     }
-    else {
-        return;
+
+    if ($embeditems) {
+        C4::Biblio::EmbedItemsInMarcBiblios(
+            \%marc_records,
+            undef,
+            $opac
+        );
     }
+    return wantarray ? values %marc_records : \%marc_records;
 }
 
 =head2 GetXmlBiblio
@@ -2822,28 +2855,41 @@ sub EmbedItemsInMarcBiblio {
         carp 'EmbedItemsInMarcBiblio: No MARC record passed';
         return;
     }
-    $itemnumbers = [] unless defined $itemnumbers;
+    my ($marc_with_items) = EmbedItemsInMarcBiblios(
+        { $biblionumber => $marc },
+        $itemnumbers,
+        $opac
+    );
+    return $marc_with_items;
+}
 
-    # Could this be moved lower down and run only when items
-    # exists for improved performance? Probably..
-    my $frameworkcode = GetFrameworkCode($biblionumber);
-    _strip_item_fields($marc, $frameworkcode);
+sub EmbedItemsInMarcBiblios {
+    my ($marc_records, $itemnumbers, $opac) = @_;
+
+    $itemnumbers = [] unless defined $itemnumbers;
 
     # ... and embed the current items
     my $dbh = C4::Context->dbh;
-    my $sth = $dbh->prepare("SELECT itemnumber FROM items WHERE biblionumber = ?");
-    $sth->execute($biblionumber);
-    my @all_itemnumbers;
-    while ( my ($itemnumber) = $sth->fetchrow_array ) {
-        push @all_itemnumbers, $itemnumber;
-    }
+
+    my @biblionumbers = keys %{$marc_records};
+    my $in_placeholders = join ', ', (('?') x @biblionumbers);
+
+    my $biblio_itemnumbers = $dbh->selectcol_arrayref(
+        "SELECT itemnumber FROM items WHERE biblionumber IN ($in_placeholders)",
+        undef,
+        @biblionumbers
+    );
+
     # Remove invalid item numbers by intersecting with all valid item numbers
-    if(@$itemnumbers) {
+    # if $itemnumbers argument was provided
+
+    # TODO: MAKE SURE THERE IS A TEST FOR THIS
+    if(@{$itemnumbers}) {
         my %h = map { $_ => undef } @{$itemnumbers};
-        $itemnumbers = [grep { exists $h{$_} } @all_itemnumbers];
+        $itemnumbers = [grep { exists $h{$_} } @{$biblio_itemnumbers}];
     }
     else {
-        $itemnumbers = \@all_itemnumbers;
+        $itemnumbers = $biblio_itemnumbers;
     }
     # If no item numbers then no point in continuing
     return unless (@{$itemnumbers});
@@ -2853,19 +2899,35 @@ sub EmbedItemsInMarcBiblio {
     require C4::Items;
 
     my $items = C4::Items::GetItems($itemnumbers);
-    if ($opachiddenitems) {
-        my %hidden_items = map { $_ => undef } C4::Items::GetHiddenItemnumbers(@{$items});
-        # Reduce items to non hidden items
-        $items = [grep { !(exists $hidden_items{$_->{itemnumber}}) } @{$items}];
+    # We have now fetched all items, time to partion by biblionumber
+    my %items_by_biblionumber = (map { ($_, []) } @biblionumbers);
+    foreach my $item (@{$items}) {
+        push @{$items_by_biblionumber{$item->{biblionumber}}}, $item;
     }
 
-    my ($itemtag) = GetMarcFromKohaField("items.itemnumber", $frameworkcode);
-    my @item_fields;
-    foreach my $item (@{$items}) {
-        my $item_marc = C4::Items::GetMarcItem($biblionumber, $item);
-        push @item_fields, $item_marc->field($itemtag);
+    foreach my $biblionumber (@biblionumbers) {
+        my $marc_record = $marc_records->{$biblionumber};
+        my $items = $items_by_biblionumber{$biblionumber};
+        # Could this be moved lower down and run only when items
+        # exists for improved performance? Probably..
+        my $frameworkcode = GetFrameworkCode($biblionumber);
+        _strip_item_fields($marc_record, $frameworkcode);
+
+        if ($opachiddenitems) {
+            my %hidden_items = map { $_ => undef } C4::Items::GetHiddenItemnumbers(@{$items});
+            # Reduce items to non hidden items
+            $items = [grep { !(exists $hidden_items{$_->{itemnumber}}) } @{$items}];
+        }
+
+        my ($itemtag) = GetMarcFromKohaField("items.itemnumber", $frameworkcode);
+        my @item_fields;
+        foreach my $item (@{$items}) {
+            my $item_marc = C4::Items::GetMarcItem($biblionumber, $item);
+            push @item_fields, $item_marc->field($itemtag);
+        }
+        $marc_record->append_fields(@item_fields);
     }
-    $marc->append_fields(@item_fields);
+    return $marc_records;
 }
 
 =head1 INTERNAL FUNCTIONS
