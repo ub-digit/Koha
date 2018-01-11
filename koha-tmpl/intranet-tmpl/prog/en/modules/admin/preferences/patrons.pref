@@ -225,4 +225,3 @@ Patrons:
          - pref: FailedLoginAttempts
            class: integer
          - failed login attempts.
-         
