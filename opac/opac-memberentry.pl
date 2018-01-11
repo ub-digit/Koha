@@ -279,8 +279,8 @@ elsif ( $action eq 'update' ) {
 
             my $m = Koha::Patron::Modification->new( \%borrower_changes )->store();
             #Automatically approve patron profile changes if set in syspref
-            C4::Context->preference('AutoApprovePatronProfileSettings')
-            if ( Koha::Config::SysPrefs->find('AutoApprovePatronProfileSettings')->value ) {
+            
+            if (C4::Context->preference('AutoApprovePatronProfileSettings')) {
                 $m->approve();
             }
            

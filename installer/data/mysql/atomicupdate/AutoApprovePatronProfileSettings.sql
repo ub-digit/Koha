@@ -1,2 +1,2 @@
 INSERT IGNORE INTO systempreferences ( `variable`, `value`, `options`, `explanation`, `type`) VALUES 
-('AutoApprovePatronProfileSettings', '1', '', 'Automatically aprove Patron profile changes.', 'YesNo');
+('AutoApprovePatronProfileSettings', '1', '', 'Automatically approve Patron profile changes.', 'YesNo');
