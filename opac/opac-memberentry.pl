@@ -277,7 +277,13 @@ elsif ( $action eq 'update' ) {
             }
 
             my $m = Koha::Patron::Modification->new( \%borrower_changes )->store();
-
+            use Koha::Config::SysPrefs;
+            #Automatically approve patron profile changes if set in syspref
+            if ( Koha::Config::SysPrefs->find('AutoApprovePatronProfileSettings')->value ) {
+                #Do stuff here
+                $m->approve();
+            }
+           
             my $patron = Koha::Patrons->find( $borrowernumber );
             $template->param( borrower => $patron->unblessed );
         }
