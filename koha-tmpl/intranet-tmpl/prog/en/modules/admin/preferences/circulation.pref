@@ -509,6 +509,13 @@ Circulation:
                   yes: Cumulate
                   no: "Don't cumulate"
             - the restriction periods.
+        -
+            - Use
+            - pref: UseLocationAsAQInSIP
+              choices:
+                  yes: permanent_location
+                  no: homebranch
+            - for AQ field in SIP protocol.
     Holds Policy:
         -
             - pref: AllowHoldItemTypeSelection
