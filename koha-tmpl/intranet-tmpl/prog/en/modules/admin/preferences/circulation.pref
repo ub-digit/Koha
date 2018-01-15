@@ -602,6 +602,13 @@ Circulation:
                   yes: Do not set alert
                   no: Set alert
             - for returned books that are not issued.
+        -
+            - Use
+            - pref: UseLocationAsAQInSIP
+              choices:
+                  yes: permanent_location
+                  no: homebranch
+            - for AQ field in SIP protocol.
     Holds Policy:
         -
             - In the staff client, split the holds queue into separate tables by
