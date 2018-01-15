@@ -567,6 +567,13 @@ Circulation:
                   yes: "Hide"
                   no: "Don't hide"
             - patrons phone number, email address, street address and city on the circulation page.
+        -
+            - Use
+            - pref: UseLocationAsAQInSIP
+              choices:
+                  yes: permanent_location
+                  no: homebranch
+            - for AQ field in SIP protocol.
     Holds Policy:
         -
             - In the staff client, split the holds queue into separate tables by
