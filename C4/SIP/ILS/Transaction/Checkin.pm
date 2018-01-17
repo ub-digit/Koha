@@ -11,6 +11,7 @@ use strict;
 
 use C4::SIP::ILS::Transaction;
 
+use C4::Context;
 use C4::Circulation;
 use C4::Debug;
 use C4::Items qw( ModItemTransfer );
@@ -75,6 +76,10 @@ sub do_checkin {
         delete $messages->{NotIssued};
         delete $messages->{LocalUse};
         $return = 1 unless keys %$messages;
+    }
+
+    if(C4::Context->preference('SipNoAlertForAvailable') && $messages->{NotIssued}) {
+        $self->alert(0);
     }
 
     # biblionumber, biblioitemnumber, itemnumber
