@@ -570,6 +570,12 @@ Circulation:
                   yes: Allow
                   no: Do not allow
             - removal of Overdue debarments when patron has overdue items but none are old enough to have reached restricting delay. Used in combination with AutoRemoveOverduesRestrictions.
+        -
+            - pref: SipNoAlertForAvailable
+              choices:
+                  yes: Do not set alert
+                  no: Set alert
+            - for returned books that are not issued.
     Holds Policy:
         -
             - In the staff client, split the holds queue into separate tables by
