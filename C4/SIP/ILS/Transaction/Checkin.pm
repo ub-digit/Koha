@@ -11,6 +11,7 @@ use strict;
 
 use C4::SIP::ILS::Transaction;
 
+use C4::Context;
 use C4::Circulation;
 use C4::Reserves qw( ModReserveAffect );
 use C4::Items qw( ModItemTransfer );
@@ -69,6 +70,10 @@ sub do_checkin {
     $self->alert(!$return);
     # ignoring messages: NotIssued, IsPermanent, WasLost, WasTransfered
 
+    if(C4::Context->preference('SipNoAlertForAvailable') && $messages->{NotIssued}) {
+        $self->alert(0);
+    }
+    
     # biblionumber, biblioitemnumber, itemnumber
     # borrowernumber, reservedate, branchcode
     # cancellationdate, found, reservenotes, priority, timestamp
