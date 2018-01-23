@@ -95,6 +95,25 @@ my ($warning_year, $warning_month, $warning_day) = split /-/, $borr->{'dateexpir
 
 my $debar = Koha::Patrons->find( $borrowernumber )->is_debarred;
 my $userdebarred;
+if (C4::Context->preference( 'OPACShowDetailedDebarments')) {
+    our $restrictionCodeList = [];
+    if ( $borr->{'gonenoaddress'}){push $restrictionCodeList, "ADDRESS_MISSING"};
+    if ( $borr->{'lost'})         {push $restrictionCodeList, "CARD_LOST"};
+    my $debarments = Koha::Patron::Debarments::GetDebarments({ borrowernumber => $borrowernumber});
+    my ($hashref, $key, $val, $comment);
+    my $borrstring = my $commentstring = '';
+    foreach $hashref (@$debarments){
+        $commentstring = %$hashref{'comment'};
+        if ($commentstring =~ m/,/){
+            ($key, $val, $comment) = $commentstring =~ m/^([^,]+),([^:]+)(?::(.*))?$/;
+        }else{
+            $key = $commentstring =~ m/^(\S+)\s/;
+        }
+        $borr->{"${key}comment"}  = $comment;
+        push $restrictionCodeList, $key;
+    }
+    $borr->{'restrictionCodeList'}    = $restrictionCodeList;
+};
 
 if ($debar) {
     $userdebarred = 1;
@@ -130,6 +149,8 @@ if (   C4::Context->preference('OpacRenewalAllowed')
     && defined($no_renewal_amt)
     && $amountoutstanding > $no_renewal_amt )
 {
+if (C4::Context->preference( 'OPACShowDetailedDebarments')) {push our $restrictionCodeList, "FINES_EXCEEDED";}
+
     $borr->{'flagged'} = 1;
     $canrenew = 0;
     $template->param(
