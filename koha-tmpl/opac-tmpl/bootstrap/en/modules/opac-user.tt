@@ -95,13 +95,59 @@
 
                     [% IF ( patron_flagged ) %]
                         <div class="alert">
+                            [% IF Koha.Preference( 'OPACShowDetailedDebarments' ) %]
+                                <span class="restriction-header">Your library account is blocked and you are not allowed to borrow.</span>
+                            [% END %]
                             <ul>
+                            [% IF Koha.Preference( 'OPACShowDetailedDebarments' ) %]
+                            [% FOREACH restrictionCode IN borrower.restrictionCodeList %]
+                                [% IF ( restrictionCode == 'AV' ) %]
+                                    <li class="restriction-AV"><span>You are suspended. You cannot borrow, renew or request material.</span></li>
+                                [% END %]
+                                [% IF ( restrictionCode == 'ORI') %]
+                                    <li class="restriction-ORI">
+                                        <span>You have an unpaid bill from the library that has been sent to a debt collector. Pay the debt collector's bill and</span> <a href="http://www.ub.gu.se/kontakta/">contact the library</a> <span>so that we can unblock your account. Contact the debt collector if you have any questions about the bill.</span><strong> [% borrower.ORIcomment %]</strong>
+                                    </li>
+                                [% END %]
+                                [% IF ( restrictionCode == 'OR' ) %]
+                                    <li class="restriction-OR">
+                                        <span>You have an unpaid bill from the library. Pay the bill and</span> <a href="http://www.ub.gu.se/kontakta/">contact the library</a> <span>so that we can unblock your account.</span><strong> [% borrower.ORcomment %]</strong>
+                                    </li>
+                                [% END %]
+                                [% IF ( restrictionCode == 'WR' )  %]
+                                    <li class="restriction-WR"><span>You have applied for a library card but have not yet picked it up. Bring valid identification and pick up the card at any of</span> <a href="http://www.ub.gu.se/bibliotek/">our libraries</a>. <span>If you are a distance student at the University of Gothenburg you can</span> <a href="http://www.ub.gu.se/kontakta/">contact the library</a> <span>to have your card sent to your address.</span>
+                                    </li>
+                                [% END %]
+                                [% IF ( restrictionCode == 'GU' ) %]
+                                    <li class="restriction-GU"><span>Your GU card is blocked. Contact</span> <a href="https://www.gu.se/servicecenter">Servicecenter</a> <span>to get help.</span></li>
+                                [% END %]
+                                [% IF ( restrictionCode == 'FINES_EXCEEDED') %]
+                                    <li class="restriction-FINES_EXCEEDED">
+                                        <span>Your</span> <a href="/cgi-bin/koha/opac-account.pl">fines</a> <span>exceed the allowed limit.</span> <a href="http://www.ub.gu.se/bibliotek/">Visit any of the libraries</a> <span>to pay your fines. We only accept card payments.</span>
+                                    </li>
+                                [% END %]
+                                [% IF ( restrictionCode == 'ADDRESS_MISSING') %]
+                                    <li class="restriction-ADDRESS_MISSING">
+                                        <span>We don't have your address registered.</span> <a href="/cgi-bin/koha/opac-memberentry.pl">Fill in your address</a> <span>and</span> <a href="http://www.ub.gu.se/kontakta/">contact the library</a> <span>so that we can unblock your account.</span>
+                                    </li>
+                                [% END %]
+                                [% IF ( restrictionCode == 'CARD_LOST') %]
+                                    <li class="restriction-CARD_LOST"><span>You have reported your library card lost. Visit any of our</span> <a href="http://www.ub.gu.se/bibliotek/">libraries</a> <span>if you have found the card or need to buy a new one. Bring valid identification.</span>
+                                    </li>
+                                [% END %]
+                                [% IF ( restrictionCode == 'OVERDUES_PROCESS') %]
+                                    <li class="restriction-OVERDUES_PROCESS">
+                                        <span>You have overdue loans.</span> <a href="/cgi-bin/koha/opac-user.pl">Renew the loans</a> <span>or return the material to the library to unblock your account.</span>
+                                    </li>
+                                [% END %]
+                            [% END %]
+                            [% END %]
                                 [% IF ( userdebarred ) %]
                                     [% IF ( discharge_available ) %]
                                         <li id="discharged">
                                             <strong>Please note:</strong> Your account is frozen because it has been discharged. <a href="/cgi-bin/koha/opac-discharge.pl?op=get">Get your discharge</a>
                                         </li>
-                                    [% ELSE %]
+                                    [% ELSIF !Koha.Preference( 'OPACShowDetailedDebarments' ) %]
                                         <li id="userdebarred"><strong>Please note:</strong> Your account has been frozen.
                                         [% IF ( borrower.debarredcomment ) %]
                                             Comment:
@@ -123,7 +169,7 @@
                                         <em>Usually the reason for freezing an account is old overdues or damage fees. If your account shows to be clear, please contact the library.</em> <a href="/cgi-bin/koha/opac-account.pl">Go to your account page</a></li>
                                     [% END %]
                                 [% END %]
-                                [% IF ( borrower.gonenoaddress ) %]
+                                [% IF ( borrower.gonenoaddress && !Koha.Preference( 'OPACShowDetailedDebarments' ) ) %]
                                     <li id="gonenoaddress"><strong>Please note:</strong> According to our records, we don't have up-to-date contact information. Please contact the library.
                                 <a href="/cgi-bin/koha/opac-memberentry.pl">[% IF ( Koha.Preference('OPACPatronDetails') ) %]Update your contact information[% ELSE %]Go to your contact information[% END %]</a>
                                 [% IF ( Koha.Preference('OPACPatronDetails') ) %]<em>(Please note: there may be a delay in restoring your account if you submit online.)</em>[% END %]
@@ -136,6 +182,9 @@
                                     <li id="renewal_blocked_fines"><strong>Please note: </strong>You cannot renew your books online. Reason: [% IF ( renewal_blocked_fines ) > 0  %]Your fines exceed <span id="renewal_blocked_fines_amount">[% renewal_blocked_fines | $Price %]</span>.[% ELSE %]You have fines.[% END %]
                                 [% END %]
                             </ul>
+                            [% IF Koha.Preference( 'OPACShowDetailedDebarments' ) %]
+                                <span class="restriction-question"><a href="http://www.ub.gu.se/kontakta/"> Contact the library</a> if you have any questions.</span>
+                            [% END %]
                         </div>
                     [% END # / IF patron_flagged %]
 
@@ -349,12 +398,12 @@
                                         [% END # /FOREACH ISSUES %]
                                     </tbody>
                                 </table>
-                                [% IF ( canrenew && !userdebarred && OpacRenewalAllowed && !( logged_in_user.is_expired && logged_in_user.category.effective_BlockExpiredPatronOpacActions ) ) %]
+                                [% IF ( canrenew && (!userdebarred || allowed_despite_restriction) && OpacRenewalAllowed && !( logged_in_user.is_expired && logged_in_user.category.effective_BlockExpiredPatronOpacActions ) ) %]
                                     <input type="submit" class="btn" value="Renew selected" />
                                 [% END %]
                                 </form>
 
-                                [% IF ( canrenew && !userdebarred && OpacRenewalAllowed && !( logged_in_user.is_expired && logged_in_user.category.effective_BlockExpiredPatronOpacActions ) ) %]
+                                [% IF ( canrenew && (!userdebarred || allowed_despite_restriction) && OpacRenewalAllowed && !( logged_in_user.is_expired && logged_in_user.category.effective_BlockExpiredPatronOpacActions ) ) %]
                                 <form id="renewall" action="/cgi-bin/koha/opac-renew.pl" method="post">
                                     <input type="hidden" name="from" value="opac_user" />
                                     <input type="hidden" name="borrowernumber" value="[% borrowernumber | html %]" />
@@ -950,7 +999,7 @@
             });
 
             [% IF ( GoogleJackets ) %]KOHA.Google.GetCoverFromIsbn();[% END %]
-            [% IF ( OpacRenewalAllowed && canrenew && !userdebarred ) %]
+            [% IF ( OpacRenewalAllowed && canrenew && (!userdebarred || allowed_despite_restriction)) %]
                 $("#renewselected").submit(function(){
                     valid = false;
                     $("input[type=checkbox]").each(function(){
@@ -971,7 +1020,7 @@
                     e.preventDefault();
                     $("#renewall").submit();
                 });
-                [% IF ( canrenew && !userdebarred && OpacRenewalAllowed && !( logged_in_user.is_expired && logged_in_user.category.effective_BlockExpiredPatronOpacActions ) ) %]
+                [% IF ( canrenew && (!userdebarred || allowed_despite_restriction) && OpacRenewalAllowed && !( logged_in_user.is_expired && logged_in_user.category.effective_BlockExpiredPatronOpacActions ) ) %]
                     $("#checkoutst caption").append("<div id=\"renewcontrols\"><a id=\"renewselected_link\" href=\"#\">"+_("Renew selected")+"</a> <a id=\"renewall_link\" href=\"#\">"+_("Renew all")+"</a></div>");
                 [% END %]
             [% END %]
