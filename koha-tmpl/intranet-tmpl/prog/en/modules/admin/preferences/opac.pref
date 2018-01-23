@@ -516,6 +516,13 @@ OPAC:
                   no: Do not allow
             - users to add a note when placing a hold.
         -
+            - pref: OPACShowDetailedDebarments
+              default: 0
+              choices:
+                  no: Don't show
+                  yes: Show
+            - detailed debarments
+        -
             - pref: OPACAcquisitionDetails
               default: 0
               choices:
