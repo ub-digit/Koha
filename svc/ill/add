@@ -1,0 +1,193 @@
+#!/usr/bin/perl
+use strict;
+use warnings;
+
+use C4::Auth qw/check_api_auth/;
+use C4::Biblio;
+use C4::Items;
+use MARC::Record;
+use XML::Simple;
+use POSIX qw(strftime);
+use CGI;
+
+my $query = new CGI;
+binmode STDOUT, ':encoding(UTF-8)';
+
+my ($status, $cookie, $sessionID) = check_api_auth($query, { editcatalogue => 'edit_catalogue'} );
+unless ($status eq "ok") {
+  print $query->header(-type => 'text/xml', -status => '403 Forbidden');
+  print XMLout({ status => $status }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+  exit 0;
+}
+
+my $ti = $query->param('ti');
+my $au = $query->param('au');
+my $yr = $query->param('yr');
+my $isbn = $query->param('isbn');
+
+my $si = $query->param('si');
+my $item = $query->param('item');
+my $ll = $query->param('ll');
+
+
+unless ($ti) {
+  print $query->header(-type => 'text/xml', -status => '400');
+  print XMLout({ status => "ti is required", error_code => 'ti_is_req' }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+  exit 0;
+}
+unless ($si) {
+  print $query->header(-type => 'text/xml', -status => '400');
+  print XMLout({ status => "si is required", error_code => 'si_is_req' }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+  exit 0;
+}
+unless ($item) {
+  print $query->header(-type => 'text/xml', -status => '400');
+  print XMLout({ status => "item is required", error_code => 'item_is_req' }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+  exit 0;
+}
+unless ($ll) {
+  print $query->header(-type => 'text/xml', -status => '400');
+  print XMLout({ status => "ll is required", error_code => 'll_is_req' }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+  exit 0;
+}
+
+my $itemobj = Koha::Items->find({barcode => $item});
+if ($itemobj) {
+  print $query->header(-type => 'text/xml', -status => '400');
+  print XMLout({ status => "item already exists", error_code => 'item_already_exists' }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+  exit 0;
+}
+
+$ti =~ s/'/\'/g;
+if ($yr) {
+  $yr =~ s/[^0-9]//ig;
+}
+if ($isbn) {
+  $isbn =~ s/[^0-9xX]//ig;
+}
+
+unless ($si =~ /^G$|^Gcl|^Ghdk$|^Ge$|^Gg$|^Gk$|^Gm$|^Gp$|^Gumu$/) {
+  print $query->header(-type => 'text/xml', -status => '400');
+  print XMLout({ status => "wrong si", error_code => 'wrong_si' }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+  exit 0;
+}
+
+my $record = MARC::Record->new();
+
+$record->leader('00000nam a22000005a 4500');
+
+my $year = strftime "%Y", localtime;
+my $month = strftime "%m", localtime;
+my $day = strftime "%d", localtime;
+my $hour = strftime "%H", localtime;
+my $min = strftime "%M", localtime;
+my $sec = strftime "%S", localtime;
+my $shyear = sprintf("%02d", $year % 100);
+my $shdate = $shyear.$month.$day;
+my $datetime =  sprintf("%4d%02d%02d%02d%02d%02d.0", $year, $month, $day, $hour, $min, $sec);
+
+my $f_005 = MARC::Field->new('005', $datetime);
+my $tmp_yr = $yr;
+if (length($yr) != 4) {
+  $tmp_yr = "    ";
+}
+
+my $f_008 = MARC::Field->new('008', "$shdate".'s'."$tmp_yr".'                 |||||||eng||');
+$record->append_fields($f_005,$f_008);
+
+## create an author field
+if ($au) {
+  my $f_100 = MARC::Field->new('100', 1, ' ', a => "$au");
+  $record->append_fields($f_100);
+}
+
+## create a title field
+my $f_245 = MARC::Field->new('245', '1', '0', a => "$ti");
+if ($f_245 and $f_245->as_string() =~ /^The |^Den |^Det |^Der |^Die |^Das |^Ett |^Ein |^Une /) {
+  if ($f_245->indicator(2) != 4) {
+    $f_245->update(ind2 => 4);
+  }
+}
+if ($f_245 and $f_245->as_string() =~ /^En |^An |^La |^Le |^Un /) {
+  if ($f_245->indicator(2) != 3) {
+    $f_245->update(ind2 => 3);
+  }
+}
+if ($f_245 and $f_245->as_string() =~ /^A /) {
+  if ($f_245->indicator(2) != 2) {
+    $f_245->update(ind2 => 2);
+  }
+}
+
+$record->append_fields($f_245);
+
+## create a 260 field
+if ($yr) {
+  my $f_260 = MARC::Field->new('260', '', '', c => "$yr");
+  $record->append_fields($f_260);
+}
+## create a 500 field
+if ($isbn) {
+my $f_500 = MARC::Field->new('500', '', '', a => "$isbn");
+  $record->append_fields($f_500);
+}
+
+## create a 952 field
+
+my $f_952a = "40";
+if ($si =~ /^G$/) {
+  $f_952a = "44";
+}
+if ($si =~ /^Gm$/) {
+  $f_952a = "40";
+}
+if ($si =~ /^Ge$/) {
+  $f_952a = "48";
+}
+if ($si =~ /^Gp$/) {
+  $f_952a = "47";
+}
+if ($si =~ /^Gk$/) {
+  $f_952a = "42";
+}
+if ($si =~ /^Gg$/) {
+  $f_952a = "49";
+}
+if ($si =~ /^Gcl$/) {
+  $f_952a = "50";
+}
+if ($si =~ /^Ghdk$/) {
+  $f_952a = "60";
+}
+if ($si =~ /^Gumu$/) {
+  $f_952a = "62";
+}
+my $f_952 = MARC::Field->new('952', '', '', a => $f_952a, o => "$si".' '. "FJÄRR IN". ' '."$ll".' '."$shdate", p => "$item", y => "13");
+
+$record->append_fields($f_952);
+
+## create a 942 field
+my $f_942 = MARC::Field->new('942', '', '', n => "1");
+$record->append_fields($f_942);
+
+my $biblionumber;
+my $biblioitemnumber;
+($biblionumber,$biblioitemnumber) = AddBiblio($record,'');
+unless ($biblionumber) {
+  print $query->header(-type => 'text/xml', -status => '400');
+  print XMLout({ status => "add biblio error", error_code => 'add_biblio_error' }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+  exit 0;
+}
+
+my $itemnumber;
+($biblionumber, $biblioitemnumber, $itemnumber) = AddItemFromMarc($record, $biblionumber);
+unless ($itemnumber) {
+  print $query->header(-type => 'text/xml', -status => '400');
+  print XMLout({ status => "add item error", error_code => 'add_item_error' }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+  exit 0;
+}
+
+print $query->header(-type => 'text/xml',-charset => 'utf-8');
+print XMLout({biblionumber => $biblionumber, biblioitemnumber => $biblioitemnumber, itemnumber => $itemnumber}, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+
+exit 0;
