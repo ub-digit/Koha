@@ -96,37 +96,69 @@ Using this account is not recommended because some parts of Koha will not functi
                         </div>
                     [% END %]
 
-                    [% IF ( patron_flagged ) %]
+                    [% IF Koha.Preference( 'OPACShowDetailedDebarments') %]
+                      [% IF ( patron_flagged ) %]
                         <div class="alert">
-                            <ul>
-                                [% IF ( userdebarred ) %]
-                                    [% IF ( discharge_available ) %]
-                                        <li id="discharged">
-                                            <strong>Please note:</strong> Your account is frozen because it has been discharged. <a href="/cgi-bin/koha/opac-discharge.pl?op=get">Get your discharge</a>
-                                        </li>
-                                    [% ELSE %]
-                                        <li id="userdebarred"><strong>Please note:</strong> Your account has been frozen.
-                                        [% IF ( BORROWER_INFO.debarredcomment ) %] Comment: <span id="userdebarred_comment">"[% BORROWER_INFO.debarredcomment %]"</span>[% END %]
-                                        [% IF ( BORROWER_INFO.userdebarreddate ) %] End date: <span id="userdebarred_date">[% BORROWER_INFO.userdebarreddate | $KohaDates %]</span>[% END %]
-                                        <em>Usually the reason for freezing an account is old overdues or damage fees. If your account shows to be clear, please contact the library.</em> <a href="/cgi-bin/koha/opac-account.pl">Go to your account page</a></li>
-                                    [% END %]
-                                [% END %]
-                                [% IF ( BORROWER_INFO.gonenoaddress ) %]
-                                    <li id="gonenoaddress"><strong>Please note:</strong> According to our records, we don't have up-to-date contact information. Please contact the library.
+                          <span>Your library account is blocked and you are not allowed to borrow. Caused by:</span>
+                          <ul>
+                            [% FOREACH restrictionCode IN BORROWER_INFO.restrictionCodeList %]
+                              [% IF ( restrictionCode == 'AV' )              %]<li><span>You are suspended. You cannot borrow, renew or request material.</span></li>[% END %]
+                              [% IF ( restrictionCode == 'ORI')              %]<li><span>You have an unpaid bill from the library that has been sent to a debt collector. Pay the debt collector's bill and contact the library so that we can unblock your account. Contact the debt collector if you have any questions.<strong> [% BORROWER_INFO.ORIcomment %]</strong></span></li>[% END %]
+                              [% IF ( restrictionCode == 'OR' )              %]<li><span>You have an unpaid bill from the library. Pay the bill and contact the library so that we can unblock your account.<strong> [% BORROWER_INFO.ORcomment %]</strong></span></li>[% END %]
+                              [% IF ( restrictionCode == 'WR' )              %]<li><span>You have applied for a library card but have not yet picked it up. Bring valid identification and pick up the card at any of our libraries. If you are a distance student at the University of Gothenburg you can contact the library to have your card sent to your address.</span></li>[% END %]
+                              [% IF ( restrictionCode == 'GU' )              %]<li><span>Your GU card is blocked. Contact <a href="#">Servicecenter</a> to get help.</span></li>[% END %]
+                              [% IF ( restrictionCode == 'FINES_EXCEEDED')   %]<li><span>Your <a href="#">fines</a> exceed the allowed limit. <a href="http://www.ub.gu.se/bibliotek/">Visit any of the libraries</a> to pay your fines. We only accept card payments.</span></li>[% END %]
+                              [% IF ( restrictionCode == 'ADDRESS_MISSING')  %]<li><span>We are missing your address. <a href="#">Fill in your address</a> and contact the library so that we can unblock your account.</span></li>[% END %]
+                              [% IF ( restrictionCode == 'CARD_LOST')        %]<li><span>You have reported your library card lost. Visit any of our <a href="#">libraries</a> if you have found the card or need to buy a new one. Bring valid identification.</span></li>[% END %]
+                            [% END %]
+                            [% IF ( userdebarred ) %]
+                              [% IF ( discharge_available ) %]
+                                <li id="discharged">Your account is frozen because it has been discharged. <a href="/cgi-bin/koha/opac-discharge.pl?op=get">Get your discharge</a></li>
+                              [% ELSE %]
+                                <li id="userdebarred"><span>You have overdue loans. <a href="#">Renew the loan</a> or return the material to the library to unblock your account.</span></li>
+                              [% END %]
+                            [% END %]
+                          </ul>
+                          <span><a href="#"> Contact the library</a> if you have any questions.</span>
+                        </div>
+                      [% END %]
+                    [% ELSE %]
+                      [% IF ( patron_flagged ) %]
+                        <div class="alert">
+                          <ul>
+                            [% IF ( userdebarred ) %]
+                              [% IF ( discharge_available ) %]
+                                <li id="discharged">
+                                  <strong>Please note:</strong> Your account is frozen because it has been discharged. <a href="/cgi-bin/koha/opac-discharge.pl?op=get">Get your discharge</a>
+                                </li>
+                              [% ELSE %]
+                                <li id="userdebarred">
+                                  <strong>Please note:</strong> Your account has been frozen.
+                                  [% IF ( BORROWER_INFO.debarredcomment ) %] Comment: <span id="userdebarred_comment">"[% BORROWER_INFO.debarredcomment %]"</span>[% END %]
+                                  [% IF ( BORROWER_INFO.userdebarreddate ) %] End date: <span id="userdebarred_date">[% BORROWER_INFO.userdebarreddate | $KohaDates %]</span>[% END %]
+                                  <em>Usually the reason for freezing an account is old overdues or damage fees. If your account shows to be clear, please contact the library.</em> <a href="/cgi-bin/koha/opac-account.pl">Go to your account page</a>
+                                </li>
+                              [% END %]
+                            [% END %]
+                            [% IF ( BORROWER_INFO.gonenoaddress ) %]
+                              <li id="gonenoaddress">
+                                <strong>Please note:</strong> According to our records, we don't have up-to-date contact information. Please contact the library.
                                 <a href="/cgi-bin/koha/opac-memberentry.pl">[% IF ( Koha.Preference('OPACPatronDetails') ) %]Update your contact information[% ELSE %]Go to your contact information[% END %]</a>
                                 [% IF ( Koha.Preference('OPACPatronDetails') ) %]<em>(Please note: there may be a delay in restoring your account if you submit online.)</em>[% END %]
-                                    </li>
-                                [% END %]
-                                [% IF ( BORROWER_INFO.lost ) %]
-                                    <li id="lost"><strong>Please note: </strong> Your library card has been marked as lost or stolen. <em>If this is an error, please contact the library.</em></li>
-                                [% END %]
-                                [% IF ( renewal_blocked_fines.defined ) && ( OpacRenewalAllowed ) %]
-                                    <li id="renewal_blocked_fines"><strong>Please note: </strong>You cannot renew your books online. Reason: [% IF ( renewal_blocked_fines ) > 0  %]Your fines exceed <span id="renewal_blocked_fines_amount">[% renewal_blocked_fines | $Price %]</span>.[% ELSE %]You have fines.[% END %]
-                                [% END %]
-                            </ul>
+                              </li>
+                            [% END %]
+                            [% IF ( BORROWER_INFO.lost ) %]
+                              <li id="lost"><strong>Please note: </strong> Your library card has been marked as lost or stolen. <em>If this is an error, please contact the library.</em></li>
+                            [% END %]
+                            [% IF ( renewal_blocked_fines.defined ) && ( OpacRenewalAllowed ) %]
+                              <li id="renewal_blocked_fines">
+                                <strong>Please note: </strong>You cannot renew your books online. Reason: [% IF ( renewal_blocked_fines ) > 0  %]Your fines exceed <span id="renewal_blocked_fines_amount">[% renewal_blocked_fines | $Price %]</span>.[% ELSE %]You have fines.[% END %]
+                              </li>
+                            [% END %]
+                          </ul>
                         </div>
-                    [% END # / IF patron_flagged %]
-
+                      [% END %] <!--   IF patron_flagged -->
+                    [% END %]
                     <div class="alert alert-info" id="notesaved" style="display:none;"></div>
 
                     [% SET OPACMySummaryNote = Koha.Preference('OPACMySummaryNote') %]
