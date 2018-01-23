@@ -1,0 +1,68 @@
+#!/usr/bin/perl
+use strict;
+use warnings;
+
+use C4::Auth qw/check_api_auth/;
+use C4::Biblio;
+use C4::Items;
+use XML::Simple;
+use CGI;
+
+my $query = new CGI;
+binmode STDOUT, ':encoding(UTF-8)';
+
+my ($status, $cookie, $sessionID) = check_api_auth($query, { editcatalogue => 'edit_catalogue'} );
+unless ($status eq "ok") {
+  print $query->header(-type => 'text/xml', -status => '403 Forbidden');
+  print XMLout({ status => $status }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+  exit 0;
+}
+
+my $item = $query->param('item');
+unless ($item) {
+  print $query->header(-type => 'text/xml', -status => '400');
+  print XMLout({ status => "item is required", error_code => 'item_is_req' }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+  exit 0;
+}
+
+my $itemobj = Koha::Items->find({barcode => $item});
+unless ($itemobj) {
+  print $query->header(-type => 'text/xml', -status => '400');
+  print XMLout({ status => "could not find item", error_code => 'could_not_find_item' }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+  exit 0;
+}
+
+my $itemnumber = $itemobj->itemnumber;
+unless ($itemnumber) {
+  print $query->header(-type => 'text/xml', -status => '400');
+  print XMLout({ status => "could not find itemnumber", error_code => 'could_not_find_itemnumber' }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+  exit 0;
+}
+
+my $biblionumber = $itemobj->biblionumber;
+unless ($biblionumber) {
+  print $query->header(-type => 'text/xml', -status => '400');
+  print XMLout({ status => "could not find biblionumber", error_code => 'could_not_find_biblionumber' }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+  exit 0;
+}
+
+
+
+my $delstatus = DelItemCheck($biblionumber, $itemnumber);
+unless ($delstatus == 1) {
+  print $query->header(-type => 'text/xml', -status => '400');
+  print XMLout({ status => "could not delete item", error_code => 'could_not_delete_item' }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+  exit 0;
+}
+
+my $delerror = DelBiblio($biblionumber);
+if ($delerror) {
+  print $query->header(-type => 'text/xml', -status => '400');
+  print XMLout({ status => "could not delete biblio", error_code => 'could_not_delete_biblio' }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+  exit 0;
+}
+
+print $query->header(-type => 'text/xml',-charset => 'utf-8');
+print XMLout({status => "success"}, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+
+exit 0;
