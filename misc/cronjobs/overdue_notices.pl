@@ -33,6 +33,7 @@ use Pod::Usage;
 use Text::CSV_XS;
 use DateTime;
 use DateTime::Duration;
+use List::MoreUtils qw( uniq );
 
 use Koha::Script -cron;
 use C4::Context;
@@ -679,11 +680,15 @@ END_SQL
                     if($patronpref && $patronpref->{'transports'}) {
                         @message_transport_types = keys($patronpref->{'transports'});
                     }
-                }
-                @message_transport_types = @{ GetOverdueMessageTransportTypes( $branchcode, $overdue_rules->{categorycode}, $i) } unless @message_transport_types;
-                @message_transport_types = @{ GetOverdueMessageTransportTypes( q{}, $overdue_rules->{categorycode}, $i) }
-                    unless @message_transport_types;
+                    if(!@message_transport_types || (grep {/^print$/} @message_transport_types)) {
+                        @message_transport_types = uniq( 'print', @message_transport_types )
+                    }
 
+                } else {
+                    @message_transport_types = @{ GetOverdueMessageTransportTypes( $branchcode, $overdue_rules->{categorycode}, $i) };
+                    @message_transport_types = @{ GetOverdueMessageTransportTypes( q{}, $overdue_rules->{categorycode}, $i) }
+                    unless @message_transport_types;
+                }
 
                 my $print_sent = 0; # A print notice is not yet sent for this patron
                 for my $mtt ( @message_transport_types ) {
