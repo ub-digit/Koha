@@ -328,8 +328,9 @@ Note that permanent location is a code, and location may be an authval.
                                 [% END %]
                                 : due [% item.datedue | html %]
                             </span>
+                            <br>
                         [% ELSIF ( item.transfertwhen ) %]
-                            <span class="intransit">In transit from [% Branches.GetName( item.transfertfrom ) | html %] to [% Branches.GetName( item.transfertto ) | html %] since [% item.transfertwhen | $KohaDates %]</span>
+                            <span class="intransit">In transit from [% Branches.GetName( item.transfertfrom ) | html %] to [% Branches.GetName( item.transfertto ) | html %] since [% item.transfertwhen | $KohaDates %]</span><br>
                         [% END %]
 
                         [% IF ( item.itemlost ) %]
@@ -342,6 +343,7 @@ Note that permanent location is a code, and location may be an authval.
                             [% ELSE %]
                                 <span class="lost">Unavailable (lost or missing)</span>
                             [% END %]
+                            <br>
                         [% END %]
 
                         [% IF ( item.withdrawn ) %]
@@ -354,6 +356,7 @@ Note that permanent location is a code, and location may be an authval.
                             [% ELSE %]
                                 <span class="wdn">Withdrawn</span>
                             [% END %]
+                            <br>
                         [% END %]
 
                         [% IF ( item.damaged ) %]
@@ -366,6 +369,7 @@ Note that permanent location is a code, and location may be an authval.
                             [% ELSE %]
                                 <span class="dmg">Damaged</span>
                             [% END %]
+                            <br>
                         [% END %]
 
                         [% IF ( item.itemnotforloan || item.notforloan_per_itemtype ) %]
@@ -373,6 +377,7 @@ Note that permanent location is a code, and location may be an authval.
                             [% IF ( item.notforloanvalue ) %]
                                 ([% item.notforloanvalue | html %])
                             [% END %]
+                            <br>
                         [% END %]
 
                         [% SET hold = item.first_hold %]
@@ -388,13 +393,14 @@ Note that permanent location is a code, and location may be an authval.
                                 Hold for:
                                 [% INCLUDE 'patron-title.inc' patron=hold.borrower hide_patron_infos_if_needed=1 %]
                             [% END %]
+                            <br>
                         [% END %]
                         [% UNLESS ( item.itemnotforloan || item.notforloan_per_itemtype || item.onloan || item.itemlost || item.withdrawn || item.damaged || item.transfertwhen || hold ) %]
-                            Available
+                            Available<br>
                         [% END %]
 
                         [% IF ( item.restricted ) %]
-                            <span class="restricted">([% item.restrictedvalue | html %])</span>
+                            <span class="restricted">([% item.restrictedvalue | html %])</span><br>
                         [% END %]
 
                     </td>
