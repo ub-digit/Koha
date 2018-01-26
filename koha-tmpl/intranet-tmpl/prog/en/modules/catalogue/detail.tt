@@ -390,8 +390,9 @@
                                 [% END %]
                                 : due [% item.datedue %]
                             </span>
+                            <br>
                         [% ELSIF ( item.transfertwhen ) %]
-                            <span class="intransit">In transit from [% Branches.GetName( item.transfertfrom ) %] to [% Branches.GetName( item.transfertto ) %] since [% item.transfertwhen | $KohaDates %]</span>
+                            <span class="intransit">In transit from [% Branches.GetName( item.transfertfrom ) %] to [% Branches.GetName( item.transfertto ) %] since [% item.transfertwhen | $KohaDates %]</span><br>
                         [% END %]
 
                         [% IF ( item.itemlost ) %]
@@ -404,6 +405,7 @@
                             [% ELSE %]
                                 <span class="lost">Unavailable (lost or missing)</span>
                             [% END %]
+                            <br>
                         [% END %]
 
                         [% IF ( item.withdrawn ) %]
@@ -416,6 +418,7 @@
                             [% ELSE %]
                                 <span class="wdn">Withdrawn</span>
                             [% END %]
+                            <br>
                         [% END %]
 
                         [% IF ( item.damaged ) %]
@@ -428,6 +431,7 @@
                             [% ELSE %]
                                 <span class="dmg">Damaged</span>
                             [% END %]
+                            <br>
                         [% END %]
 
                         [% IF ( item.itemnotforloan || item.notforloan_per_itemtype ) %]
@@ -435,6 +439,7 @@
                             [% IF ( item.notforloanvalue ) %]
                                 ([% item.notforloanvalue %])
                             [% END %]
+                            <br>
                         [% END %]
 
                         [% IF ( item.reservedate ) %]
@@ -447,13 +452,14 @@
                                 Hold for:
                                 [% INCLUDE 'patron-title.inc' patron=item.ReservedFor hide_patron_infos_if_needed=1 %]
                             [% END %]
+                            <br>
                         [% END %]
                         [% UNLESS ( item.itemnotforloan || item.notforloan_per_itemtype || item.onloan || item.itemlost || item.withdrawn || item.damaged || item.transfertwhen || item.reservedate ) %]
-                            Available
+                            Available<br>
                         [% END %]
 
                         [% IF ( item.restricted ) %]
-                            <span class="restricted">([% item.restricted %])</span>
+                            <span class="restricted">([% item.restricted %])</span><br>
                         [% END %]
 
                     </td>
