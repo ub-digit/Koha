@@ -24,11 +24,10 @@ my $ti = $query->param('ti');
 my $au = $query->param('au');
 my $yr = $query->param('yr');
 my $isbn = $query->param('isbn');
-
 my $si = $query->param('si');
 my $item = $query->param('item');
 my $ll = $query->param('ll');
-
+my $mt = $query->param('mt');
 
 unless ($ti) {
   print $query->header(-type => 'text/xml', -status => '400');
@@ -72,9 +71,15 @@ unless ($si =~ /^G$|^Gcl|^Ghdk$|^Ge$|^Gg$|^Gk$|^Gm$|^Gp$|^Gumu$/) {
   exit 0;
 }
 
+unless ($mt =~ /^a$|^c$/) {
+  print $query->header(-type => 'text/xml', -status => '400');
+  print XMLout({ status => "wrong mt", error_code => 'wrong_mt' }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+  exit 0;
+}
+
 my $record = MARC::Record->new();
 
-$record->leader('00000nam a22000005a 4500');
+$record->leader("00000n"."$mt"."m a22000005a 4500");
 
 my $year = strftime "%Y", localtime;
 my $month = strftime "%m", localtime;
