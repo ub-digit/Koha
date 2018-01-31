@@ -45,6 +45,7 @@ use JSON;
 use List::MoreUtils qw/ each_array /;
 use Modern::Perl;
 use URI::Escape;
+use URI::QueryParam;
 
 use C4::Context;
 use Koha::Exceptions;
@@ -195,9 +196,29 @@ reproduce this search, and C<$query_desc> set to something else.
 =cut
 
 sub build_query_compat {
-    my ( $self, $operators, $operands, $indexes, $orig_limits, $sort_by, $scan,
-        $lang, $params )
-      = @_;
+    my (
+        $self,
+        $operators,
+        $operands,
+        $indexes,
+        $orig_limits,
+        $sort_by,
+        $scan,
+        $lang,
+        $params
+    ) = @_;
+
+    # TODO: $params?
+    my $query_cgi = $self->_build_query_query_string(
+        {
+            'operators' => $operators,
+            'operands' => $operands,
+            'indexes' => $indexes,
+            'sort_by' => $sort_by
+        }
+    );
+    my $limit_cgi = $orig_limits && @{$orig_limits} ?
+        "&" . $self->_build_limit_query_string({ 'limits' => $orig_limits }) : '';
 
 #die Dumper ( $self, $operators, $operands, $indexes, $orig_limits, $sort_by, $scan, $lang );
     my @sort_params  = $self->_convert_sort_fields(@$sort_by);
@@ -236,23 +257,44 @@ sub build_query_compat {
     $options{weighted_fields} = $params->{weighted_fields};
     my $query = $self->build_query( $query_str, %options );
 
-    #die Dumper($query);
-    # We roughly emulate the CGI parameters of the zebra query builder
-    my $query_cgi;
-    $query_cgi = 'q=' . uri_escape_utf8( $operands->[0] ) if @$operands;
     my $simple_query;
     $simple_query = $operands->[0] if @$operands == 1;
     my $query_desc   = $simple_query;
     my $limit        = $self->_join_queries( $self->_convert_index_strings(@$limits));
-    my $limit_cgi = ( $orig_limits and @$orig_limits )
-      ? '&limit=' . join( '&limit=', map { uri_escape_utf8($_) } @$orig_limits )
-      : '';
+
     my $limit_desc;
     $limit_desc = "$limit" if $limit;
     return (
         undef,  $query,     $simple_query, $query_cgi, $query_desc,
         $limit, $limit_cgi, $limit_desc,   undef,      undef
     );
+}
+
+sub _build_query_query_string {
+    my ( $self, $query_parts ) = @_;
+    my $uri = URI->new("", "http");
+    my $next = each_array(
+        @{$query_parts->{operands}},
+        @{$query_parts->{operators}},
+        @{$query_parts->{indexes}}
+    );
+    while (my ($operand, $operator, $index) = $next->()) {
+        last if !$operand; # TODO: Is this sane???
+        $uri->query_param_append(idx => uri_escape($index)) if $index;
+        $uri->query_param_append(q => uri_escape($operand)) if $operand;
+        $uri->query_param_append(op => uri_escape($operator)) if $operator;
+    }
+    if ($query_parts->{sort_by}) {
+        $uri->query_param(sort_by => $query_parts->{sort_by});
+    }
+    return $uri->query;
+}
+
+sub _build_limit_query_string {
+    my ($self, $query_parts) = @_;
+    my $uri = URI->new("", "http");
+    $uri->query_param(limit => map(uri_escape, @{$query_parts->{limits}}));
+    return $uri->query;
 }
 
 =head2 build_authorities_query
