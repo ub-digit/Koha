@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 use strict;
 use warnings;
+use utf8;
 
 use C4::Auth qw/check_api_auth/;
 use C4::Biblio;
@@ -78,6 +79,7 @@ unless ($mt =~ /^a$|^c$/) {
 }
 
 my $record = MARC::Record->new();
+$record->encoding('UTF-8');
 
 $record->leader("00000n"."$mt"."m a22000005a 4500");
 
