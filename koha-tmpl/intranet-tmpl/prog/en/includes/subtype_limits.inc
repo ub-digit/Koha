@@ -1,4 +1,5 @@
 [%- BLOCK subtype_dropdowns -%]
+<!--
     <select name="limit" class="subtype">
         [% IF ( limits.aud.size ) %]
             <option value="" class="menuheader">Any audience</option>
@@ -83,14 +84,15 @@
         [% limits.delete( 'bio' ) %]
         [% limits.delete( 'mus' ) %]
     </select>
-
+-->
    [% SET lformat = 'l-format' %]
     <select name="limit" class="subtype">
-        [% IF ( limits.$lformat.size ) %]
+        [% IF ( limits.$lformat.size  OR limits.gub-format.size ) %]
             <option value="" class="menuheader">Any format</option>
         [% ELSE %]
             <option value="" selected="selected" class="menuheader">Any format</option>
         [% END %]
+<!--
         [% IF (limits.$lformat.0 == 'ta' ) %]
             <option value="l-format:ta" selected="selected" >Regular print</option>
         [% ELSE %]
@@ -137,14 +139,71 @@
         [% ELSE %]
             <option value="l-format:cr" >Website</option>
         [% END %]
+-->
+        [% IF (limits.gub-format.0 == 'book' ) %]
+            <option value="gub-format:book" selected="selected" >Book</option>
+        [% ELSE %]
+            <option value="gub-format:book" >Book</option>
+        [% END %]
+        [% IF (limits.gub-format.0 == 'ebook' ) %]
+            <option value="gub-format:ebook" selected="selected" >E-book</option>
+        [% ELSE %]
+            <option value="gub-format:ebook" >E-book</option>
+        [% END %]
+        [% IF (limits.gub-format.0 == 'journal' ) %]
+            <option value="gub-format:journal" selected="selected" >Journal</option>
+        [% ELSE %]
+            <option value="gub-format:journal" >Journal</option>
+        [% END %]
+        [% IF (limits.gub-format.0 == 'ejournal' ) %]
+            <option value="gub-format:ejournal" selected="selected" >E-journal</option>
+        [% ELSE %]
+            <option value="gub-format:ejournal" >E-journal</option>
+        [% END %]
+        [% IF (limits.gub-format.0 == 'movie' ) %]
+            <option value="gub-format:movie" selected="selected" >Movie/video</option>
+        [% ELSE %]
+            <option value="gub-format:movie" >Movie/video</option>
+        [% END %]
+        [% IF (limits.gub-format.0 == 'musicrecording' ) %]
+            <option value="gub-format:musicrecording" selected="selected" >Music recordning</option>
+        [% ELSE %]
+            <option value="gub-format:musicrecording" >Music recordning</option>
+        [% END %]
+        [% IF (limits.gub-format.0 == 'otherrecording' ) %]
+            <option value="gub-format:otherrecording" selected="selected" >Other recordning</option>
+        [% ELSE %]
+            <option value="gub-format:otherrecording" >Other recordning</option>
+        [% END %]
+        [% IF (limits.gub-format.0 == 'notatedmusic' ) %]
+            <option value="gub-format:notatedmusic" selected="selected" >Notated music</option>
+        [% ELSE %]
+            <option value="gub-format:notatedmusic" >Notated music</option>
+        [% END %]
+        [% IF (limits.gub-format.0 == 'database' ) %]
+            <option value="gub-format:book" selected="selected" >Database</option>
+        [% ELSE %]
+            <option value="gub-format:book" >Database</option>
+        [% END %]
+        [% IF (limits.gub-format.0 == 'eresource' ) %]
+            <option value="gub-format:eresource" selected="selected" >E-resource</option>
+        [% ELSE %]
+            <option value="gub-format:eresource" >E-resource</option>
+        [% END %]
+        [% IF (limits.gub-format.0 == 'other' ) %]
+            <option value="gub-format:other" selected="selected" >Other</option>
+        [% ELSE %]
+            <option value="gub-format:other" >Other</option>
+        [% END %]
         [% limits.delete( 'l-format' ) %]
+        [% limits.delete( 'gub-format' ) %]
     </select>
 
     <select name="limit" class="subtype">
         [% IF ( limits.ctype.size ) %]
-            <option value="" >Additional content types</option>
+            <option value="" >Content type</option>
         [% ELSE %]
-            <option value="" selected="selected" >Additional content types</option>
+            <option value="" selected="selected" >Content type</option>
         [% END %]
         [% IF (limits.ctype.0 == 'a' ) %]
             <option value="ctype:a" selected="selected" >Abstracts / Summaries</option>
