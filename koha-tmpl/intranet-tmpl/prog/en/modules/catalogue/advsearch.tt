@@ -182,6 +182,7 @@
         <fieldset id="subtype">
         <legend>Subtype limits</legend><p>
         
+<!--
         <select name="limit" class="subtype">
             <option value="" selected="selected" class="menuheader">Any audience</option>
 			<option value="aud:a">Preschool</option>
@@ -202,10 +203,11 @@
             <option value="mus:j" >Musical recording</option>
             <option value="mus:i" >Non-musical recording</option>
         </select>
-
+-->
         
         <select name="limit" class="subtype">
             <option value="" selected="selected" class="menuheader">Any format</option>
+            <!--
             <option value="l-format:ta" >Regular print</option>
             <option value="l-format:tb" >Large print</option>
             <option value="l-format:tc or l-format:fb">Braille</option>
@@ -216,10 +218,22 @@
             <option value="l-format:vd" >DVD video / Videodisc</option>
             <option value="l-format:co" >CD software</option>
             <option value="l-format:cr" >Website</option>
+            -->
+            <option value="gub-format:book">Book</option>
+            <option value="gub-format:ebook">E-book</option>
+            <option value="gub-format:journal">Journal</option>
+            <option value="gub-format:ejournal">E-journal</option>
+            <option value="gub-format:movie">Movie/video</option>
+            <option value="gub-format:musicrecording">Music recordning</option>
+            <option value="gub-format:otherrecording">Other recordning</option>
+            <option value="gub-format:notatedmusic">Notated music</option>
+            <option value="gub-format:database">Database</option>
+            <option value="gub-format:eresource">E-resource</option>
+            <option value="gub-format:other">Other</option>
         </select>
         
         <select name="limit" class="subtype">
-            <option value="" >Additional content types</option>
+            <option value="" >Content type</option>
             <option value="ctype:a" >Abstracts / Summaries</option>
             <option value="ctype:b" >Bibliographies</option>
             <option value="ctype:c" >Catalogs</option>
