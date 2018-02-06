@@ -75,6 +75,13 @@
     [% ELSE %]
         <option value="su,phr">&nbsp;&nbsp;&nbsp;&nbsp; Subject as phrase</option>
     [% END %]
+    <!-- GUB customization -->
+    <option value="local-number">&nbsp;&nbsp;&nbsp;&nbsp; Biblio number</option>
+    <option value="koha-auth-number">&nbsp;&nbsp;&nbsp;&nbsp; Authority number</option>
+    <option value="itemnumber">&nbsp;&nbsp;&nbsp;&nbsp; Item number</option>
+    <option value="system-control-number">&nbsp;&nbsp;&nbsp;&nbsp; System control number (035a)</option>
+    <option value="identifier-publisher-for-music">&nbsp;&nbsp;&nbsp;&nbsp; Music publisher identifier</option>
+    <!-- End GUB customization -->
     [% IF ( expanded_options ) %]
         [% IF ms_sudashbr %]
             <option selected="selected" value="su-br">&nbsp;&nbsp;&nbsp;&nbsp; Subject and broader terms</option>
