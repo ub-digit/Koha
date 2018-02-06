@@ -13,6 +13,13 @@
     <option value="ti">Title</option>
     <option value="ti,phr">&nbsp;&nbsp;&nbsp;&nbsp; Title as phrase</option>
     <option value="se">&nbsp;&nbsp;&nbsp;&nbsp; Series title</option>
+    <!-- GUB customization -->
+    <option value="local-number">&nbsp;&nbsp;&nbsp;&nbsp; Biblio number</option>
+    <option value="koha-auth-number">&nbsp;&nbsp;&nbsp;&nbsp; Authority number</option>
+    <option value="itemnumber">&nbsp;&nbsp;&nbsp;&nbsp; Item number</option>
+    <option value="system-control-number">&nbsp;&nbsp;&nbsp;&nbsp; System control number (035a)</option>
+    <option value="identifier-publisher-for-music">&nbsp;&nbsp;&nbsp;&nbsp; Music publisher identifier</option>
+    <!-- End GUB customization -->
     <option value="su">Subject</option>
     <option value="su,phr">&nbsp;&nbsp;&nbsp;&nbsp; Subject as phrase</option>
     [% IF ( expanded_options ) %]
