@@ -1,0 +1,1 @@
+INSERT IGNORE INTO systempreferences (`variable`, `value`, `options`, `explanation`, `type`) VALUES ('ODueDebarmentRemovalAllowUnrestricted', '0', null, 'Allow removal of OVERDUES debarment when overdues still exist, but has not reached restricting delay', 'YesNo');
