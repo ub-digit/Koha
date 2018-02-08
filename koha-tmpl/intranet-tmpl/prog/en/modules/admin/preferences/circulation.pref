@@ -567,6 +567,12 @@ Circulation:
                   yes: "Hide"
                   no: "Don't hide"
             - patrons phone number, email address, street address and city on the circulation page.
+        -
+            - pref: ODueDebarmentRemovalAllowUnrestricted
+              choices:
+                  yes: Allow
+                  no: Do not allow
+            - removal of Overdue debarments when patron has overdue items but none are old enough to have reached restricting delay. Used in combination with AutoRemoveOverduesRestrictions.
     Holds Policy:
         -
             - In the staff client, split the holds queue into separate tables by
