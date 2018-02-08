@@ -564,6 +564,12 @@ Circulation:
             - NOT_LOAN values that should NOT trigger reserves:
             - pref: PreventNotLoanFromHoldResolve
             - (Separated by pipe -3|-2|-1)
+        -
+            - pref: ODueDebarmentRemovalAllowUnrestricted
+              choices:
+                  yes: Allow
+                  no: Do not allow
+            - removal of Overdue debarments when patron has overdue items but none are old enough to have reached restricting delay. Used in combination with AutoRemoveOverduesRestrictions.
     Holds Policy:
         -
             - In the staff client, split the holds queue into separate tables by
