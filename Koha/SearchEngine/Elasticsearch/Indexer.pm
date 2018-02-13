@@ -207,10 +207,12 @@ after this will recreate it again.
 sub drop_index {
     my ($self) = @_;
     if (C4::Context->preference('ExperimentalElasticsearchIndexing')) {
-        my $conf = $self->get_elasticsearch_params();
-        my $elasticsearch = $self->get_elasticsearch();
-        my $response = $elasticsearch->indices->delete(index => $conf->{index_name});
-        # TODO: Handle response? Convert errors to exceptions/die
+        if ($self->index_exists) {
+            my $conf = $self->get_elasticsearch_params();
+            my $elasticsearch = $self->get_elasticsearch();
+            my $response = $elasticsearch->indices->delete(index => $conf->{index_name});
+            # TODO: Handle response? Convert errors to exceptions/die
+        }
     }
     else {
         if (!$self->store) {
@@ -242,6 +244,15 @@ sub create_index {
         }
     );
     # TODO: Handle response? Convert errors to exceptions/die
+}
+
+sub index_exists {
+    my ($self) = @_;
+    my $conf = $self->get_elasticsearch_params();
+    my $elasticsearch = $self->get_elasticsearch();
+    return $elasticsearch->indices->exists(
+        index => $conf->{index_name},
+    );
 }
 
 sub _sanitise_records {
