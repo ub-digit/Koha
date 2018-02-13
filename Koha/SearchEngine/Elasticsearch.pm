@@ -222,6 +222,11 @@ sub get_elasticsearch_mappings {
         );
         $all_mappings{$self->index} = $mappings;
     }
+
+    # Temprary hack: hard coded boost for title and author
+    $mappings->{data}{properties}{title}{boost} = 10;
+    $mappings->{data}{properties}{author}{boost} = 5;
+
     $self->sort_fields(\%{$sort_fields{$self->index}});
 
     return $all_mappings{$self->index};
