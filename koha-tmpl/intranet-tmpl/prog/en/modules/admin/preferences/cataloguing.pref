@@ -149,6 +149,12 @@ Cataloging:
             - and record's last modifier name in MARC subfield
             - pref: MarcFieldForModifierName
             - "<br/>NOTE: Use a dollar sign between field and subfield like 123$a."
+        -
+            - pref: AutoAddSystemControlNumberAndMARCOrgCode
+              choices:
+                  yes: Add
+                  no: Do not add
+            - System-Control-Number (001) and Control-Number-Identifier (003) automatically from biblionumber and MARCOrgCode.
     Display:
         -
             - 'Separate multiple displayed authors, series or subjects with '

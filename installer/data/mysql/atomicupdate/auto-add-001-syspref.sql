@@ -1,0 +1,1 @@
+INSERT IGNORE INTO systempreferences (`variable`, `value`, `options`, `explanation`, `type`) VALUES ('AutoAddSystemControlNumberAndMARCOrgCode', '0', null, 'Automatically add biblionumber to 001, and MARCOrgCode to 003', 'YesNo');
