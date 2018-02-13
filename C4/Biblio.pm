@@ -2873,6 +2873,12 @@ sub _koha_marc_update_bib_ids {
     } else {
         C4::Biblio::UpsertMarcSubfield($record, $biblioitem_tag, $biblioitem_subfield, $biblioitemnumber);
     }
+
+    if (C4::Context->preference('AutoAddSystemControlNumberAndMARCOrgCode')) {
+        C4::Biblio::UpsertMarcControlField( $record, '001', $biblionumber);
+        my $orgcode = C4::Context->preference('MARCOrgCode');
+        C4::Biblio::UpsertMarcControlField( $record, '003', $orgcode);
+    }
 }
 
 =head2 _koha_marc_update_biblioitem_cn_sort
