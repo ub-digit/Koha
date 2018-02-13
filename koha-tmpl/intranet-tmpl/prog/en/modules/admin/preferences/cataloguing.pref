@@ -211,6 +211,12 @@ Cataloging:
                   1: Strip
                   0: "Don't strip"
             - leading and trailing whitespace characters (including spaces, tabs, line breaks and carriage returns) and inner newlines from data fields when cataloguing bibliographic and authority records. The leader and control fields will not be affected.
+        -
+            - pref: AutoAddSystemControlNumberAndMARCOrgCode
+              choices:
+                  yes: Add
+                  no: Do not add
+            - System-Control-Number (001) and Control-Number-Identifier (003) automatically from biblionumber and MARCOrgCode.
     Display:
         -
             - 'Separate main entry and subdivisions with '
