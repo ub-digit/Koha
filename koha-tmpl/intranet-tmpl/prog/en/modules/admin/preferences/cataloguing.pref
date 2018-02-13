@@ -171,6 +171,12 @@ Cataloging:
               choices:
                   biblionumber: generated as biblionumber.
                   "OFF": not generated automatically.
+        -
+            - pref: AutoAddSystemControlNumberAndMARCOrgCode
+              choices:
+                  yes: Add
+                  no: Do not add
+            - System-Control-Number (001) and Control-Number-Identifier (003) automatically from biblionumber and MARCOrgCode.
     Display:
         -
             - 'Separate main entry and subdivisions with '
