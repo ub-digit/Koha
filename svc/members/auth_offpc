@@ -15,7 +15,7 @@ binmode STDOUT, ':encoding(UTF-8)';
 print "Content-type: text/plain\n\n";
 
 # -------------------------------------------------- #
-# in-params are 'user' and 'pass'. They are used as  #
+# in-params are 'pass' and 'user'. They are used as  #
 # 'personalnumber' and 'cardnumber', to correspond   #
 # with "sister" script auth_booking                  #
 # -------------------------------------------------- #
@@ -39,8 +39,6 @@ unless ($personalnumber) {
 
 my $patrons = Koha::Patrons->search({cardnumber => $cardnumber});
 my $borrower = $patrons->next;
-
-
 # -------------------------------------------------- #
 # wrong cardnumber                                   #
 # -------------------------------------------------- #
@@ -68,16 +66,15 @@ my $today = `date +"%Y-%m-%d"`;
 # -------------------------------------------------- #
 if (!(
         ($pnr12 and (($personalnumber eq $pnr12) or ($personalnumber eq substr($pnr12, 2)))) or
-        ($pnr   and (($personalnumber eq $pnr) or (substr($personalnumber, 2) eq $pnr))))) {
-    $retval = 0;
-}
-elsif ($dateexpiry < $today)                               {    $retval = 0; }  # card is expired
-elsif ($cardnumber eq $personalnumber )                    {    $retval = 0; }  # card is temporary, not allowing offpc login
-elsif ($categorycode !~ m/(EX)|(SR)|(FR)|(UX)|(FX)|(NX)/ ) {    $retval = 0; }  # only listed categories may log in with cardnumber
-elsif ($lost==1)                                           {    $retval = 0; }  # card reported lost
-elsif ($debarredcomment =~ m/(GU,)|(AV,)/)                 {    $retval = 0; }  # these debarment codes prohibits login
-else                                                       {    $retval = 1; }  # you're good to go!
-print $retval . "\r\n";                                                         # return value contains "\r\n" since this script mimics auth_only_extern.cgi (sunda...)
+        ($pnr   and (($personalnumber eq $pnr) or (substr($personalnumber, 2) eq $pnr)))))
+                                                           { $retval = 0; } # given credentials does not match with database
+elsif ($dateexpiry < $today)                               { $retval = 0; } # card is expired
+elsif ($cardnumber eq $personalnumber )                    { $retval = 0; } # card is temporary, not allowing offpc login
+elsif ($categorycode !~ m/(EX)|(SR)|(FR)|(UX)|(FX)|(NX)/ ) { $retval = 0; } # only listed categories may log in with cardnumber
+elsif ($lost==1)                                           { $retval = 0; } # card reported lost
+elsif ($debarredcomment =~ m/(GU,)|(AV,)/)                 { $retval = 0; } # these debarment codes prohibits login
+else                                                       { $retval = 1; } # you're good to go!
+print $retval . "\r\n";                                                     # return value contains "\r\n" since this script mimics auth_only_extern.cgi (sunda...)
 
 
 exit 0;
