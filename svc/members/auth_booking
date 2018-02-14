@@ -9,7 +9,6 @@ use C4::Members;
 use C4::Members::Attributes qw( GetBorrowerAttributeValue );
 use Koha::Patrons;
 use XML::Simple;
-use Data::Dumper;                                                           # DEBUG
 
 my $query = new CGI;
 binmode STDOUT, ':encoding(UTF-8)';
@@ -58,7 +57,6 @@ my $retval;
 my $pnr12 = GetBorrowerAttributeValue($borrowernumber, "PNR12");
 my $pnr = GetBorrowerAttributeValue($borrowernumber, "PNR");
 
-open (OUTFILE, ">>/tmp/auth_booking.out");                                  # DEBUG
 my $today = `date +"%Y-%m-%d"`;
 
 # -------------------------------------------------- #
@@ -74,23 +72,6 @@ elsif ($categorycode=~m/(SY)|(FY)/ )                        { $retval = "101"; }
 elsif ($categorycode=~m/(F[AEHIKLMNSTVX])|(S[AEHIKLMNSU])/) { $retval = "100"; }  # students/researchers without  special authorization
 else                                                        { $retval =  "-1"; }  # all other cases
 print $retval;
-# -------------------------------------------------- #                      # DEBUG
-# DEBUG                                              #                      # DEBUG
-# -------------------------------------------------- #                      # DEBUG
-print OUTFILE "borrowernumber :$borrowernumber:\n";                         # DEBUG
-print OUTFILE "dateexpiry     :$dateexpiry:    \n";                         # DEBUG
-print OUTFILE "today          :$today          \n";                         # DEBUG
-print OUTFILE "categorycode   :$categorycode:  \n";                         # DEBUG
-print OUTFILE "pnr            :$pnr:           \n";                         # DEBUG
-print "\nborrowernumber :$borrowernumber:\n";                               # DEBUG
-print "dateexpiry     :$dateexpiry:    \n";                                 # DEBUG
-print "today          :$today    \n";                                       # DEBUG
-print "categorycode   :$categorycode:  \n";                                 # DEBUG
-print "pnr            :$pnr:           \n";                                 # DEBUG
-close OUTFILE;                                                              # DEBUG
-# -------------------------------------------------- #                      # DEBUG
-# DEBUG end                                          #                      # DEBUG
-# -------------------------------------------------- #                      # DEBUG
 
 
 exit 0;
