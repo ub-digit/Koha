@@ -15,14 +15,24 @@ my $query = new CGI;
 binmode STDOUT, ':encoding(UTF-8)';
 print "Content-type: text/plain\n\n";
 
+# -------------------------------------------------- #
+# in-params are 'user' and 'pass'. They are used as  #
+# 'personalnumber' and 'cardnumber', to correspond   #
+# with "sister" script auth_booking                  #
+# -------------------------------------------------- #
 my $cardnumber= $query->url_param('user');
 my $personalnumber = $query->url_param('pass');
 
+# -------------------------------------------------- #
+# lack of username                                   #
+# -------------------------------------------------- #
 unless ($cardnumber) {
     print "0\r\n";
     exit 0;
 }
-
+# -------------------------------------------------- #
+# lack of password                                   #
+# -------------------------------------------------- #
 unless ($personalnumber) {
     print "0\r\n";
     exit 0;
@@ -32,6 +42,9 @@ my $patrons = Koha::Patrons->search({cardnumber => $cardnumber});
 my $borrower = $patrons->next;
 
 
+# -------------------------------------------------- #
+# wrong cardnumber                                   #
+# -------------------------------------------------- #
 unless ($borrower) {
     print "0\r\n";
     exit 0;
@@ -44,24 +57,30 @@ my $lost             = $borrower->unblessed->{'lost'};
 my $debarredcomment  = $borrower->unblessed->{'debarredcomment'};
 my $retval;
 
+# -------------------------------------------------- #
+# 'personnummer' might be stored as 10 or 12 digits  #
+# -------------------------------------------------- #
 my $pnr12 = GetBorrowerAttributeValue($borrowernumber, "PNR12");
 my $pnr = GetBorrowerAttributeValue($borrowernumber, "PNR");
 my $outfile = '/tmp/auth_offpc.out';                                      # DEBUG
 open (OUTFILE, ">$outfile");                                              # DEBUG
 my $today = `date +"%Y-%m-%d"`;
 
+# -------------------------------------------------- #
+# personalnumber must correspond to either variant   #
+# -------------------------------------------------- #
 if (!(
         ($pnr12 and (($personalnumber eq $pnr12) or ($personalnumber eq substr($pnr12, 2)))) or
         ($pnr   and (($personalnumber eq $pnr) or (substr($personalnumber, 2) eq $pnr))))) {
     $retval = 0;
 }
-elsif ($dateexpiry < $today)                               {    $retval = 0; }
-elsif ($cardnumber eq $personalnumber )                    {    $retval = 0; }
-elsif ($categorycode !~ m/(EX)|(SR)|(FR)|(UX)|(FX)|(NX)/ ) {    $retval = 0; }
-elsif ($lost==1)                                           {    $retval = 0; }
-elsif ($debarredcomment =~ m/(GU,)|(AV,)/)                 {    $retval = 0; }
-else                                                       {    $retval = 1; }
-print $retval . "\r\n";
+elsif ($dateexpiry < $today)                               {    $retval = 0; }  # card is expired
+elsif ($cardnumber eq $personalnumber )                    {    $retval = 0; }  # card is temporary, not allowing offpc login
+elsif ($categorycode !~ m/(EX)|(SR)|(FR)|(UX)|(FX)|(NX)/ ) {    $retval = 0; }  # only listed categories may log in with cardnumber
+elsif ($lost==1)                                           {    $retval = 0; }  # card reported lost
+elsif ($debarredcomment =~ m/(GU,)|(AV,)/)                 {    $retval = 0; }  # these debarment codes prohibits login
+else                                                       {    $retval = 1; }  # you're good to go!
+print $retval . "\r\n";                                                         # return value contains "\r\n" since this script mimics auth_only_extern.cgi (sunda...)
 # -------------------------------------------------- #                    # DEBUG
 # DEBUG                                              #                    # DEBUG
 # -------------------------------------------------- #                    # DEBUG
