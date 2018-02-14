@@ -425,7 +425,13 @@ Note that permanent location is a code, and location may be an authval.
                     </td>
                     [% IF ( itemdata_ccode ) %]<td>[% item.ccode | html %]</td>[% END %]
                     [% IF Koha.Preference('EnableItemGroups') %]<td class="item_group">[% item.object.item_group.description | html %]</td>[% END %]
-                    <td class="itemcallnumber">[% IF ( item.itemcallnumber ) %] [% item.itemcallnumber | html %][% END %]</td>
+                    <td class="itemcallnumber">
+                      [% IF ( item.itemcallnumber ) %]
+                        [% item.itemcallnumber | html %]
+                      [% ELSE %]
+                        [% IF ( Koha.Preference('Show095WhenNoCallnumber') && bibcallnumber ) %] [% bibcallnumber | html %][% END %]
+                      [% END %]
+                    </td>
                     [% IF ( volinfo ) %]
                         [% SET serial = item.itemserial.serial %]
                         [% IF itemdata_publisheddate #If there is at least one published date, use it for sorting %]
