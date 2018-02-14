@@ -538,6 +538,7 @@ $template->param(
     analytics_flag          => $analytics_flag,
     C4::Search::enabled_staff_search_views,
     materials => $materials_flag,
+    bibcallnumber => $marc_record->subfield('095', 'a')
 );
 
 if (C4::Context->preference("AlternateHoldingsField") && scalar @items == 0) {
