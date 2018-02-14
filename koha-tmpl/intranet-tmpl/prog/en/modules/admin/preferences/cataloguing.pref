@@ -318,6 +318,12 @@ Cataloging:
                   dsc: descending.
                   az: from A to Z.
                   za: from Z to A.
+        -
+            - pref: Show095WhenNoCallnumber
+              choices:
+                  yes: Show
+                  no: Do not show
+            - 095a as callnumber when item has no itemcallnumber.
     Importing:
         -
             - When matching on ISBN with the record import tool,
