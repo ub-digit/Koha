@@ -9,101 +9,88 @@ use C4::Members;
 use C4::Members::Attributes qw( GetBorrowerAttributeValue );
 use Koha::Patrons;
 use XML::Simple;
-use Data::Dumper;
+use Data::Dumper;                                                           # DEBUG
 
 my $query = new CGI;
 binmode STDOUT, ':encoding(UTF-8)';
 print "Content-type: text/plain\n\n";
 
-#my ($status, $cookie, $sessionID) = check_api_auth($query, { editcatalogue => 'edit_catalogue'} );
-#unless ($status eq "ok") {
-#    print "-199";
-#    #    print $query->header(-type => 'text/xml', -status => '403 Forbidden');
-#    #    print XMLout({ status => $status }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
-#    exit 0;
-#}
+# -------------------------------------------------- #
+# in-params are 'pnr' and 'bar'. They are used as    #
+# 'personalnumber' and 'cardnumber', to correspond   #
+# with "sister" script auth_offpc                    #
+# -------------------------------------------------- #
 my $cardnumber= $query->url_param('bar');
 my $personalnumber = $query->url_param('pnr');
 
+# -------------------------------------------------- #
+# lack of username                                   #
+# -------------------------------------------------- #
 unless ($cardnumber) {
-    print "-299";
-    #  print $query->header(-type => 'text/plain', -status => '404');
-    #  print XMLout({ status => "Cardnumber is required", error_code => "cardnumberIsRequired"  }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+    print "-1";
     exit 0;
 }
-
+# -------------------------------------------------- #
+# lack of password                                   #
+# -------------------------------------------------- #
 unless ($personalnumber) {
-    print "-399";
-    #  print $query->header(-type => 'text/xml', -status => '404');
-    #  print XMLout({ status => "Personalnumber is required", error_code => "personalnumberIsRequired"  }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+    print "-1";
     exit 0;
 }
-
 my $patrons = Koha::Patrons->search({cardnumber => $cardnumber});
 my $borrower = $patrons->next;
-
-my $match = "false";
-
+# -------------------------------------------------- #
+# wrong cardnumber                                   #
+# -------------------------------------------------- #
 unless ($borrower) {
-    #print $query->header(-type => 'text/xml', -status => '404');
-    # print XMLout({ status => "Borrower not found", error_code => "borrowerNotFound"  }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
-    print "-499";
-    #  print $query->header(-type => 'text/xml',-charset => 'utf-8');
-    #  print XMLout({match => $match}, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+    print "-1";
     exit 0;
 }
 
 my $borrowernumber = $borrower->unblessed->{'borrowernumber'};
 my $dateexpiry     = $borrower->unblessed->{'dateexpiry'};
 my $categorycode   = $borrower->unblessed->{'categorycode'};
+my $retval;
 
+# -------------------------------------------------- #
+# 'personnummer' might be stored as 10 or 12 digits  #
+# -------------------------------------------------- #
 my $pnr12 = GetBorrowerAttributeValue($borrowernumber, "PNR12");
 my $pnr = GetBorrowerAttributeValue($borrowernumber, "PNR");
 
-open (OUTFILE, ">>/tmp/auth_booking.out");  # DEBUG
+open (OUTFILE, ">>/tmp/auth_booking.out");                                  # DEBUG
 my $today = `date +"%Y-%m-%d"`;
 
-if (($pnr12 and (($personalnumber eq $pnr12) or ($personalnumber eq substr($pnr12, 2)))) or ($pnr and (($personalnumber eq $pnr) or (substr($personalnumber, 2) eq $pnr)))) {
-
-    if ($dateexpiry < $today) {
-        print OUTFILE "date expired\n";   # DEBUG
-        print "date expired\n";
-        print "-2"; }
-    else {
-        if     ($categorycode eq 'PE')        {
-            print OUTFILE "cat:PE\n";   # DEBUG
-            print "110"; }
-        elsif ($categorycode=~m/(SY)|(FY)/ ) {
-            print OUTFILE "cat:SY/FY\n";# DEBUG
-            print "101"; }
-        elsif ($categorycode=~m/(F[AEHIKLMNSTVX])|(S[AEHIKLMNSU])/)  {
-            print OUTFILE "all other Students/Researchers\n";# DEBUG
-            print "100"; }
-        else                                 {
-            print OUTFILE "all other cases\n";# DEBUG
-            print "-1"; }
-    }
-}else{
-    print OUTFILE "Wrong of arguments\n";# DEBUG
-    print "-3";
-}
 # -------------------------------------------------- #
-# DEBUG                                              #
+# personalnumber must correspond to either variant   #
 # -------------------------------------------------- #
-print OUTFILE "borrowernumber :$borrowernumber:\n";
-print OUTFILE "dateexpiry     :$dateexpiry:    \n";
-print OUTFILE "today          :$today          \n";
-print OUTFILE "categorycode   :$categorycode:  \n";
-print OUTFILE "pnr            :$pnr:           \n";
-print "\nborrowernumber :$borrowernumber:\n";
-print "dateexpiry     :$dateexpiry:    \n";
-print "today          :$today    \n";
-print "categorycode   :$categorycode:  \n";
-print "pnr            :$pnr:           \n";
-close OUTFILE;
-# -------------------------------------------------- #
-# DEBUG end                                          #
-# -------------------------------------------------- #
+if (!(
+        ($pnr12 and (($personalnumber eq $pnr12) or ($personalnumber eq substr($pnr12, 2)))) or
+        ($pnr   and (($personalnumber eq $pnr) or (substr($personalnumber, 2) eq $pnr)))))
+                                                            { $retval = "-1";  }  # given credentials does not match with database
+elsif ($dateexpiry < $today)                                { $retval = '-1';  }  # card is expired
+elsif ($categorycode eq 'PE')                               { $retval = "110"; }  # GUB-personal
+elsif ($categorycode=~m/(SY)|(FY)/ )                        { $retval = "101"; }  # students/researchers with     special authorization
+elsif ($categorycode=~m/(F[AEHIKLMNSTVX])|(S[AEHIKLMNSU])/) { $retval = "100"; }  # students/researchers without  special authorization
+else                                                        { $retval =  "-1"; }  # all other cases
+print $retval;
+# -------------------------------------------------- #                      # DEBUG
+# DEBUG                                              #                      # DEBUG
+# -------------------------------------------------- #                      # DEBUG
+print OUTFILE "borrowernumber :$borrowernumber:\n";                         # DEBUG
+print OUTFILE "dateexpiry     :$dateexpiry:    \n";                         # DEBUG
+print OUTFILE "today          :$today          \n";                         # DEBUG
+print OUTFILE "categorycode   :$categorycode:  \n";                         # DEBUG
+print OUTFILE "pnr            :$pnr:           \n";                         # DEBUG
+print "\nborrowernumber :$borrowernumber:\n";                               # DEBUG
+print "dateexpiry     :$dateexpiry:    \n";                                 # DEBUG
+print "today          :$today    \n";                                       # DEBUG
+print "categorycode   :$categorycode:  \n";                                 # DEBUG
+print "pnr            :$pnr:           \n";                                 # DEBUG
+close OUTFILE;                                                              # DEBUG
+# -------------------------------------------------- #                      # DEBUG
+# DEBUG end                                          #                      # DEBUG
+# -------------------------------------------------- #                      # DEBUG
 
 
 exit 0;
