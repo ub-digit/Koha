@@ -370,7 +370,13 @@
                     <td class="location">[% UNLESS ( singlebranchmode ) %][% Branches.GetName( item.branchcode ) %] [% END %]</td>
                     <td class="homebranch">[% Branches.GetName(item.homebranch) %]<span class="shelvingloc">[% item.location %]</span> </td>
                     [% IF ( itemdata_ccode ) %]<td>[% item.ccode %]</td>[% END %]
-                    <td class="itemcallnumber">[% IF ( item.itemcallnumber ) %] [% item.itemcallnumber %][% END %]</td>
+                    <td class="itemcallnumber">
+                      [% IF ( item.itemcallnumber ) %]
+                        [% item.itemcallnumber %]
+                      [% ELSE %]
+                        [% IF ( Koha.Preference('Show095WhenNoCallnumber') && bibcallnumber ) %] [% bibcallnumber %][% END %]
+                      [% END %]
+                    </td>
                     <td class="status">
 
                         [% IF ( item.datedue ) %]
