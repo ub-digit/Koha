@@ -1,0 +1,1 @@
+INSERT IGNORE INTO systempreferences (`variable`, `value`, `options`, `explanation`, `type`) VALUES ('Show095WhenNoCallnumber', '0', null, 'Show 095a in item list as callnumber when itemcallnumber is empty', 'YesNo');
