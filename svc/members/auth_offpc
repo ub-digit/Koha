@@ -9,7 +9,6 @@ use C4::Members;
 use C4::Members::Attributes qw( GetBorrowerAttributeValue );
 use Koha::Patrons;
 use XML::Simple;
-use Data::Dumper;                                                        # DEBUG
 
 my $query = new CGI;
 binmode STDOUT, ':encoding(UTF-8)';
@@ -62,8 +61,6 @@ my $retval;
 # -------------------------------------------------- #
 my $pnr12 = GetBorrowerAttributeValue($borrowernumber, "PNR12");
 my $pnr = GetBorrowerAttributeValue($borrowernumber, "PNR");
-my $outfile = '/tmp/auth_offpc.out';                                      # DEBUG
-open (OUTFILE, ">$outfile");                                              # DEBUG
 my $today = `date +"%Y-%m-%d"`;
 
 # -------------------------------------------------- #
@@ -81,29 +78,6 @@ elsif ($lost==1)                                           {    $retval = 0; }  
 elsif ($debarredcomment =~ m/(GU,)|(AV,)/)                 {    $retval = 0; }  # these debarment codes prohibits login
 else                                                       {    $retval = 1; }  # you're good to go!
 print $retval . "\r\n";                                                         # return value contains "\r\n" since this script mimics auth_only_extern.cgi (sunda...)
-# -------------------------------------------------- #                    # DEBUG
-# DEBUG                                              #                    # DEBUG
-# -------------------------------------------------- #                    # DEBUG
-print OUTFILE "borrowernumber :$borrowernumber: \n";                      # DEBUG
-print OUTFILE "dateexpiry     :$dateexpiry:     \n";                      # DEBUG
-print OUTFILE "today          :$today           \n";                      # DEBUG
-print OUTFILE "categorycode   :$categorycode:   \n";                      # DEBUG
-print OUTFILE "pnr            :$pnr:            \n";                      # DEBUG
-print OUTFILE "debarredcomment:$debarredcomment:\n";                      # DEBUG
-print OUTFILE "lost           :$lost:           \n";                      # DEBUG
-print OUTFILE "# ----borrower start-------------------------------- #\n"; # DEBUG
-print "\nborrowernumber :$borrowernumber:\n";                             # DEBUG
-print "dateexpiry     :$dateexpiry:      \n";                             # DEBUG
-print "today          :$today:           \n";                             # DEBUG
-print "categorycode   :$categorycode:    \n";                             # DEBUG
-print "pnr            :$pnr:             \n";                             # DEBUG
-print "debarredcomment:$debarredcomment: \n";                             # DEBUG
-print "lost           :$lost:            \n";                             # DEBUG
-print OUTFILE Dumper($borrower);                                          # DEBUG
-close OUTFILE;                                                            # DEBUG
-# -------------------------------------------------- #                    # DEBUG
-# DEBUG end                                          #                    # DEBUG
-# -------------------------------------------------- #                    # DEBUG
 
 
 exit 0;
