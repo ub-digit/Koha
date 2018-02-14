@@ -249,6 +249,12 @@ Cataloging:
             - "<li>value of 001</li>"
             - "<li>subfields a and b of fields 245</li>"
             - "<li>all subfields of fields 600</li>"
+        -
+            - pref: Show095WhenNoCallnumber
+              choices:
+                  yes: Show
+                  no: Do not show
+            - 095a as callnumber when item has no itemcallnumber.
     Importing:
         -
             - When matching on ISBN with the record import tool,
