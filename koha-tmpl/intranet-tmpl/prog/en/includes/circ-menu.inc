@@ -85,12 +85,16 @@
     [% END %]
     [% IF ( CAN_user_borrowers ) %]
         [% IF ( intranetreadinghistory ) %]
+           [% IF ( CAN_user_parameters ) %]
             [% IF ( readingrecordview ) %]<li class="active">[% ELSE %]<li>[% END %]<a href="/cgi-bin/koha/members/readingrec.pl?borrowernumber=[% borrowernumber %]">Circulation history</a></li>
+           [% END %]
         [% END %]
     [% END %]
     [% IF ( CAN_user_borrowers ) %]
         [% IF ( intranetreadinghistory ) %]
+           [% IF ( CAN_user_parameters ) %]
             [% IF ( holdshistoryview ) %]<li class="active">[% ELSE %]<li>[% END %]<a href="/cgi-bin/koha/members/holdshistory.pl?borrowernumber=[% borrowernumber %]">Holds history</a></li>
+           [% END %]
         [% END %]
     [% END %]
     [% IF ( CAN_user_parameters ) %]
