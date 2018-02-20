@@ -567,6 +567,10 @@ Circulation:
                   yes: "Hide"
                   no: "Don't hide"
             - patrons phone number, email address, street address and city on the circulation page.
+        -
+            - NOT_LOAN values that should NOT trigger reserves:
+            - pref: PreventNotLoanFromHoldResolve
+            - (Separated by pipe -3|-2|-1)
     Holds Policy:
         -
             - In the staff client, split the holds queue into separate tables by
