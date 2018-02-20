@@ -2064,8 +2064,15 @@ sub AddReturn {
     # if we don't have a reserve with the status W, we launch the Checkreserves routine
     my ($resfound, $resrec);
     my $lookahead= C4::Context->preference('ConfirmFutureHolds'); #number of days to look for future holds
+    my @ignored_notloan = split(/\|/, C4::Context->preference('PreventNotLoanFromHoldResolve'));
+    my $should_ignore_reserve = 0;
+    foreach my $notloan_value (@ignored_notloan) {
+        if($item->notforloan && $item->notforloan == $notloan_value) {
+            $should_ignore_reserve = 1;
+        }
+    }
 
-    ($resfound, $resrec, undef) = C4::Reserves::CheckReserves( $item->itemnumber, undef, $lookahead ) unless ( $item->withdrawn );
+    ($resfound, $resrec, undef) = C4::Reserves::CheckReserves( $item->itemnumber, undef, $lookahead ) unless ( $item->withdrawn || $should_ignore_reserve);
     if ($resfound) {
         $resrec->{'ResFound'} = $resfound;
         $messages->{'ResFound'} = $resrec;
