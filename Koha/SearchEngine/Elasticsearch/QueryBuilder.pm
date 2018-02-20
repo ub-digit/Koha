@@ -285,12 +285,12 @@ sub _build_query_query_string {
     );
     while (my ($operand, $operator, $index) = $next->()) {
         last if !$operand; # TODO: Is this sane???
-        $uri->query_param_append(idx => uri_escape($index)) if $index;
-        $uri->query_param_append(q => uri_escape($operand)) if $operand;
-        $uri->query_param_append(op => uri_escape($operator)) if $operator;
+        $uri->query_param_append('idx' => $index) if $index;
+        $uri->query_param_append('q' => $operand) if $operand;
+        $uri->query_param_append('op' => $operator) if $operator;
     }
     if ($query_parts->{sort_by}) {
-        $uri->query_param(sort_by => $query_parts->{sort_by});
+        $uri->query_param('sort_by' => utf8::encode($query_parts->{sort_by}));
     }
     return $uri->query;
 }
@@ -298,7 +298,7 @@ sub _build_query_query_string {
 sub _build_limit_query_string {
     my ($self, $query_parts) = @_;
     my $uri = URI->new("", "http");
-    $uri->query_param(limit => map(uri_escape, @{$query_parts->{limits}}));
+    $uri->query_param('limit' => $query_parts->{limits});
     return $uri->query;
 }
 
