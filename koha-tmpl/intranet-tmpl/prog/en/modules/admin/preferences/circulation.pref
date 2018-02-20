@@ -586,6 +586,10 @@ Circulation:
                   yes: Trigger
                   no: Do not trigger
             - hold on pickup library on checkin via SIP. (Not triggering means no message is sent.)
+        -
+            - NOT_LOAN values that should NOT trigger reserves:
+            - pref: PreventNotLoanFromHoldResolve
+            - (Separated by pipe -3|-2|-1)
     Holds Policy:
         -
             - In the staff client, split the holds queue into separate tables by
