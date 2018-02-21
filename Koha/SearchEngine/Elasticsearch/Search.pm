@@ -435,8 +435,11 @@ sub _convert_facets {
 
     # These should correspond to the ES field names, as opposed to the CCL
     # things that zebra uses.
-    my %type_to_label;
+    my %type_to_label = (
+        'gub-format' => { order => 1, label => 'Format' }
+    );
     my %label = (
+        'gub-format'   => 'Format',
         author         => 'Authors',
         itype          => 'ItemTypes',
         location       => 'Location',
