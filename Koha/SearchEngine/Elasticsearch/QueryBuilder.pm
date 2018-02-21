@@ -110,6 +110,7 @@ sub build_query {
     # See _convert_facets in Search.pm for how these get turned into
     # things that Koha can use.
     $res->{aggregations} = {
+        'gub-format' => { terms => { field => "gub-format__facet" } },
         author   => { terms => { field => "author__facet" } },
         subject  => { terms => { field => "subject__facet" } },
         itype    => { terms => { field => "itype__facet" } },
