@@ -438,6 +438,7 @@ sub _convert_facets {
     # things that zebra uses.
     # TODO let the library define the order using the interface.
     my %type_to_label = (
+        'gub-format' => { order => 1, label => 'Format', },
         author   => { order => 1, label => 'Authors', },
         itype    => { order => 2, label => 'ItemTypes', },
         location => { order => 3, label => 'Location', },
