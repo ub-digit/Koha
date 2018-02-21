@@ -119,6 +119,7 @@ sub build_query {
     # things that Koha can use.
     my $size = C4::Context->preference('FacetMaxCount');
     $res->{aggregations} = {
+        'gub-format'   => { terms => { field => "gub-format__facet", size => $size } },
         author         => { terms => { field => "author__facet" , size => $size } },
         subject        => { terms => { field => "subject__facet", size => $size } },
         itype          => { terms => { field => "itype__facet", size => $size} },
