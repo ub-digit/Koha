@@ -110,12 +110,11 @@ Using this account is not recommended because some parts of Koha will not functi
                               [% IF ( restrictionCode == 'FINES_EXCEEDED')   %]<li><span>Your <a href="#">fines</a> exceed the allowed limit. <a href="http://www.ub.gu.se/bibliotek/">Visit any of the libraries</a> to pay your fines. We only accept card payments.</span></li>[% END %]
                               [% IF ( restrictionCode == 'ADDRESS_MISSING')  %]<li><span>We are missing your address. <a href="#">Fill in your address</a> and contact the library so that we can unblock your account.</span></li>[% END %]
                               [% IF ( restrictionCode == 'CARD_LOST')        %]<li><span>You have reported your library card lost. Visit any of our <a href="#">libraries</a> if you have found the card or need to buy a new one. Bring valid identification.</span></li>[% END %]
+                              [% IF ( restrictionCode == 'OVERDUES_PROCESS') %]<li><span>You have overdue loans. <a href="#">Renew the loan</a> or return the material to the library to unblock your account.</span></li>[% END %]
                             [% END %]
                             [% IF ( userdebarred ) %]
                               [% IF ( discharge_available ) %]
                                 <li id="discharged">Your account is frozen because it has been discharged. <a href="/cgi-bin/koha/opac-discharge.pl?op=get">Get your discharge</a></li>
-                              [% ELSE %]
-                                <li id="userdebarred"><span>You have overdue loans. <a href="#">Renew the loan</a> or return the material to the library to unblock your account.</span></li>
                               [% END %]
                             [% END %]
                           </ul>
