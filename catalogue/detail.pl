@@ -297,12 +297,14 @@ foreach my $item (@items) {
         $item->{hostbiblionumber} = $item->{biblionumber};
 	$item->{hosttitle} = GetBiblioData($item->{biblionumber})->{title};
     }
-	
-    #count if item is used in analytical bibliorecords
-    my $countanalytics= GetAnalyticsCount($item->{itemnumber});
-    if ($countanalytics > 0){
-        $analytics_flag=1;
-        $item->{countanalytics} = $countanalytics;
+
+    if($analyze) {
+        #count if item is used in analytical bibliorecords
+        my $countanalytics= GetAnalyticsCount($item->{itemnumber});
+        if ($countanalytics > 0){
+            $analytics_flag=1;
+            $item->{countanalytics} = $countanalytics;
+        }
     }
 
     if (defined($item->{'materials'}) && $item->{'materials'} =~ /\S/){
