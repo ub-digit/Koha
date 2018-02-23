@@ -102,16 +102,12 @@ if (C4::Context->preference( 'OPACShowDetailedDebarments')) {
     if ( $borr->{'gonenoaddress'}){push $restrictionCodeList, "ADDRESS_MISSING"};
     if ( $borr->{'lost'})         {push $restrictionCodeList, "CARD_LOST"};
     my $debarments = Koha::Patron::Debarments::GetDebarments({ borrowernumber => $borrowernumber});
-    my ($hashref, $key, $val, $comment);
+    my ($hashref, $key, $cmt);
     my $borrstring = my $commentstring = '';
     foreach $hashref (@$debarments){
         $commentstring = %$hashref{'comment'};
-        if ($commentstring =~ m/,/){
-            ($key, $val, $comment) = $commentstring =~ m/^([^,]+),([^:]+)(?::(.*))?$/;
-        }else{
-            $key = $commentstring =~ m/^(\S+)\s/;
-        }
-        $borr->{"${key}comment"}  = $comment;
+        (($key, $cmt) = $commentstring =~m/^(OVERDUES_PROCESS)\s*(.*)$/) || (($key, $cmt) = $commentstring =~ m/^([^, ]+)[, ]+[^:]*(?:: (.*))?$/);
+        $borr->{"${key}comment"}  = $cmt;
         push $restrictionCodeList, $key;
     }
     $borr->{'restrictionCodeList'}    = $restrictionCodeList;
