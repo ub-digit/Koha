@@ -652,7 +652,6 @@ Using this account is not recommended because some parts of Koha will not functi
                                             <tr>
                                         [% END %]
                                             <td class="title">
-                                                [% IF ( ISSUE.enumchron ) %] [% ISSUE.enumchron %][% END %]
                                                 [% IF !Koha.Preference('enableOpacCatalogBrowsing') && Koha.Preference('linkToExternalSite') %]
                                                     [% bibid = RESERVE.biblionumber %]
                                                     <a class="title" href="[% external_url(bibid) %]">
