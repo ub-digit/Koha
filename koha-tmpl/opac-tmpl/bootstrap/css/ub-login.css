@@ -1,0 +1,42 @@
+.ub-cas-login-link {
+  display: inline-block;
+  color: inherit !important;
+  text-decoration: none;
+  /* no underline */
+}
+.ub-cas-login-link .ub-cas-login-box.well {
+  background: none;
+}
+@media (min-width: 768px) {
+  .ub-cas-login-link .ub-cas-login-box.well {
+    max-width: 270px;
+  }
+}
+.ub-cas-login-link .ub-cas-login-box p {
+  font-size: 16px;
+}
+.ub-cas-login-link .ub-cas-login-box .ub-cas-login-heading {
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+.ub-cas-login-link .ub-cas-login-box .ub-cas-login-heading .icon-chevron-right {
+  opacity: .5;
+  margin-top: 7px;
+}
+.ub-cas-login-link .ub-cas-login-box .gu-login-arrow {
+  text-align: right;
+  float: right;
+  width: 10%;
+}
+.ub-cas-login-link .ub-cas-login-box .gub-logo-horizontal {
+  background: transparent url("../images/gu-logo-login-gu-account@2x.png") no-repeat scroll 0%;
+  background-size: 100%;
+  width: 193px;
+  height: 30px;
+  margin-bottom: 10px;
+}
+.ub-cas-login-link .ub-cas-login-box .gub-logo-horizontal.en {
+  background: transparent url("../images/gu-logo-login-gu-account@2x_en.png") no-repeat scroll 0%;
+  background-size: 100%;
+}
