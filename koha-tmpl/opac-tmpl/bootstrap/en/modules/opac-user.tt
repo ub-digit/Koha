@@ -732,12 +732,13 @@
                                                     <input type="hidden" name="biblionumber" value="[% RESERVE.biblionumber %]" />
                                                     <input type="hidden" name="reserve_id" value="[% RESERVE.reserve_id %]" />
                                                     [%- IF Koha.Preference( 'EnableCancelButtonInReservesList' ) -%]
-                                                        <button type="submit" name="submit" class="btn btn-mini btn-danger" onclick="return confirmDelete(MSG_CONFIRM_DELETE_HOLD);"><i class="icon-remove icon-white"></i> Cancel</button></form>
+                                                        <button type="submit" name="submit" class="btn btn-mini btn-danger" onclick="return confirmDelete(MSG_CONFIRM_DELETE_HOLD);"><i class="icon-remove icon-white"></i> Cancel</button>
                                                     [%- ELSE -%]
                                                         [% IF ( RESERVE.is_waiting != 1) %]
-                                                            <button type="submit" name="submit" class="btn btn-mini btn-danger" onclick="return confirmDelete(MSG_CONFIRM_DELETE_HOLD);"><i class="icon-remove icon-white"></i> Cancel</button></form>
+                                                            <button type="submit" name="submit" class="btn btn-mini btn-danger" onclick="return confirmDelete(MSG_CONFIRM_DELETE_HOLD);"><i class="icon-remove icon-white"></i> Cancel</button>
                                                         [% END %]
                                                     [%- END -%]
+                                                    </form>
                                                 [% END %]
                                             </td>
                                         </tr>
