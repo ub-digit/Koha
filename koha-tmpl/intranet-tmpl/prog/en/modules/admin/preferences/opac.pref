@@ -1,6 +1,24 @@
 OPAC:
     Appearance:
         -
+            - pref: enableCardnumberAndPersonalNumberAuth
+              choices:
+                  yes: "Enable"
+                  no: "Disable"
+            - "use cardnumber as userid and personalnumber as password"
+        -
+            - pref: OPACShowCancelButtonWhenInWaitingStatus
+              choices:
+                  yes: Yes
+                  no: "No"
+            - "Hide cancel button in holds table when status is waiting (Found=W)"
+        -
+            - pref: OPACRedirect
+              choices:
+                  yes: "Enable"
+                  no: "Disable"
+            - "redirect from homepage to userpage"
+        -
             - pref: OPACUserSummary
               choices:
                   yes: Show
