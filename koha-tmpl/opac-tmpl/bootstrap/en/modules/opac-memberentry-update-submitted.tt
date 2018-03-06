@@ -25,7 +25,7 @@
                     <div id="update-submitted">
                         <div class="alert alert-success">
                             <h3>Thank you</h3>
-                            <p>Your updates have been submitted. A librarian will review your updates before applying them.</p>
+                            <p>Your updates have been submitted.</p>
                         </div>
                     </div>
                 </div>
