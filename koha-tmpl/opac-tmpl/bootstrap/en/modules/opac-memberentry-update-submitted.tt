@@ -1,4 +1,4 @@
-[% USE Koha %]
+'[% USE Koha %]
 [% INCLUDE 'doc-head-open.inc' %]
 <title>[% IF ( LibraryNameTitle ) %][% LibraryNameTitle %][% ELSE %]Koha online[% END %] catalog &rsaquo; Updates submitted</title>
 [% INCLUDE 'doc-head-close.inc' %]
@@ -25,7 +25,7 @@
                     <div id="update-submitted">
                         <div class="alert alert-success">
                             <h3>Thank you</h3>
-                            <p>Your updates have been submitted. A librarian will review your updates before applying them.</p>
+                            <p>Your updates have been submitted.</p>
                         </div>
                     </div>
                 </div>
