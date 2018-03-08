@@ -24,11 +24,11 @@ $(document).ready(function(){
 //]]>
 </script>
 
-
-[% IF Koha.Preference('enableSimpleOpacMessaging') %]
+[% IF Koha.Preference('enableSimpleOpacMessaging') && !is_admin_page %]
     <!-- START - Simplified form -->
     <input type="hidden" name="simple-messaging" value="yes" />
     <input type="hidden" name="modify" value="yes" />
+    <input type="hidden" name="">
         <table>
             <tr>
                 <th>Paper</th>
@@ -38,6 +38,13 @@ $(document).ready(function(){
             </tr>
             [% FOREACH messaging_preference IN messaging_preferences %]
                 [% IF ( messaging_preference.Advance_Notice ) %]
+                      [% IF ( messaging_preference.takes_days ) %]
+                        [% FOREACH select_day IN messaging_preference.select_days %]
+                          [% IF ( select_day.selected ) %]
+                            <input type="hidden" name="[% messaging_preference.message_attribute_id %]-DAYS" value="[% select_day.day %]"></input>
+                          [% END %]
+                        [% END %]
+                      [% END %]
                     <tr>
                         <td>
                         [% IF ( !messaging_preference.transports_sms && !messaging_preference.transports_email) %]
@@ -114,7 +121,7 @@ $(document).ready(function(){
 
 [% END %]
 
-[% IF !Koha.Preference('enableSimpleOpacMessaging') %]
+[% IF !Koha.Preference('enableSimpleOpacMessaging') || is_admin_page %]
 <input type="hidden" name="modify" value="yes" />
 <input type="hidden" name="borrowernumber" value="[% borrowernumber %]" />
   <table>
