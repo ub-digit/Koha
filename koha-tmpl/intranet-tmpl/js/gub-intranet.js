@@ -8,8 +8,6 @@
 })(jQuery);
 
 $(document).ready(function() {
-
-
   shortcut.add('F1', function() {
     location.href = '/cgi-bin/koha/catalogue/search.pl';
   });
@@ -133,6 +131,7 @@ $(document).ready(function() {
       $('div#results-wrapper').goTo();
     }
   }
+
   //Disable the pay "pay fine"-functionallity for fines with account type "FE"
   if (location.pathname === '/cgi-bin/koha/members/pay.pl') {
     console.log('fix me up!');
@@ -153,7 +152,11 @@ $(document).ready(function() {
     // Trigger on page load
     checkAccountTypeHandler();
   }
-
+  // Fix possible error in patron edit mode, where grouped attribustes
+  // are pushed off stage.
+  if (location.pathname === '/cgi-bin/koha/members/memberentry.pl') {
+    $('#pat_memberentrygen #memberentry_patron_attributes #aai_PU').css('clear', 'both');
+  }
 
 });
 
