@@ -15,7 +15,7 @@
                             [% END %]
                         </a>
                     </h1>
-                    <div class="navbar-appname"> Mina lån </div>
+                    <div class="navbar-appname"> My loans </div>
                     [% IF ( Koha.Preference( 'opacbookbag' ) == 1 ) %]
                         <div id="cartDetails" class="cart-message">Your cart is empty.</div>
                     [% END %]
