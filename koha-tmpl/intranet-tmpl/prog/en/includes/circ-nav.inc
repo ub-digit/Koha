@@ -32,6 +32,7 @@
             [% END %]
         </ul>
 
+        [% IF !Koha.Preference('HideCircReports') %]
         <h5>Circulation reports</h5>
         <ul>
             <li><a href="/cgi-bin/koha/circ/view_holdsqueue.pl">Holds queue</a></li>
@@ -47,6 +48,7 @@
                 <li><a href="/cgi-bin/koha/circ/on-site_checkouts.pl">Pending on-site checkouts</a></li>
             [% END %]
         </ul>
+        [% END %]
 
     </div>
 </div>

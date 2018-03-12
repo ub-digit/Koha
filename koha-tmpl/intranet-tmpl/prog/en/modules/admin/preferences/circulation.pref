@@ -1,6 +1,12 @@
 Circulation:
     Interface:
         -
+          - pref: HideCircReports
+            choices:
+              yes: Hide
+              no: Show
+          - hide the circulation reports on all Circulation pages.
+        -
             - pref: CircSidebar
               choices:
                   1: Activate
