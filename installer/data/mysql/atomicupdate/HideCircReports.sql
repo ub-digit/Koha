@@ -1,0 +1,1 @@
+INSERT INTO systempreferences ( `variable`, `value`, `options`, `explanation`, `type` ) VALUES ('HideCircReports','0',NULL,'Activate or deactivate the navigation sidebar on all Circulation pages','YesNo');
