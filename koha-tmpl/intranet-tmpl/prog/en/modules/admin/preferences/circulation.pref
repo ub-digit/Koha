@@ -2,6 +2,12 @@ Circulation:
 # FIXME: printcirculationslips is also omitted. It _technically_ could work, but C4::Print is HLT specific and needs a little bit of refactoring.
     Interface:
         -
+          - pref: HideCircReports
+            choices:
+              yes: Hide
+              no: Show
+          - hide the circulation reports on all Circulation pages.
+        -
             - pref: CircSidebar
               choices:
                   yes: Activate
