@@ -53,6 +53,7 @@
                 </ul>
             </div>
 
+[% IF !Koha.Preference('HideCircReports') %]
             <div class="col-sm-5 col-md-4">
                 <h3>Holds</h3>
 
@@ -118,6 +119,7 @@
                 </ul>
             </div>
         </div>
+[% END %]
         <div class="row" id="intranet-circulation-home-html">
             <div class="col-md-12">
                 [% Koha.Preference('IntranetCirculationHomeHTML') | $raw  %]
