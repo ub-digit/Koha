@@ -40,6 +40,7 @@
             [% END %]
         </ul>
 
+        [% IF !Koha.Preference('HideCircReports') %]
         <h5>Holds</h5>
         <ul>
             <li>
@@ -60,6 +61,7 @@
                 <a href="/cgi-bin/koha/circ/reserveratios.pl">Hold ratios</a>
             </li>
         </ul>
+        [% END %]
 
         [% IF Koha.Preference('UseRecalls') and CAN_user_recalls %]
         <h5>Recalls</h5>
