@@ -154,6 +154,19 @@ $(document).ready(function() {
     checkAccountTypeHandler();
   }
 
+  // Keep search term after search
+  let val = getQueryVariable('q');
+  if (val.length > 0) {
+    if (!getQueryVariable('idx')) {
+      $('#search-form').val(val);
+    }
+  }
+
+  // hide re-priority column in holds table
+  $('#circ_request form[action="modrequest.pl"] fieldset table tr').each(function() {
+    $(this).find('td,th').eq(0).hide();
+  });
+
 
 });
 
