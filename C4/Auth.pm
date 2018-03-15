@@ -1880,7 +1880,10 @@ sub checkpw_internal_personalnumber {
 
 sub checkpw_internal {
     if (C4::Context->preference("enableCardnumberAndPersonalNumberAuth")) {
-        return checkpw_internal_personalnumber(@_);
+        my @isOk = checkpw_internal_personalnumber(@_); 
+        if ($isOk[0] != 0) {
+            return @isOk;
+        }
     }
     my ( $dbh, $userid, $password, $no_set_userenv ) = @_;
 
