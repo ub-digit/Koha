@@ -84,7 +84,7 @@
                         [% END # / IF virtualshelves %]
                     </ul> <!-- / .nav -->
                     [% IF Koha.Preference( 'virtualshelves' ) == 1 %]<div id="listsDetails"></div>[% END %]
-                    [% IF Koha.Preference( 'opacuserlogin' ) == 1 || opaclanguagesdisplay || EnableOpacSearchHistory %]
+                    [% IF  opaclanguagesdisplay || EnableOpacSearchHistory %]
                         <a id="user-menu-trigger" class="pull-right" href="#"><i class="icon-user"></i> <span class="caret"></span></a>
                         <div id="members">
                             <ul class="nav pull-right">

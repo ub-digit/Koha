@@ -1,3 +1,4 @@
+
 [% USE Koha %]
 [% USE KohaDates %]
 [% USE Price %]
@@ -63,7 +64,7 @@
                         </div>
                     [% END %]
 
-                    <h3>Fines and charges</h3>
+                    <h1>Fines and charges</h1>
 
                     [% IF ( ACCOUNT_LINES ) %]
                         <form method="post" action="opac-account-pay.pl" class="form-horizontal">
@@ -73,7 +74,6 @@
                                     [% IF ENABLE_OPAC_PAYMENTS %]<th>&nbsp;</th>[% END %]
                                     <th class="title-string">Date</th>
                                     <th>Description</th>
-                                    <th>Fine amount</th>
                                     <th>Amount outstanding</th>
                                 </tr>
                             </thead>
@@ -85,54 +85,54 @@
                                 [%- ELSE -%]
                                     [%- SET COLSPAN = 3 -%]
                                 [%- END -%]
-                                <th class="sum" colspan="[% COLSPAN %]">Total due</th>
+                                <th class="sum" colspan="2">Total due</th>
                                 <td class="sum">[% total | $Price %]</td>
                             </tr>
                             </tfoot>
 
                             <tbody>
                                 [% FOREACH ACCOUNT_LINE IN ACCOUNT_LINES %]
-                                    [% IF ( ACCOUNT_LINE.odd ) %]<tr class="highlight">[% ELSE %]<tr>[% END %]
-                                        [% IF ENABLE_OPAC_PAYMENTS %]
+                                    [% IF ACCOUNT_LINE.amountoutstanding > 0 %]
+                                        [% IF ( ACCOUNT_LINE.odd ) %]<tr class="highlight">[% ELSE %]<tr>[% END %]
+                                            [% IF ENABLE_OPAC_PAYMENTS %]
+                                                <td>
+                                                    [% IF ACCOUNT_LINE.amountoutstanding > 0 %]
+                                                        [% SET DISPLAY_PAYMENT_BLOCK = 1 %]
+                                                        <input class="checkbox-pay pay-online hidden" name="accountline" type="checkbox" id="checkbox-pay-[% ACCOUNT_LINE.accountlines_id %]" value="[% ACCOUNT_LINE.accountlines_id %]">
+                                                        <input type="hidden" id="amount-[% ACCOUNT_LINE.accountlines_id %]" value="[% ACCOUNT_LINE.amountoutstanding %]" />
+                                                    [% END %]
+                                                </td>
+                                            [% END %]
+                                            <td><span title="[% ACCOUNT_LINE.date %]">[% ACCOUNT_LINE.date | $KohaDates %]</span></td>
                                             <td>
-                                                [% IF ACCOUNT_LINE.amountoutstanding > 0 %]
-                                                    [% SET DISPLAY_PAYMENT_BLOCK = 1 %]
-                                                    <input class="checkbox-pay pay-online hidden" name="accountline" type="checkbox" id="checkbox-pay-[% ACCOUNT_LINE.accountlines_id %]" value="[% ACCOUNT_LINE.accountlines_id %]">
-                                                    <input type="hidden" id="amount-[% ACCOUNT_LINE.accountlines_id %]" value="[% ACCOUNT_LINE.amountoutstanding %]" />
-                                                [% END %]
+                                                [% SWITCH ACCOUNT_LINE.accounttype %]
+                                                [% CASE 'Pay' %]Payment, thanks
+                                                [% CASE 'Pay00' %]Payment, thanks (cash via SIP2)
+                                                [% CASE 'Pay01' %]Payment, thanks (VISA via SIP2)
+                                                [% CASE 'Pay02' %]Payment, thanks (credit card via SIP2)
+                                                [% CASE 'N' %]New card
+                                                [% CASE 'F' %]Fine
+                                                [% CASE 'A' %]Account management fee
+                                                [% CASE 'M' %]Sundry
+                                                [% CASE 'L' %]Lost item
+                                                [% CASE 'W' %]Writeoff
+                                                [% CASE 'FU' %]Accruing fine
+                                                [% CASE 'HE' %]Hold waiting too long
+                                                [% CASE 'Rent' %]Rental fee
+                                                [% CASE 'FOR' %]Forgiven
+                                                [% CASE 'LR' %]Lost item fee refund
+                                                [% CASE 'PF' %]Processing fee
+                                                [% CASE 'PAY' %]Payment
+                                                [% CASE 'WO' %]Writeoff
+                                                [% CASE 'C' %]Credit
+                                                [% CASE 'CR' %]Credit
+                                                [% CASE %][% ACCOUNT_LINE.accounttype %]
+                                              [%- END -%]
+                                              [% IF ACCOUNT_LINE.title %]([% ACCOUNT_LINE.title %])[% END %]
                                             </td>
-                                        [% END %]
-                                        <td><span title="[% ACCOUNT_LINE.date %]">[% ACCOUNT_LINE.date | $KohaDates %]</span></td>
-                                        <td>
-                                            [% SWITCH ACCOUNT_LINE.accounttype %]
-                                            [% CASE 'Pay' %]Payment, thanks
-                                            [% CASE 'Pay00' %]Payment, thanks (cash via SIP2)
-                                            [% CASE 'Pay01' %]Payment, thanks (VISA via SIP2)
-                                            [% CASE 'Pay02' %]Payment, thanks (credit card via SIP2)
-                                            [% CASE 'N' %]New card
-                                            [% CASE 'F' %]Fine
-                                            [% CASE 'A' %]Account management fee
-                                            [% CASE 'M' %]Sundry
-                                            [% CASE 'L' %]Lost item
-                                            [% CASE 'W' %]Writeoff
-                                            [% CASE 'FU' %]Accruing fine
-                                            [% CASE 'HE' %]Hold waiting too long
-                                            [% CASE 'Rent' %]Rental fee
-                                            [% CASE 'FOR' %]Forgiven
-                                            [% CASE 'LR' %]Lost item fee refund
-                                            [% CASE 'PF' %]Processing fee
-                                            [% CASE 'PAY' %]Payment
-                                            [% CASE 'WO' %]Writeoff
-                                            [% CASE 'C' %]Credit
-                                            [% CASE 'CR' %]Credit
-                                            [% CASE %][% ACCOUNT_LINE.accounttype %]
-                                          [%- END -%]
-                                          [%- IF ACCOUNT_LINE.description %], [% ACCOUNT_LINE.description %][% END %]
-                                          [% IF ACCOUNT_LINE.title %]([% ACCOUNT_LINE.title %])[% END %]
-                                        </td>
-                                        [% IF ( ACCOUNT_LINE.amountcredit ) %]<td class="credit">[% ELSE %]<td class="debit">[% END %][% ACCOUNT_LINE.amount | $Price %]</td>
-                                        [% IF ( ACCOUNT_LINE.amountoutstandingcredit ) %]<td class="credit">[% ELSE %]<td class="debit">[% END %][% ACCOUNT_LINE.amountoutstanding | $Price %]</td>
-                                    </tr>
+                                            [% IF ( ACCOUNT_LINE.amountoutstandingcredit ) %]<td class="credit">[% ELSE %]<td class="debit">[% END %][% ACCOUNT_LINE.amountoutstanding | $Price %]</td>
+                                        </tr>
+                                    [% END %]
                                 [% END %]
                             </tbody>
 
