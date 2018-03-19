@@ -71,6 +71,20 @@ my $query = new CGI;
 my $override_high_holds     = $query->param('override_high_holds');
 my $override_high_holds_tmp = $query->param('override_high_holds_tmp');
 
+my $ub_extended_inhouse_select = $query->param('ub_extended_inhouse_select');
+my $ub_extended_inhouse = 0;
+my $note = '';
+if($ub_extended_inhouse_select eq "reading_room") {
+    $note = "Läsesalslån";
+    $ub_extended_inhouse = 1;
+} elsif($ub_extended_inhouse_select eq "research_locker") {
+    $note = "Forskarskåpslån";
+    $ub_extended_inhouse = 1;
+} elsif($ub_extended_inhouse_select eq "department_loan") {
+    $note = "Institutionslån";
+    $ub_extended_inhouse = 1;
+}
+
 my $sessionID = $query->cookie("CGISESSID") ;
 my $session = get_session($sessionID);
 if (!C4::Context->userenv){
@@ -399,6 +413,16 @@ if (@$barcodes) {
         }
     }
 
+    # Cleanup error from NOT_FOR_LOAN in case of extended inhouse loans
+    if($ub_extended_inhouse) {
+        if($error->{NOT_FOR_LOAN}) {
+            delete $error->{NOT_FOR_LOAN};
+        }
+        if($error->{item_notforloan}) {
+            delete $error->{item_notforloan};
+        }
+    }
+
     if ( $error->{UNKNOWN_BARCODE} or not $onsite_checkout or not C4::Context->preference("OnSiteCheckoutsForce") ) {
         delete $question->{'DEBT'} if ($debt_confirmed);
         foreach my $impossible ( keys %$error ) {
@@ -430,7 +454,7 @@ if (@$barcodes) {
         }
         unless($confirm_required) {
             my $switch_onsite_checkout = exists $messages->{ONSITE_CHECKOUT_WILL_BE_SWITCHED};
-            my $issue = AddIssue( $patron->unblessed, $barcode, $datedue, $cancelreserve, undef, undef, { onsite_checkout => $onsite_checkout, auto_renew => $session->param('auto_renew'), switch_onsite_checkout => $switch_onsite_checkout, } );
+            my $issue = AddIssue( $patron->unblessed, $barcode, $datedue, $cancelreserve, undef, undef, { onsite_checkout => $onsite_checkout, auto_renew => $session->param('auto_renew'), switch_onsite_checkout => $switch_onsite_checkout, note => $note } );
             $template_params->{issue} = $issue;
             $session->clear('auto_renew');
             $inprocess = 1;
