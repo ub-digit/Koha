@@ -1261,6 +1261,7 @@ sub AddIssue {
     my $onsite_checkout = $params && $params->{onsite_checkout} ? 1 : 0;
     my $switch_onsite_checkout = $params && $params->{switch_onsite_checkout};
     my $auto_renew = $params && $params->{auto_renew};
+    my $note = $params && $params->{note};
     my $dbh          = C4::Context->dbh;
     my $barcodecheck = CheckValidBarcode($barcode);
 
@@ -1359,7 +1360,8 @@ sub AddIssue {
                     date_due       => $datedue->strftime('%Y-%m-%d %H:%M:%S'),
                     branchcode     => C4::Context->userenv->{'branch'},
                     onsite_checkout => $onsite_checkout,
-                    auto_renew      => $auto_renew ? 1 : 0
+                    auto_renew      => $auto_renew ? 1 : 0,
+                    note            => $note,
                 }
               );
 
