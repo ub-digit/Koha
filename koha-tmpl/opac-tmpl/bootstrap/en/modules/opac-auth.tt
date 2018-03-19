@@ -37,7 +37,7 @@
 
                         [% IF ( loginprompt ) %]
                             <!-- login prompt time-->
-                            <h3>Log in to your account</h3>
+                            <h1>Log in to your account</h1>
 
                             [% IF ( timed_out ) %]
                                 <!-- This is what is displayed if login has timed out -->
@@ -146,7 +146,7 @@
                             [% IF ( shibbolethAuthentication ) %]
                                 <p>Nothing</p>
                             [% ELSE %]
-                                <h4>Log in with library account</h4>
+                                <h2>Log in with library account</h2>
                                 <p>For users without a GU account.</p>
                             [% END %]
 
