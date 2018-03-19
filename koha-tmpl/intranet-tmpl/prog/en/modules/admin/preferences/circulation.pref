@@ -620,6 +620,12 @@ Circulation:
                   yes: permanent_location
                   no: homebranch
             - for AQ field in SIP protocol.
+        -
+            - pref: ShowRefundLostItemFeeMessage
+              choices:
+                  yes: Enable
+                  no: Disable
+            - When disabled, the lost item fee refund message is hidden.
     Holds Policy:
         -
             - In the staff client, split the holds queue into separate tables by
