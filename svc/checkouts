@@ -112,6 +112,7 @@ my $sql = '
         items.materials,
 
         DATEDIFF( issues.issuedate, CURRENT_DATE() ) AS not_issued_today,
+        issues.note AS issue_note,
 
         return_claims.id AS return_claim_id,
         return_claims.notes AS return_claim_notes,
@@ -311,6 +312,7 @@ while ( my $c = $sth->fetchrow_hashref() ) {
         },
         issued_today => !$c->{not_issued_today},
         recalled => $recalled,
+        issue_note => $c->{issue_note}
     };
 
     if ( $c->{not_issued_today} ) {
