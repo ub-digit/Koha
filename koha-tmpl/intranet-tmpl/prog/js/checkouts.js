@@ -368,6 +368,10 @@ $(document).ready(function() {
                             onsite_checkout += " <span class='onsite_checkout'>(" + __("On-site checkout") + ")</span>";
                         }
 
+                        if ( oObj.issue_note ) {
+                            onsite_checkout += " <span class='onsite_checkout'>(" + oObj.issue_note + ")</span>";
+                        }
+
                         title += " "
                               + "<a href='/cgi-bin/koha/catalogue/moredetail.pl?biblionumber="
                               + oObj.biblionumber
@@ -757,6 +761,10 @@ $(document).ready(function() {
                             var onsite_checkout = '';
                             if ( oObj.onsite_checkout == 1 ) {
                                 onsite_checkout += " <span class='onsite_checkout'>(" + __("On-site checkout") + ")</span>";
+                            }
+
+                            if ( oObj.issue_note ) {
+                                onsite_checkout += " <span class='onsite_checkout'>(" + oObj.issue_note + ")</span>";
                             }
 
                             title += " "
