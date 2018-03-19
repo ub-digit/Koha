@@ -509,6 +509,12 @@ Circulation:
                   yes: Cumulate
                   no: "Don't cumulate"
             - the restriction periods.
+        -
+            - pref: ShowRefundLostItemFeeMessage
+              choices:
+                  yes: Enable
+                  no: Disable
+            - When disabled, the lost item fee refund message is hidden.
     Holds Policy:
         -
             - pref: AllowHoldItemTypeSelection
