@@ -126,7 +126,10 @@
                                         <div class="well ub-cas-login-box cas-login">
                                             <div class="gub-logo-horizontal [%lang%]">
                                             </div>
-                                            <div class="ub-cas-login-heading">Log in with GU account  <div class="gu-login-arrow"> <svg width="15px" height="24px" viewBox="0 0 15 24" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"> <!-- Generator: Sketch 48.2 (47327) - http://www.bohemiancoding.com/sketch --> <desc>Created with Sketch.</desc> <defs></defs> <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd" font-family="FontAwesome" font-size="25" font-weight="normal" opacity="0.329999983"> <g id="Logga-in-Copy-11" transform="translate(-714.000000, -264.000000)" fill="#C3C3C3"> <g id="Group-7" transform="translate(450.000000, 199.000000)"> <text id=""> <tspan x="263.142857" y="87"></tspan> </text> </g> </g> </g> </svg> </div></div> 
+                                            <div class="ub-cas-login-heading">
+                                                <span class="ub-copy-container">Log in with GU account</span>
+                                                <div class="gu-login-arrow"> <svg width="15px" height="24px" viewBox="0 0 15 24" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"> <!-- Generator: Sketch 48.2 (47327) - http://www.bohemiancoding.com/sketch --> <desc>Created with Sketch.</desc> <defs></defs> <g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd" font-family="FontAwesome" font-size="25" font-weight="normal" opacity="0.329999983"> <g id="Logga-in-Copy-11" transform="translate(-714.000000, -264.000000)" fill="#C3C3C3"> <g id="Group-7" transform="translate(450.000000, 199.000000)"> <text id=""> <tspan x="263.142857" y="87"></tspan> </text> </g> </g> </g> </svg> </div>
+                                            </div> 
                                             <p>For students and employees at GU with a gus-account or an x-account.</p>
 
                                         </div>
