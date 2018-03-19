@@ -1502,6 +1502,7 @@ sub AddIssue {
     my $auto_renew = $params && $params->{auto_renew};
     my $cancel_recall = $params && $params->{cancel_recall};
     my $recall_id = $params && $params->{recall_id};
+    my $note = $params && $params->{note};
     my $dbh          = C4::Context->dbh;
     my $barcodecheck = CheckValidBarcode($barcode);
 
@@ -1648,6 +1649,7 @@ sub AddIssue {
                 branchcode      => C4::Context->userenv->{'branch'},
                 onsite_checkout => $onsite_checkout,
                 auto_renew      => $auto_renew ? 1 : 0,
+                note            => $note,
             };
 
             # Get ID of logged in user.  if called from a batch job,
