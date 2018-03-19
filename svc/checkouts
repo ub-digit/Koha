@@ -102,7 +102,8 @@ my $sql = '
         location,
         items.enumchron,
 
-        DATEDIFF( issuedate, CURRENT_DATE() ) AS not_issued_today
+        DATEDIFF( issuedate, CURRENT_DATE() ) AS not_issued_today,
+        issues.note AS issue_note
     FROM issues
         LEFT JOIN items USING ( itemnumber )
         LEFT JOIN biblio USING ( biblionumber )
@@ -228,6 +229,7 @@ while ( my $c = $sth->fetchrow_hashref() ) {
             cardnumber => $c->{cardnumber},
         },
         issued_today => !$c->{not_issued_today},
+        issue_note => $c->{issue_note}
     };
 
     if ( $c->{not_issued_today} ) {
