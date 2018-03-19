@@ -274,6 +274,11 @@ $(document).ready(function() {
                             onsite_checkout += " <span class='onsite_checkout'>(" + INHOUSE_USE + ")</span>";
                         }
 
+                        if ( oObj.issue_note ) {
+                        
+                            onsite_checkout += " <span class='onsite_checkout'>(" + oObj.issue_note + ")</span>";
+                        }
+                      
                         title += " "
                               + "<a href='/cgi-bin/koha/catalogue/moredetail.pl?biblionumber="
                               + oObj.biblionumber
@@ -572,6 +577,11 @@ $(document).ready(function() {
                                 onsite_checkout += " <span class='onsite_checkout'>(" + INHOUSE_USE + ")</span>";
                             }
 
+                            if ( oObj.issue_note ) {
+                            
+                                onsite_checkout += " <span class='onsite_checkout'>(" + oObj.issue_note + ")</span>";
+                            }
+                          
                             title += " "
                                   + "<a href='/cgi-bin/koha/catalogue/moredetail.pl?biblionumber="
                                   + oObj.biblionumber
