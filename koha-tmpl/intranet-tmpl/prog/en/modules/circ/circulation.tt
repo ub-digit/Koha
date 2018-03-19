@@ -527,6 +527,18 @@ No patron matched <span class="ex">[% message | html %]</span>
     [% END %]
     <button type="submit" class="btn btn-default">Check out</button>
 
+    [% UNLESS noissues %]
+    <p id="ub-extended-inhouse">
+      <label class="circ_barcode" for="ub_extended_inhouse_select">Type of loan:</label>
+      <select name="ub_extended_inhouse_select">
+        <option value="normal">Home loan</option>
+        <option value="reading_room">Reading room loan</option>
+        <option value="research_locker">Loan to researcher's locker</option>
+        <option value="department_loan">Loan to department (permit required)</option>
+      </select>
+    </p>
+    [% END %]
+
     <div id="show-checkout-settings">
         <a href="#"><i class="fa fa-caret-right checkout-settings-icon"></i> Checkout settings</a>
     </div>
