@@ -252,6 +252,7 @@
                                                     <a class="title" href="/cgi-bin/koha/opac-detail.pl?biblionumber=[% ISSUE.biblionumber | html %]">[% ISSUE.title | html %] [% FOREACH subtitl IN ISSUE.subtitle %] [% subtitl.subfield | html %][% END %]</a>
                                                     [% END %]
                                                     [% IF ( ISSUE.enumchron ) %] [% ISSUE.enumchron | html %][% END %]
+                                                    [% IF ( ISSUE.note ) %] <span class="onsite_checkout ub-extended-inhouse">([% ISSUE.note | html %])</span>[% END %]
                                                 </td>
 
                                                 <td class="author">[% ISSUE.author | html %]</td>
