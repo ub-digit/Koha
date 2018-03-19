@@ -379,6 +379,10 @@ $(document).ready(function() {
                              title += "<span class='divider-dash'> - </span><span class='circ-hlt item-recalled'>" +  __("This item has been recalled and the due date updated") + ".</span>";
                         }
 
+                        if ( oObj.issue_note ) {
+                            onsite_checkout += " <span class='onsite_checkout'>(" + oObj.issue_note + ")</span>";
+                        }
+
                         title += " "
                               + "<a href='/cgi-bin/koha/catalogue/moredetail.pl?biblionumber="
                               + oObj.biblionumber
@@ -781,6 +785,10 @@ $(document).ready(function() {
                             var onsite_checkout = '';
                             if ( oObj.onsite_checkout == 1 ) {
                                 onsite_checkout += " <span class='onsite_checkout'>(" + __("On-site checkout") + ")</span>";
+                            }
+
+                            if ( oObj.issue_note ) {
+                                onsite_checkout += " <span class='onsite_checkout'>(" + oObj.issue_note + ")</span>";
                             }
 
                             title += " "
