@@ -683,7 +683,13 @@ Circulation:
                   1: Store
                   0: "Don't store"
             - 'the last patron to return an item. This setting is independent of the <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=opacreadinghistory">opacreadinghistory</a> and <a href="/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=AnonymousPatron">AnonymousPatron</a> system preferences.'
-    Holds policy:
+        -
+            - pref: ShowRefundLostItemFeeMessage
+              choices:
+                  yes: Enable
+                  no: Disable
+            - When disabled, the lost item fee refund message is hidden.
+    Holds Policy:
         -
             - pref: EnableItemGroups
               choices:
