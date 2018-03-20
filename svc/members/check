@@ -9,6 +9,7 @@ use C4::Auth qw/check_api_auth/;
 
 use C4::Members;
 use C4::Members::Attributes qw( CheckUniqueness );
+use C4::Context;
 
 my $query = new CGI;
 binmode STDOUT, ':encoding(UTF-8)';
@@ -20,13 +21,31 @@ unless ($status eq "ok") {
   exit 0;
 }
 
+
 # Assume 12 digit personalnumber
 my $personalnumber = $query->param('personalnumber');
 
-my $uniq = "false";
-if ((CheckUniqueness("PNR", $personalnumber) == 1) and (CheckUniqueness("PNR", substr($personalnumber, 2)) == 1)) {
+
+my $dbh = C4::Context->dbh();
+my $sql = "SELECT DISTINCT borrowernumber
+           FROM borrower_attributes
+           WHERE code = 'PNR12'
+           AND attribute = ?
+           OR code = 'PNR'
+           AND attribute = ?";
+
+my $value = $dbh->selectrow_array($sql, undef, $personalnumber, substr($personalnumber, 2));
+
+my $uniq;
+my $borrowernumber;
+if ($value) {
+ $uniq = "false";
+ $borrowernumber = $value;
+}
+else {
   $uniq = "true";
+  $borrowernumber = '';
 }
 
 print $query->header(-type => 'text/xml',-charset => 'utf-8');
-print XMLout({uniq => $uniq}, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+print XMLout({uniq => $uniq, borrowernumber => $borrowernumber}, NoAttr => 1, RootName => 'response', XMLDecl => 1);
