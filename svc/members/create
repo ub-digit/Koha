@@ -50,6 +50,10 @@ $borrower{'city'} = $query->param('city');
 $borrower{'lang'} = $query->param('lang');
 
 # Optional fields
+my $patronuserid = $query->param('patronuserid');
+  if ($patronuserid) {
+  $borrower{'userid'} = $patronuserid;
+}
 my $firstname = $query->param('firstname');
 if ($firstname) {
   $borrower{'firstname'} = $firstname;
@@ -65,7 +69,7 @@ if ($zipcode) {
 my $country = $query->param('country');
 if ($country) {
   $borrower{'country'} = $country;
-$origin and $origin eq "GUKORT"}
+}
 my $b_address = $query->param('B_address');
 if ($b_address) {
   $borrower{'B_address'} = $b_address;
