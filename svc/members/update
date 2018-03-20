@@ -1,0 +1,84 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+use CGI qw ( -utf8 );
+use XML::Simple;
+use C4::Auth qw/check_api_auth/;
+
+use C4::Members;
+use C4::Members::Attributes qw( SetBorrowerAttributes UpdateBorrowerAttribute );
+use Koha::Patron::Debarments;
+
+use Data::Dumper;
+
+my $query = new CGI;
+binmode STDOUT, ':encoding(UTF-8)';
+
+my ($status, $cookie, $sessionID) = check_api_auth($query, { editcatalogue => 'edit_catalogue'} );
+unless ($status eq "ok") {
+  print $query->header(-type => 'text/xml', -status => '403 Forbidden');
+  print XMLout({ status => $status }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+  exit 0;
+}
+my $action = $query->param('action') || 'update';
+my $borrowernumber = $query->param('borrowernumber');
+
+if ($action eq 'pnr') {
+  my $personalnumber = $query->param('personalnumber');
+  UpdateBorrowerAttribute($borrowernumber, {code => "PNR12", attribute => $personalnumber});
+  UpdateBorrowerAttribute($borrowernumber, {code => "PNR", attribute => substr($personalnumber, 2)});
+}
+elsif ($action eq 'cardinvalid') {
+  my $debarments = GetDebarments({borrowernumber => $borrowernumber, type => "MANUAL", comment => "GU, GU-spärr"});
+  if ((scalar @{$debarments}) == 0) {
+    AddDebarment({borrowernumber => $borrowernumber, type => "MANUAL", comment => "GU, GU-spärr"});
+  }
+}
+else { #$action eq 'update'
+  my $patrons = Koha::Patrons->search({borrowernumber => $borrowernumber});
+  my $borrower = $patrons->next;
+  my $existing_cardnumber = $borrower->unblessed->{'cardnumber'};
+
+  my $incoming_cardnumber = $query->param('cardnumber');
+  my $category = $query->param('category');
+  my $categorycode = $query->param('categorycode');
+
+  my %newdata;
+  $newdata{'borrowernumber'} = $borrowernumber;
+
+  # Ta bort spärrarna GU och WR om lånekortsnumret i inkommande post är samma som i existerande post
+  if ($incoming_cardnumber eq $existing_cardnumber) {
+    my $debarments = GetDebarments({borrowernumber => $borrowernumber});
+    my @filtered_debarments = grep { $_->{comment} =~ /^GU,|WR,/ } @{$debarments};
+    foreach (@filtered_debarments) {
+     DelDebarment($_->{borrower_debarment_id});
+    }
+
+  }
+  # Om kortnumren inte matchar (dvs nytt kort) så sparar vi det gamla numret på ny plats i posten
+  # och sätter det nya kortnumret som aktivt. Alla gamla nummer ska sparas.
+  else {
+    UpdateBorrowerAttribute($borrowernumber, {code => "GKNR", attribute => $existing_cardnumber});
+    $newdata{'cardnumber'} = $incoming_cardnumber;
+  }
+
+  # Om låntagaren är student (i inkommande data) och inte har låntagarkategori SY (hos oss)
+  # så sätts en studentkategori som låntagarkategori.
+  if (($category) and ($category eq "STUDENT") and ($categorycode) and !($categorycode eq "SY")) {
+    $newdata{'categorycode'} = $categorycode;
+  }
+
+
+  # Spara att de accepterat biblioteksreglerna.
+  # Sparar att datat kommer från GU genom att skriva GU-kort uppdat i posten.
+  UpdateBorrowerAttribute($borrowernumber, {code => "ACCEPT", attribute => "Biblioteksreglerna accepteras"});
+  UpdateBorrowerAttribute($borrowernumber, {code => "IMPORT", attribute => "gukort updat"});
+  #SetBorrowerAttributes($borrowernumber, [{code => "ACCEPT", value => "Biblioteksreglerna accepteras"}, {code => "IMPORT", value => "gukort updat"}]);
+
+  ModMember(%newdata);
+}
+
+print $query->header(-type => 'text/xml',-charset => 'utf-8', -status => '201');
+print XMLout({status => "ok"}, NoAttr => 1, RootName => 'response', XMLDecl => 1);
