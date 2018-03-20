@@ -27,10 +27,20 @@ unless ($status eq "ok") {
 my %borrower = ();
 
 my $personalnumber = $query->param('personalnumber');
+my $cardnumber = $query->param('cardnumber');
 my $messaging_format = $query->param('messaging_format');
+my $debarments = $query->param('debarments');
+
+my $origin = $query->param('origin');
+
+if ($cardnumber) {
+  $borrower{'cardnumber'} = $cardnumber;
+}
+else {
+  $borrower{'cardnumber'} = $personalnumber;
+}
 
 # Mandatory borrower fields
-$borrower{'cardnumber'} = $personalnumber;
 $borrower{'password'} = $personalnumber;
 $borrower{'categorycode'} = $query->param('categorycode');
 $borrower{'branchcode'} = $query->param('branchcode');
@@ -52,6 +62,10 @@ my $zipcode = $query->param('zipcode');
 if ($zipcode) {
   $borrower{'zipcode'} = $zipcode;
 }
+my $country = $query->param('country');
+if ($country) {
+  $borrower{'country'} = $country;
+$origin and $origin eq "GUKORT"}
 my $b_address = $query->param('B_address');
 if ($b_address) {
   $borrower{'B_address'} = $b_address;
@@ -60,13 +74,17 @@ my $b_address2 = $query->param('B_address2');
 if ($b_address2) {
   $borrower{'B_address2'} = $b_address2;
 }
+my $b_zipcode = $query->param('B_zipcode');
+if ($b_zipcode) {
+  $borrower{'B_zipcode'} = $b_zipcode;
+}
 my $b_city = $query->param('B_city');
 if ($b_city) {
   $borrower{'B_city'} = $b_city;
 }
-my $b_zipcode = $query->param('B_zipcode');
-if ($b_zipcode) {
-  $borrower{'B_zipcode'} = $b_zipcode;
+my $b_country = $query->param('B_country');
+if ($b_country) {
+  $borrower{'B_country'} = $b_country;
 }
 my $phone = $query->param('phone');
 if ($phone) {
@@ -88,9 +106,33 @@ if ($email) {
 # Patron attribute fields
 my $accept_text = $query->param('accept_text');
 
+my @debarments;
+if ($debarments) {
+  @debarments = split /,/, $debarments;
+}
+if ("gna" ~~ @debarments) {
+  $borrower{'gonenoaddress'} = 1;
+}
+
+
 my ($borrowernumber, $password) = AddMember_Opac(%borrower);
-SetBorrowerAttributes($borrowernumber, [{code => "PNR12", value => $personalnumber}, {code => "PNR", value => substr($personalnumber, 2)}, {code => "ACCEPT", value => $accept_text}]);
-AddDebarment({borrowernumber => $borrowernumber, type => "MANUAL", comment => "WR, Webbregistrerad"});
+
+if ($origin and $origin eq "gukort") {
+  SetBorrowerAttributes($borrowernumber, [{code => "PNR12", value => $personalnumber}, {code => "PNR", value => substr($personalnumber, 2)}, {code => "ACCEPT", value => $accept_text}, {code => "IMPORT", value => "gukort"}]);
+}
+else {
+  SetBorrowerAttributes($borrowernumber, [{code => "PNR12", value => $personalnumber}, {code => "PNR", value => substr($personalnumber, 2)}, {code => "ACCEPT", value => $accept_text}]);
+}
+
+foreach my $debarment (@debarments) {
+  if ($debarment eq 'wr') {
+    AddDebarment({borrowernumber => $borrowernumber, type => "MANUAL", comment => "WR, Webbregistrerad"});
+  }
+  elsif ($debarment eq 'gu') {
+    AddDebarment({borrowernumber => $borrowernumber, type => "MANUAL", comment => "GU, GU-spärr"});
+  }
+}
+
 
 # Set messaging format if parameter is set
 if ($messaging_format) {
