@@ -152,6 +152,14 @@ $(document).ready(function() {
 
     // Trigger on page load
     checkAccountTypeHandler();
+
+    // redirect help to GU manuals
+    // set correct href
+    $('a#helper').attr('href', 'https://medarbetarportalen.gu.se/internwebb-ub/projekt-och-forandringar/nys/utbildningar-i-koha/');
+    // remove default behaviour
+    $('a#helper').off('click');
+    // open in blank window
+    $('a#helper').attr('target', '_blank');
   }
 
   // Keep search term after search
