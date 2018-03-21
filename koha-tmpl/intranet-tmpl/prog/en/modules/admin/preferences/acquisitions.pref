@@ -91,6 +91,11 @@ Acquisitions:
                 yes: "Use"
                 no: "Don't use"
             - " the framework 'ACQ' for bibliographic records fields"
+        -
+            - Use
+            - pref: GubEdifactBasedir
+            - as base directory for vendor orders processed by gub_edifact.pl.
+            - type: textarea
     Printing:
         -
             - Use the
