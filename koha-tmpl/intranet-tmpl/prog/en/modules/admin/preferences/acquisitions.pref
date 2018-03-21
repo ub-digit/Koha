@@ -111,6 +111,11 @@ Acquisitions:
             - "If you choose EmailAddressForSuggestions you have to enter a valid email address: "
             - pref: EmailAddressForSuggestions
               class: email
+        -
+            - Use
+            - pref: GubEdifactBasedir
+            - as base directory for vendor orders processed by gub_edifact.pl.
+            - type: textarea
     Printing:
         -
             - Use the
