@@ -163,6 +163,15 @@ $(document).ready(function() {
   // open in blank window
   $('a#helper').attr('target', '_blank');
 
+
+  // check if return btn is visible
+  setTimeout(function() {
+    if ($('#circ_returns.circ.modal-open .btn.approve').is(':visible')) {
+      $('.btn.approve').focus();
+    }
+  }, 300);
+
+
   // Keep search term after search
   let val = getQueryVariable('q');
   if (val.length > 0) {
