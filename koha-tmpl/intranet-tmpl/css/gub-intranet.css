@@ -125,7 +125,7 @@ div#advanced-search p:first-of-type {
 
 /*KOHA-1092:stop*/
 
-#circ_circulation #circmessages ul li+li a:nth-child(3) {
+#circ_circulation #circmessages ul li a:nth-child(3) {
     display: none;
 }
 
