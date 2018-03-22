@@ -129,7 +129,6 @@
                 [% END %]
 
                 <form method="post" action="/cgi-bin/koha/opac-memberentry.pl" id="memberentry-form" autocomplete="off">
-
                 [%# Following on one line for translatability %]
                 [% UNLESS ( hidden.defined('cardnumber') || ( !borrower && Koha.Preference('autoMemberNum') ) ) && hidden.defined('dateexpiry') && hidden.defined('branchcode') && hidden.defined('categorycode') %]
                     <fieldset class="rows" id="memberentry_library">
@@ -480,6 +479,17 @@
 
                                     <input type="text" id="borrower_phone" name="borrower_phone" value="[% borrower.phone %]" />
                                     [% IF mandatory.defined('phone') %]<span class="required">Required</span>[% END %]
+                                </li>
+                            [% END %]
+
+                            [% UNLESS hidden.defined('smsalertnumber') %]
+                                <li>
+                                    [% IF mandatory.defined('smsalertnumber') %]
+                                        <label for="borrower_smsalertnumber" class="required">Mobile/SMS:</label>
+                                    [% ELSE %]
+                                        <label for="borrower_smsalertnumber">Mobile/SMS:</label>
+                                    [% END %]
+                                    <input type="text" id="borrower_smsalertnumber" name="borrower_smsalertnumber" value="[% borrower.smsalertnumber %]" />
                                 </li>
                             [% END %]
 
