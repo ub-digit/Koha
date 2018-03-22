@@ -36,12 +36,14 @@ my $method = 'LOGIN';
 my $help = 0;
 my $verbose = 0;
 my $type = q{};
+my $delay = 0;
 
 GetOptions(
     'u|username:s'      => \$username,
     'p|password:s'      => \$password,
     'l|limit:s'         => \$limit,
     'm|method:s'        => \$method,
+    'd|delay:s'         => \$delay,
     'h|help|?'          => \$help,
     'v|verbose'         => \$verbose,
     't|type:s'          => \$type,
@@ -60,6 +62,7 @@ This script has the following parameters :
     -t --type: If supplied, only processes this type of message ( email, sms )
     -l --limit: The maximum number of messages to process for this run
     -m --method: authentication method required by SMTP server (See perldoc Sendmail.pm for supported authentication types.)
+    -d --delay: Do not send messages newer than this number of minutes (default 0)
     -h --help: this message
     -v --verbose: provides verbose output to STDOUT
 ENDUSAGE
@@ -76,6 +79,7 @@ C4::Letters::SendQueuedMessages(
         method   => $method,
         limit    => $limit,
         type     => $type,
+        delay_send => $delay,
     }
 );
 
