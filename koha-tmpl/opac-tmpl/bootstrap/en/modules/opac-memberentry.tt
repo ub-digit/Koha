@@ -517,6 +517,17 @@
                                 </li>
                             [% END %]
 
+                            [% UNLESS hidden.defined('smsalertnumber') %]
+                                <li>
+                                    [% IF mandatory.defined('smsalertnumber') %]
+                                        <label for="borrower_smsalertnumber" class="required">Mobile/SMS:</label>
+                                    [% ELSE %]
+                                        <label for="borrower_smsalertnumber">Mobile/SMS:</label>
+                                    [% END %]
+                                    <input type="text" id="borrower_smsalertnumber" name="borrower_smsalertnumber" value="[% borrower.smsalertnumber %]" />
+                                </li>
+                            [% END %]
+
                             [% UNLESS hidden.defined('phonepro') %]
                                 <li>
                                     [% IF mandatory.defined('phonepro') %]
