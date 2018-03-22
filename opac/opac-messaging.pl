@@ -98,6 +98,7 @@ if ( defined $query->param('modify') && $query->param('modify') eq 'yes' ) {
             borrowernumber  => $borrowernumber,
             smsalertnumber  => $sms,
             sms_provider_id => $sms_provider_id,
+            email           => $query->param('email'),
         );
         # FIXME will not be needed when ModMember will be replaced
         $borrower = Koha::Patrons->find( $borrowernumber )->unblessed;
@@ -111,6 +112,7 @@ C4::Form::MessagingPreferences::set_form_values({ borrowernumber     => $borrowe
 $template->param( BORROWER_INFO         => $borrower,
                   messagingview         => 1,
                   SMSnumber => $borrower->{'smsalertnumber'},
+                  email => $borrower->{'email'},
                   SMSSendDriver                =>  C4::Context->preference("SMSSendDriver"),
                   TalkingTechItivaPhone        =>  C4::Context->preference("TalkingTechItivaPhoneNotification") );
 
