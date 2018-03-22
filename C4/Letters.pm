@@ -965,6 +965,7 @@ sub SendQueuedMessages {
         'borrowernumber' => $params->{'borrowernumber'} // q{},
         'letter_code'    => $params->{'letter_code'} // q{},
         'type'           => $params->{'type'} // q{},
+        'delay_send'     => $params->{delay_send} // 0,
     };
     my $unsent_messages = _get_unsent_messages( $which_unsent_messages );
     MESSAGE: foreach my $message ( @$unsent_messages ) {
@@ -1251,6 +1252,10 @@ sub _get_unsent_messages {
         if ( $params->{'type'} ) {
             $statement .= ' AND message_transport_type = ? ';
             push @query_params, $params->{'type'};
+        }
+        if ( $params->{'delay_send'} ) {
+            $statement .= ' AND time_queued < DATE_SUB(now(), INTERVAL ? MINUTE)';
+            push @query_params, $params->{'delay_send'};
         }
         if ( $params->{'limit'} ) {
             $statement .= ' limit ? ';
