@@ -1035,7 +1035,8 @@ Returns number of messages sent.
 sub SendQueuedMessages {
     my $params = shift;
 
-    my $unsent_messages = _get_unsent_messages( { limit => $params->{limit} } );
+    my $unsent_messages = _get_unsent_messages( { limit => $params->{limit},
+                                                  delay_send => $params->{delay_send} } );
     MESSAGE: foreach my $message ( @$unsent_messages ) {
         # warn Data::Dumper->Dump( [ $message ], [ 'message' ] );
         warn sprintf( 'sending %s message to patron: %s',
@@ -1285,6 +1286,10 @@ sub _get_unsent_messages {
         if ( $params->{'borrowernumber'} ) {
             $statement .= ' AND borrowernumber = ? ';
             push @query_params, $params->{'borrowernumber'};
+        }
+        if ( $params->{'delay_send'}) {
+            $statement .= ' AND time_queued < DATE_SUB(now(), INTERVAL ? MINUTE)';
+            push @query_params, $params->{'delay_send'};
         }
         if ( $params->{'limit'} ) {
             $statement .= ' limit ? ';

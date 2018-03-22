@@ -35,12 +35,14 @@ my $limit    = undef;
 my $method = 'LOGIN';
 my $help = 0;
 my $verbose = 0;
+my $delay = 0;
 
 GetOptions(
     'u|username:s'      => \$username,
     'p|password:s'      => \$password,
     'l|limit:s'         => \$limit,
     'm|method:s'        => \$method,
+    'd|delay:s'         => \$delay,
     'h|help|?'          => \$help,
     'v|verbose'         => \$verbose,
 );
@@ -57,6 +59,7 @@ This script has the following parameters :
     -p --password: password of mail account
     -l --limit: The maximum number of messages to process for this run
     -m --method: authentication method required by SMTP server (See perldoc Sendmail.pm for supported authentication types.)
+    -d --delay: Do not send messages newer than this number of minutes (default 0)
     -h --help: this message
     -v --verbose: provides verbose output to STDOUT
 
@@ -73,6 +76,7 @@ C4::Letters::SendQueuedMessages(
         password => $password,
         method   => $method,
         limit    => $limit,
+        delay_send => $delay,
     }
 );
 
