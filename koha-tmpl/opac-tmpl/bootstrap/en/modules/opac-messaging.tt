@@ -137,8 +137,18 @@
                             [% IF ( SMSSendDriver ) %]
                                 <ol>
                                     <li>
-                                        <label for="SMSnumber">SMS number:</label> <input type="text" id="SMSnumber" name="SMSnumber" value="[% SMSnumber %]" />
-                                        <i>Please enter numbers only. <b>(123) 456-7890</b> would be entered as <b>1234567890</b>.</i>
+                                        [% IF (email) %]
+                                            <strong>Email:</strong> [% email %]
+                                        [% ELSE %]
+                                            You have not yet registered an email address. <a href="/cgi-bin/koha/opac-memberentry.pl">Click here to edit your details. </a>
+                                        [% END %]
+                                    </li>
+                                    <li>
+                                        [% IF (SMSnumber) %]
+                                            <strong>Mobile/SMS:</strong> [% SMSnumber %]
+                                        [% ELSE %]
+                                            You have not yet registered a mobile/sms number. <a href="/cgi-bin/koha/opac-memberentry.pl">Click here to edit your details. </a>
+                                        [% END %]
                                     </li>
                                 </ol>
                             [% END %]
