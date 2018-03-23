@@ -233,16 +233,16 @@
                                     <ol>
                                         <li>
                                             [% IF (email) %]
-                                                <span><strong>Email: </strong> [% email | html %] <a href="/cgi-bin/koha/opac-memberentry.pl"><i class="icon-edit"></i></a></span>
+                                                <span><strong>Email: </strong> [% email | html %] <a href="/cgi-bin/koha/opac-memberentry.pl#contact_legend"><i class="icon-edit"></i></a></span>
                                             [% ELSE %]
-                                                You have not yet registered an email address. <a href="/cgi-bin/koha/opac-memberentry.pl">Click here to add email.</a>
+                                                You have not yet registered an email address. <a href="/cgi-bin/koha/opac-memberentry.pl#contact_legend">Click here to add email.</a>
                                             [% END %]
                                         </li>
                                         <li>
                                             [% IF (SMSnumber) %]
-                                                <span><strong>Mobile/SMS: </strong> [% SMSnumber | html %]<a href="/cgi-bin/koha/opac-memberentry.pl"><i class="icon-edit"></i></span>
+                                                <span><strong>Mobile/SMS: </strong> [% SMSnumber | html %]<a href="/cgi-bin/koha/opac-memberentry.pl#contact_legend"><i class="icon-edit"></i></span>
                                             [% ELSE %]
-                                                You have not yet registered a mobile/sms number. <a href="/cgi-bin/koha/opac-memberentry.pl">Click here to add number. </a>
+                                                You have not yet registered a mobile/sms number. <a href="/cgi-bin/koha/opac-memberentry.pl#contact_legend">Click here to add number. </a>
                                             [% END %]
                                         </li>
                                     </ol>
