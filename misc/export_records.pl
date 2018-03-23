@@ -102,21 +102,31 @@ $timestamp = ($timestamp) ? output_pref({ dt => dt_from_string($timestamp), date
 
 if ( $record_type eq 'bibs' ) {
     if ( $timestamp ) {
-        push @record_ids, $_->{biblionumber} for @{
-            $dbh->selectall_arrayref(q| (
-                SELECT biblionumber
-                FROM biblioitems
-                  LEFT JOIN items USING(biblionumber)
-                WHERE biblioitems.timestamp >= ?
-                  OR items.timestamp >= ?
-            ) UNION (
-                SELECT biblionumber
-                FROM biblioitems
-                  LEFT JOIN deleteditems USING(biblionumber)
-                WHERE biblioitems.timestamp >= ?
-                  OR deleteditems.timestamp >= ?
-            ) |, { Slice => {} }, ( $timestamp ) x 4 );
-        };
+        if ($dont_export_items) {
+            push @record_ids, $_->{biblionumber} for @{
+                $dbh->selectall_arrayref(q| (
+                    SELECT biblionumber
+                    FROM biblioitems
+                        LEFT JOIN items USING(biblionumber)
+                    WHERE biblioitems.timestamp >= ?
+                        OR items.timestamp >= ?
+                    ) UNION (
+                    SELECT biblionumber
+                    FROM biblioitems
+                        LEFT JOIN deleteditems USING(biblionumber)
+                    WHERE biblioitems.timestamp >= ?
+                        OR deleteditems.timestamp >= ?
+                ) |, { Slice => {} }, ( $timestamp ) x 4 );
+            };
+        } else {
+            push @record_ids, $_->{biblionumber} for @{
+                $dbh->selectall_arrayref(q| (
+                    SELECT biblionumber
+                    FROM biblioitems
+                    WHERE biblioitems.timestamp >= ?
+                ) |, { Slice => {} }, $timestamp );
+            };
+        }
     } else {
         my $conditions = {
             ( $starting_biblionumber or $ending_biblionumber )
