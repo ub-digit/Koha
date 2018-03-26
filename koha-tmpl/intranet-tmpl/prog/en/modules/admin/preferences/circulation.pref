@@ -533,6 +533,12 @@ Circulation:
                   yes: Do
                   no: "Don't"
             - Hide patrons phone number, email address, street address and city in     the circulation page
+        -
+            - pref: TriggerWaitingOnSIPReturn
+              choices:
+                  yes: Trigger
+                  no: Do not trigger
+            - hold on pickup library on checkin via SIP. (Not triggering means no message is sent.)
     Holds Policy:
         -
             - In the staff client, split the holds queue into separate tables by
