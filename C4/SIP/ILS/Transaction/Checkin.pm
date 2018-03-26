@@ -16,6 +16,7 @@ use C4::Debug;
 use C4::Items qw( ModItemTransfer );
 use C4::Reserves qw( ModReserveAffect );
 use Koha::DateUtils qw( dt_from_string );
+use C4::Context;
 
 use parent qw(C4::SIP::ILS::Transaction);
 
@@ -112,9 +113,10 @@ sub do_checkin {
         $self->hold($messages->{ResFound});
         if ($branch eq $messages->{ResFound}->{branchcode}) {
             $self->alert_type('01');
-            ModReserveAffect( $messages->{ResFound}->{itemnumber},
-                $messages->{ResFound}->{borrowernumber}, 0, $messages->{ResFound}->{reserve_id});
-
+            if (C4::Context->preference("TriggerWaitingOnSIPReturn")) {
+                ModReserveAffect( $messages->{ResFound}->{itemnumber},
+                    $messages->{ResFound}->{borrowernumber}, 0, $messages->{ResFound}->{reserve_id});
+            }
         } else {
             $self->alert_type('02');
             ModReserveAffect( $messages->{ResFound}->{itemnumber},
