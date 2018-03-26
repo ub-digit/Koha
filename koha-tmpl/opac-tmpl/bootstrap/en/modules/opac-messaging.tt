@@ -235,14 +235,14 @@
                                             [% IF (email) %]
                                                 <span class="gub-email-info"><strong>Email: </strong> [% email | html %] <a href="/cgi-bin/koha/opac-memberentry.pl#contact_legend"><i class="icon-edit"></i></a></span>
                                             [% ELSE %]
-                                                <span class="gub-no-email-info">You have not yet registered an email address. <a href="/cgi-bin/koha/opac-memberentry.pl#contact_legend">Click here to add email.</a></span>
+                                                <span class="gub-no-email-info">You have not yet registered an email address.</span> <a href="/cgi-bin/koha/opac-memberentry.pl#contact_legend">Click here to add email.</a>
                                             [% END %]
                                         </li>
                                         <li>
                                             [% IF (SMSnumber) %]
                                                 <span class="gub-sms-info"><strong>Mobile/SMS: </strong> [% SMSnumber | html %]<a href="/cgi-bin/koha/opac-memberentry.pl#contact_legend"><i class="icon-edit"></i></span>
                                             [% ELSE %]
-                                                <span class="gub-no-sms-info">You have not yet registered a mobile/sms number. <a href="/cgi-bin/koha/opac-memberentry.pl#contact_legend">Click here to add number. </a></span>
+                                                <span class="gub-no-sms-info">You have not yet registered a mobile/sms number.</span> <a href="/cgi-bin/koha/opac-memberentry.pl#contact_legend">Click here to add number. </a>
                                             [% END %]
                                         </li>
                                     </ol>
