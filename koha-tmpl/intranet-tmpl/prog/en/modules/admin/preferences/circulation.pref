@@ -504,6 +504,12 @@ Circulation:
                   yes: Cumulate
                   no: "Don't cumulate"
             - the restriction periods.
+        -
+            - pref: TriggerWaitingOnSIPReturn
+              choices:
+                  yes: Trigger
+                  no: Do not trigger
+            - hold on pickup library on checkin via SIP. (Not triggering means no message is sent.)
     Holds Policy:
         -
             - pref: AllowHoldItemTypeSelection
