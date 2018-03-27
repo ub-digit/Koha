@@ -312,9 +312,7 @@ $(document).ready(function() {
       });
       // When the username 'xg00623' is logged in...
       if ($('.loggedinusername:first').text() === 'xg00623') {
-        $("#show-checkout-settings > a").click();
-
-        $('#onsite_checkout').prop('checked', true).change();
+        $('option[value="reading_room"]').attr('selected', 'true');
       }
 
     }
