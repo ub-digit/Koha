@@ -213,7 +213,7 @@
 //<![CDATA[
     // Hide circular 'Log in to Your Account' link in opac-auth.pl
     $(document).ready(function() {
-        if ( $("#auth" ) ) { $("#members ul li a").hide(); }
+        if ( $("#auth" ) ) { $("#members > ul.nav > li+li").hide(); }
     });
 //]]>
 </script>
