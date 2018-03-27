@@ -7,6 +7,20 @@ OPAC:
                   no: "Don't show"
             - "a summary of a logged in user's checkouts, overdues, holds and fines on the mainpage"
         -
+            - pref: enableOpacCatalogBrowsing
+              choices:
+                  yes: "Enable"
+                  no: "Disable"
+            -  catalog browsing and searching.
+        -
+            - pref: linkToExternalSite
+              choices:
+                  yes: "Link to external site"
+                  no: "Link to OPAC"
+            - for links to bibliographic records. The external URL is
+            - pref: externalSiteURL
+              class: url
+        -
             - For search results in the OPAC, show the item's
             - pref: OPACResultsLibrary
               choices:
@@ -750,6 +764,11 @@ OPAC:
             - pref: PatronSelfModificationBorrowerUnwantedField
               class: multi
             - (separate columns with |)
+        -
+            - "Choose alternative URL for user registration form page:"
+            - pref: PatronSelfRegistrationLinkAddress
+              class: short
+            - "This field overrides default Koha registration form."
         -
             - "Display the following additional instructions for patrons who self register via the OPAC ( HTML is allowed ):"
             - pref: PatronSelfRegistrationAdditionalInstructions
