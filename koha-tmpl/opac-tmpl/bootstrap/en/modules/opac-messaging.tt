@@ -24,7 +24,7 @@
             <div class="span10">
                 [% IF Koha.Preference( 'EnhancedMessagingPreferencesOPAC' )  %]
                 <div id="usermessaging">
-                    <h1>Messaging settings</h1>
+                    <h1>Messages</h1>
                     [% IF ( settings_updated ) %]
                         <div class="alert alert-success"><h4>Settings updated</h4></div>
                     [% END %]
