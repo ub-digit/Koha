@@ -188,9 +188,9 @@
                             [% END # / IF Koha.Preference('NoLoginInstructions') %]
                             [% IF PatronSelfRegistration && PatronSelfRegistrationDefaultCategory %]
                               [% IF Koha.Preference( 'PatronSelfRegistrationLinkAddress') %]
-                                <span id="registrationinstructions"><a href="[% Koha.Preference( 'PatronSelfRegistrationLinkAddress') %]">You may register here.</a></span>
+                                <span id="registrationinstructions"><a href="[% Koha.Preference( 'PatronSelfRegistrationLinkAddress') %]">Apply for a library card.</a></span>
 	                            [% ELSE %]
-                                <span id="registrationinstructions"><a href="/cgi-bin/koha/opac-memberentry.pl">You may register here.</a></span>
+                                <span id="registrationinstructions"><a href="/cgi-bin/koha/opac-memberentry.pl">Apply for a library card.</a></span>
                               [% END %]
                             [% END %]
                             </div>
