@@ -300,6 +300,20 @@ $(document).ready(function() {
       $('#acqui_basket_summary #branch').hide();
     }
 
+    //detect order page after search
+
+    if ($('#acq_neworderbiblio').length) {
+      //remove suggestion link
+      $('#acq_neworderbiblio a[href*="/cgi-bin/koha/acqui/newordersuggestion.pl"]').parent().hide();
+      //remove  subscription link
+      $('#acq_neworderbiblio a[href*="/cgi-bin/koha/acqui/newordersubscription.pl"]').parent().hide();
+      //remove external source link
+      $('#acq_neworderbiblio a[href*="/cgi-bin/koha/acqui/z3950_search.pl"]').parent().hide();
+      //remove titles with highest hold ratios link
+      $('#acq_neworderbiblio a[href*="/cgi-bin/koha/circ/reserveratios.pl').parent().hide();
+
+    }
+
     // Detect circulation page
     if ($('#circ_circulation').length) {
       $('#onsite_checkout').change(function() {
