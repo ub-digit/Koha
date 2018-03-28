@@ -494,7 +494,7 @@ foreach my $code ( keys %$messages ) {
         $exit_required_p = 1 if C4::Context->preference("BlockReturnOfLostItems");
     }
     elsif ( $code eq 'LostItemFeeRefunded' ) {
-        if (C4::Context->preference('ShowRefundLostItemFeeMessagex')) {
+        if (C4::Context->preference('ShowRefundLostItemFeeMessage')) {
             $template->param( LostItemFeeRefunded => 1 );
         }
     }
