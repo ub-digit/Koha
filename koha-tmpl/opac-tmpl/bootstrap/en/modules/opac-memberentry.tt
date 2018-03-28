@@ -490,7 +490,7 @@
                                     [% IF mandatory.defined('smsalertnumber') %]
                                         <label for="borrower_smsalertnumber" class="required">Mobile/SMS:</label>
                                     [% ELSE %]
-                                        <label for="borrower_smsalertnumber">Mobile/SMS:</label>
+                                        <label for="borrower_smsalertnumber">Mobile number for SMS:</label>
                                     [% END %]
                                     <input type="text" id="borrower_smsalertnumber" name="borrower_smsalertnumber" value="[% borrower.smsalertnumber %]" />
                                 </li>
