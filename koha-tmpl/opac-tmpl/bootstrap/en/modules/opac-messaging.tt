@@ -39,7 +39,7 @@
                                         <th>Days in advance</th>
                                         [% IF ( SMSSendDriver ) %]<th>SMS</th>[% END %]
                                         [% IF ( TalkingTechItivaPhone ) %]<th>Phone</th>[% END %]
-                                        <th>Email</th>
+                                        <th>E-mail</th>
                                         <th>Digests only <i id="info_digests" data-toggle="tooltip" title="You can ask for a digest to reduce the number of messages. Messages will be saved and sent as a single message." data-placement="right" class="fa fa-info-circle"></i></th>
                                         <!-- <th>RSS</th> --><th>Do not notify</th>
                                     </tr>
@@ -172,8 +172,8 @@
                                     <tr>
                                         <th>&nbsp;</th>
                                         [% IF ( SMSSendDriver ) %]<th class="gub-heading-messaging-sms">SMS</th>[% END %]
-                                        <th class="gub-heading-messaging-email">Email</th>
-                                        [% IF ( SMSSendDriver ) %]<th class="gub-heading-messaging-sms-and-email">Email and SMS</th>[% END %]
+                                        <th class="gub-heading-messaging-email">E-mail</th>
+                                        [% IF ( SMSSendDriver ) %]<th class="gub-heading-messaging-sms-and-email">E-mail and SMS</th>[% END %]
                                     </tr>
                                     [% FOREACH messaging_preference IN messaging_preferences %]
                                         [% IF ( messaging_preference.Advance_Notice ) %]
@@ -208,12 +208,12 @@
                                                         [% IF ( messaging_preference.transports_email ) %]
                                                             <label class="radio">
                                                               <input type="radio" name="opacmessaging-simple-radios" id="optionEMAIL" value="email" checked >
-                                                              Email
+                                                              E-mail
                                                             </label>
                                                         [% ELSE %]
                                                             <label class="radio">
                                                               <input type="radio" name="opacmessaging-simple-radios" id="optionEMAIL" value="email" >
-                                                              Email
+                                                              E-mail
                                                             </label>
                                                         [% END %]
                                                     </td>
@@ -227,12 +227,12 @@
                                                             [% IF ( messaging_preference.transports_sms && messaging_preference.transports_email) %]
                                                                 <label class="radio">
                                                                   <input type="radio" name="opacmessaging-simple-radios" id="optionSmsAndEmail" value="SmsAndEmail" checked>
-                                                                  Email and SMS
+                                                                  E-mail and SMS
                                                                 </label>
                                                             [% ELSE %]
                                                                 <label class="radio">
                                                                   <input type="radio" name="opacmessaging-simple-radios" id="optionSmsAndEmail" value="SmsAndEmail" >
-                                                                  Email and SMS
+                                                                  E-mail and SMS
                                                                 </label>
                                                             [% END %]
                                                         </td>
@@ -247,9 +247,9 @@
                                     <ol>
                                         <li>
                                             [% IF (email) %]
-                                                <span class="gub-email-info"><strong>Email: </strong> [% email | html %] <a href="/cgi-bin/koha/opac-memberentry.pl#contact_legend"><i class="icon-edit"></i></a></span>
+                                                <span class="gub-email-info"><strong>E-mail: </strong> [% email | html %] <a href="/cgi-bin/koha/opac-memberentry.pl#contact_legend"><i class="icon-edit"></i></a></span>
                                             [% ELSE %]
-                                                <span class="gub-no-email-info">You have not yet registered an email address.</span> <a href="/cgi-bin/koha/opac-memberentry.pl#contact_legend">Click here to add email.</a>
+                                                <span class="gub-no-email-info">You have not yet registered an e-mail address.</span> <a href="/cgi-bin/koha/opac-memberentry.pl#contact_legend">Click here to add e-mail.</a>
                                             [% END %]
                                         </li>
                                         <li>
