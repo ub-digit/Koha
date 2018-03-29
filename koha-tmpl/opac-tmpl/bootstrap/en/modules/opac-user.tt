@@ -99,26 +99,27 @@ Using this account is not recommended because some parts of Koha will not functi
                     [% IF Koha.Preference( 'OPACShowDetailedDebarments') %]
                       [% IF ( patron_flagged ) %]
                         <div class="alert">
-                          <span>Your library account is blocked and you are not allowed to borrow. Caused by:</span>
+                          <span class="restriction-header">Your library account is blocked and you are not allowed to borrow.</span>
                           <ul>
                             [% FOREACH restrictionCode IN BORROWER_INFO.restrictionCodeList %]
-                              [% IF ( restrictionCode == 'AV' )              %]<li><span>You are suspended. You cannot borrow, renew or request material.</span></li>[% END %]
-                              [% IF ( restrictionCode == 'ORI')              %]<li><span>You have an unpaid bill from the library that has been sent to a debt collector. Pay the debt collector's bill and contact the library so that we can unblock your account. Contact the debt collector if you have any questions.<strong> [% BORROWER_INFO.ORIcomment %]</strong></span></li>[% END %]
-                              [% IF ( restrictionCode == 'OR' )              %]<li><span>You have an unpaid bill from the library. Pay the bill and contact the library so that we can unblock your account.<strong> [% BORROWER_INFO.ORcomment %]</strong></span></li>[% END %]
-                              [% IF ( restrictionCode == 'WR' )              %]<li><span>You have applied for a library card but have not yet picked it up. Bring valid identification and pick up the card at any of our libraries. If you are a distance student at the University of Gothenburg you can contact the library to have your card sent to your address.</span></li>[% END %]
-                              [% IF ( restrictionCode == 'GU' )              %]<li><span>Your GU card is blocked. Contact <a href="#">Servicecenter</a> to get help.</span></li>[% END %]
-                              [% IF ( restrictionCode == 'FINES_EXCEEDED')   %]<li><span>Your <a href="#">fines</a> exceed the allowed limit. <a href="http://www.ub.gu.se/bibliotek/">Visit any of the libraries</a> to pay your fines. We only accept card payments.</span></li>[% END %]
-                              [% IF ( restrictionCode == 'ADDRESS_MISSING')  %]<li><span>We are missing your address. <a href="#">Fill in your address</a> and contact the library so that we can unblock your account.</span></li>[% END %]
-                              [% IF ( restrictionCode == 'CARD_LOST')        %]<li><span>You have reported your library card lost. Visit any of our <a href="#">libraries</a> if you have found the card or need to buy a new one. Bring valid identification.</span></li>[% END %]
-                              [% IF ( restrictionCode == 'OVERDUES_PROCESS') %]<li><span>You have overdue loans. <a href="#">Renew the loan</a> or return the material to the library to unblock your account.</span></li>[% END %]
+                              [% IF ( restrictionCode == 'AV' )              %]<li class="restriction-AV"><span>You are suspended. You cannot borrow, renew or request material.</span></li>[% END %]
+
+                              [% IF ( restrictionCode == 'ORI')              %]<li class="restriction-ORI"><span>You have an unpaid bill from the library that has been sent to a debt collector. Pay the debt collector's bill and</span> <a href="http://www.ub.gu.se/kontakta/">contact the library</a> <span>so that we can unblock your account. Contact the debt collector if you have any questions about the bill.</span><strong> [% BORROWER_INFO.ORIcomment %]</strong></li>[% END %]
+                              [% IF ( restrictionCode == 'OR' )              %]<li class="restriction-OR"><span>You have an unpaid bill from the library. Pay the bill and</span> <a href="http://www.ub.gu.se/kontakta/">contact the library</a> <span>so that we can unblock your account.</span><strong> [% BORROWER_INFO.ORcomment %]</strong></li>[% END %]
+                              [% IF ( restrictionCode == 'WR' )              %]<li class="restriction-WR"><span>You have applied for a library card but have not yet picked it up. Bring valid identification and pick up the card at any of</span> <a href="http://www.ub.gu.se/bibliotek/">our libraries</a>. <span>If you are a distance student at the University of Gothenburg you can</span> <a href="http://www.ub.gu.se/kontakta/">contact the library</a> <span>to have your card sent to your address.</span></li>[% END %]
+                              [% IF ( restrictionCode == 'GU' )              %]<li class="restriction-GU"><span>Your GU card is blocked. Contact</span> <a href="https://www.gu.se/servicecenter">Servicecenter</a> <span>to get help.</span></li>[% END %]
+                              [% IF ( restrictionCode == 'FINES_EXCEEDED')   %]<li class="restriction-FINES_EXCEEDED"><span>Your</span> <a href="/cgi-bin/koha/opac-account.pl">fines</a> <span>exceed the allowed limit.</span> <a href="http://www.ub.gu.se/bibliotek/">Visit any of the libraries</a> <span>to pay your fines. We only accept card payments.</span></li>[% END %]
+                              [% IF ( restrictionCode == 'ADDRESS_MISSING')  %]<li class="restriction-ADDRESS_MISSING"><span>We don't have your address registered.</span> <a href="/cgi-bin/koha/opac-memberentry.pl">Fill in your address</a> <span>and</span> <a href="http://www.ub.gu.se/kontakta/">contact the library</a> <span>so that we can unblock your account.</span></li>[% END %]
+                              [% IF ( restrictionCode == 'CARD_LOST')        %]<li class="restriction-CARD_LOST"><span>You have reported your library card lost. Visit any of our</span> <a href="http://www.ub.gu.se/bibliotek/">libraries</a> <span>if you have found the card or need to buy a new one. Bring valid identification.</span></li>[% END %]
+                              [% IF ( restrictionCode == 'OVERDUES_PROCESS') %]<li class="restriction-OVERDUES_PROCESS"><span>You have overdue loans.</span> <a href="/cgi-bin/koha/opac-user.pl">Renew the loans</a> <span>or return the material to the library to unblock your account.</span></li>[% END %]
                             [% END %]
                             [% IF ( userdebarred ) %]
                               [% IF ( discharge_available ) %]
-                                <li id="discharged">Your account is frozen because it has been discharged. <a href="/cgi-bin/koha/opac-discharge.pl?op=get">Get your discharge</a></li>
+                                <li id="discharged"><span>Your account is frozen because it has been discharged.</span> <a href="/cgi-bin/koha/opac-discharge.pl?op=get">Get your discharge</a></li>
                               [% END %]
                             [% END %]
                           </ul>
-                          <span><a href="#"> Contact the library</a> if you have any questions.</span>
+                          <span class="restriction-question"><a href="http://www.ub.gu.se/kontakta/"> Contact the library</a> if you have any questions.</span>
                         </div>
                       [% END %]
                     [% ELSE %]
