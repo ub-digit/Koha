@@ -77,6 +77,10 @@ else { #$action eq 'update'
   UpdateBorrowerAttribute($borrowernumber, {code => "IMPORT", attribute => "gukort updat"});
   #SetBorrowerAttributes($borrowernumber, [{code => "ACCEPT", value => "Biblioteksreglerna accepteras"}, {code => "IMPORT", value => "gukort updat"}]);
 
+  if (-e "/usr/local/etc/gucard_replace.sh") {
+    system("/usr/local/etc/gucard_replace.sh $existing_cardnumber $incoming_cardnumber > /dev/null 2>&1");
+  }
+
   ModMember(%newdata);
 }
 
