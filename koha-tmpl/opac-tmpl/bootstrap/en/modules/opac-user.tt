@@ -635,9 +635,9 @@ Using this account is not recommended because some parts of Koha will not functi
                                                             Pending for next available item of item type '[% ItemTypes.GetDescription( RESERVE.itemtype ) %]'
                                                         [% ELSE %]
                                                             [% IF RESERVE.item  && !RESERVE.item.onloan %]
-                                                                <span>Requested</span>
+                                                                <span class="ub-requested">Requested</span>
                                                             [% ELSE %]
-                                                                <span>Pending</span>
+                                                                <span class="ub-reserved">Reserved</span>
                                                             [% END %]
                                                         [% END %]
                                                     [% END %]
