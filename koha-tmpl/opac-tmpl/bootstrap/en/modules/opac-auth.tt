@@ -197,10 +197,10 @@
                             [% IF PatronSelfRegistration && PatronSelfRegistrationDefaultCategory %]
                               [% IF Koha.Preference( 'PatronSelfRegistrationLinkAddress') %]
                                 <br/>
-                                <span id="registrationinstructions"><a href="[% Koha.Preference( 'PatronSelfRegistrationLinkAddress') %][% IF lang == 'en'%]?lang=en[%END%]">You may register here.</a></span>
+                                <span id="registrationinstructions"><a href="[% Koha.Preference( 'PatronSelfRegistrationLinkAddress') %][% IF lang == 'en'%]?lang=en[%END%]">Apply for a library card.</a></span>
 	                            [% ELSE %]
                                 <p>
-                                <span id="registrationinstructions"><a href="/cgi-bin/koha/opac-memberentry.pl">You may register here.</a></span>
+                                <span id="registrationinstructions"><a href="/cgi-bin/koha/opac-memberentry.pl">Apply for a library card.</a></span>
                                 </p>
                               [% END %]
                             [% END %]
