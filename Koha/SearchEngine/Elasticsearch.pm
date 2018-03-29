@@ -262,8 +262,12 @@ sub get_elasticsearch_mappings {
         }
     );
     # Temprary hack: hard coded boost for title and author
-    $mappings->{data}{properties}{title}{boost} = 10;
-    $mappings->{data}{properties}{author}{boost} = 5;
+    if (exists $mappings->{data}{properties}{title}) {
+        $mappings->{data}{properties}{title}{boost} = 10;
+    }
+    if (exists $mappings->{data}{properties}{author}) {
+        $mappings->{data}{properties}{author}{boost} = 5;
+    }
 
     $self->sort_fields(\%sort_fields);
     return $mappings;
