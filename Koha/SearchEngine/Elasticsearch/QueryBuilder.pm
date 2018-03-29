@@ -874,6 +874,11 @@ sub _fix_limit_special_cases {
             next unless defined($start) && defined($end);
             push @new_lim, "copydate:[$start TO $end]";
         }
+        elsif ( $l =~ /^yr,st-numeric=(\d*|[*])-(\d*|[*])$/ ) {
+            my $start = $1 || '*';
+            my $end = $2 || '*';
+            push @new_lim, "copydate:[$start TO $end]";
+        }
         elsif ( $l =~ /^yr,st-numeric=/ ) {
             my ($date) = ( $l =~ /^yr,st-numeric=(.*)$/ );
             next unless defined($date);
