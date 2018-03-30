@@ -1,0 +1,71 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use utf8;
+
+use CGI qw ( -utf8 );
+use JSON;
+use C4::Members::Attributes;
+use Koha::Patron;
+use Koha::Patrons;
+use Data::Dumper;
+
+my $query = new CGI;
+
+my $key = $query->param('key');
+my $cnr = $query->param('cnr');
+my $pnr = $query->param('pnr');
+
+if($key ne "!kk889fr!") {
+    print $query->header(-type => 'text/json', -status => '403 Forbidden');
+    print encode_json({status => "Invalid key"});
+    exit 0;
+}
+
+my %patron = ();
+
+if($cnr) {
+    my $p = Koha::Patrons->search({cardnumber => $cnr})->unblessed;
+    if(@$p) {
+	my $pt = $p->[0];
+	my $pnr = C4::Members::Attributes::GetBorrowerAttributeValue($pt->{borrowernumber}, "PNR");
+
+	$patron{card_number} = $pt->{cardnumber};
+	$patron{person_number} = $pnr;
+	$patron{name} = $pt->{surname}.", ".$pt->{firstname};
+    }
+} elsif($pnr) {
+    my $dbh = C4::Context->dbh();
+    my $sql = "SELECT DISTINCT borrowernumber
+           FROM borrower_attributes
+           WHERE code = 'PNR12'
+           AND attribute = ?
+           OR code = 'PNR'
+           AND attribute = ?";
+
+    my $value = $dbh->selectrow_array($sql, undef, $pnr, $pnr);
+
+    my $uniq;
+    my $borrowernumber;
+    if ($value) {
+	$borrowernumber = $value;
+    }
+    else {
+	$borrowernumber = '';
+    }
+
+    if($borrowernumber) {
+	my $p = Koha::Patrons->search({borrowernumber => $borrowernumber})->unblessed;
+	if(@$p) {
+	    my $pt = $p->[0];
+	    $patron{card_number} = $pt->{cardnumber};
+	    $patron{person_number} = $pnr;
+	    $patron{name} = $pt->{surname}.", ".$pt->{firstname};
+	}
+    }
+}
+
+print $query->header(-type => 'text/json',-charset => 'utf-8');
+print encode_json({patron => \%patron});
+exit 0;
