@@ -329,15 +329,13 @@ $(document).ready(function() {
         $('option[value="reading_room"]').attr('selected', 'true');
       }
 
-      // hide purchase suggestions link
-      $('#circ_circulation #menu ul li').each(function() {
-        var item = $(this);
-        if (item.find('a').attr('href').indexOf('purchase-suggestions') > -1) {
-          item.hide();
-        }
-      });
+
 
     }
+
+    // hide purchase suggestions link
+    $('#menu ul li a[href*="purchase-suggestions"]').hide();
+
     if ($('#pat_moremember').length) {
       $("#pat_moremember #patron-messaging-prefs").find("input").prop('disabled', true);
     }
