@@ -334,12 +334,6 @@ $(document).ready(function() {
     }
 
     // hide purchase suggestions link 
-    /*$('#menu ul li').each(function() {
-      var item = $(this);
-      if (item.find('a').attr('href').indexOf('purchase-suggestions') > -1) {
-        item.hide();
-      }
-    });*/
     $('#menu ul li a[href*="purchase-suggestions"]').hide();
 
     if ($('#pat_moremember').length) {
