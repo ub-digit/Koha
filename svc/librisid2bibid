@@ -1,0 +1,57 @@
+#!/usr/bin/perl
+use strict;
+use warnings;
+use CGI qw ( -utf8 );
+use JSON;
+use C4::Auth qw/check_api_auth/;
+use Search::Elasticsearch;
+
+my $query = new CGI;
+binmode STDOUT, ':encoding(UTF-8)';
+
+my ($status, $cookie, $sessionID) = check_api_auth($query, { editcatalogue => 'edit_catalogue'} );
+unless ($status eq "ok") {
+  print $query->header(-type => 'text/json', -status => '403 Forbidden');
+  print encode_json({status => $status});
+  exit 0;
+}
+
+my $librisid = $query->param('librisid');
+unless ($librisid) {
+  print $query->header(-type => 'text/json', -status => '400');
+  print encode_json({status => 'librisid is required', error_code => 'librisidIsMissing'});
+  exit 0;
+}
+
+my $e = Search::Elasticsearch->new(nodes => ['localhost:9200']);
+unless ($e) {
+  print $query->header(-type => 'text/json', -status => '500');
+  print encode_json({status => 'Server error', error_code => 'serverError'});
+  exit 0;
+}
+
+my $results = $e->search(
+  index => 'koha_koha_biblios',
+  body  => {
+    query => {
+      term => { "system-control-number.raw" => "(LIBRIS)$librisid" }
+    }
+  }
+);
+unless ($results) {
+  print $query->header(-type => 'text/json', -status => '500');
+  print encode_json({status => 'Server error', error_code => 'serverError'});
+  exit 0;
+}
+
+my $bibid = $results->{'hits'}->{'hits'}[0]->{'_id'};
+
+unless ($bibid) {
+  print $query->header(-type => 'text/json', -status => '404');
+  print encode_json({status => 'bibid not found', error_code => 'bibidNotFound'});
+  exit 0;
+}
+
+print $query->header(-type => 'text/json',-charset => 'utf-8');
+print encode_json({bibid => $bibid});
+exit 0;
