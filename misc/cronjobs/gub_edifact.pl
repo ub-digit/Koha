@@ -8,7 +8,7 @@ use Koha::Database;
 use File::Path qw(make_path);
 use File::Spec::Functions;
 
-my $base_path = C4::Context->config('GubEdifactBasedir') || "/tmp/edifact_messages";
+my $base_path = C4::Context->preference('GubEdifactBasedir') || "/tmp/edifact_messages";
 my $log_file = catfile($base_path, 'gub_edifact.log');
 # logging set to trace as this may be what you
 # want on implementation
