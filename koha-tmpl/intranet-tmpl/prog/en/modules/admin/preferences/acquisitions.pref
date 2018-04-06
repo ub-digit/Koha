@@ -76,7 +76,11 @@ Acquisitions:
                 yes: Send
                 no: Don't send
             - blind copy (BCC) to logged in user when sending serial or acquisitions claims notices.
-
+        -
+            - Use
+            - pref: GubEdifactBasedir
+            - as base directory for vendor orders processed by gub_edifact.pl.
+            - type: textarea
     Printing:
         -
             - Use the
