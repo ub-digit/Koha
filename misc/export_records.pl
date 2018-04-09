@@ -36,6 +36,8 @@ use Koha::DateUtils qw( dt_from_string output_pref );
 my (
     $output_format,
     $timestamp,
+    $include_deleted,
+    $deleted_only,
     $dont_export_items,
     $csv_profile_id,
     $deleted_barcodes,
@@ -60,6 +62,8 @@ my (
 GetOptions(
     'format=s'                => \$output_format,
     'date=s'                  => \$timestamp,
+    'include_deleted'         => \$include_deleted,
+    'deleted_only'            => \$deleted_only,
     'dont_export_items'       => \$dont_export_items,
     'csv_profile_id=s'        => \$csv_profile_id,
     'deleted_barcodes'        => \$deleted_barcodes,
@@ -91,6 +95,18 @@ $record_type ||= 'bibs';
 
 # Retrocompatibility for the format parameter
 $output_format = 'iso2709' if $output_format eq 'marc';
+
+if ($include_deleted || $deleted_only) {
+   if ($record_type ne 'bibs') {
+        pod2usage(q|Option "--include_deleted" or "--deleted_only" can only be used with "--record-type=bibs"|);
+    }
+    if (!$timestamp) {
+        pod2usage(q|Option "--include_deleted" or "--deleted_only" requires that "--date" is also set|);
+    }
+    if ($output_format eq 'csv') {
+        pod2usage(q|Option "--include_deleted" or "--deleted_only" cannot be used with "--format=csv"|);
+    }
+}
 
 if ( $output_format eq 'csv' and $record_type eq 'auths' ) {
     pod2usage(q|CSV output is only available for biblio records|);
@@ -138,34 +154,46 @@ open STDOUT, '>', $filename if $filename;
 
 
 my @record_ids;
+my @deleted_record_ids;
 
 $timestamp = ($timestamp) ? output_pref({ dt => dt_from_string($timestamp), dateformat => 'iso', dateonly => 0, }): '';
 
 if ( $record_type eq 'bibs' ) {
     if ( $timestamp ) {
-        if (!$dont_export_items) {
-            push @record_ids, $_->{biblionumber} for @{
-                $dbh->selectall_arrayref(q| (
-                    SELECT biblio_metadata.biblionumber
-                    FROM biblio_metadata
-                      LEFT JOIN items USING(biblionumber)
-                    WHERE biblio_metadata.timestamp >= ?
-                      OR items.timestamp >= ?
-                ) UNION (
-                    SELECT biblio_metadata.biblionumber
-                    FROM biblio_metadata
-                      LEFT JOIN deleteditems USING(biblionumber)
-                    WHERE biblio_metadata.timestamp >= ?
-                      OR deleteditems.timestamp >= ?
-                ) |, { Slice => {} }, ( $timestamp ) x 4 );
-            };
-        } else {
-            push @record_ids, $_->{biblionumber} for @{
-                $dbh->selectall_arrayref(q| (
-                    SELECT biblio_metadata.biblionumber
-                    FROM biblio_metadata
-                    WHERE biblio_metadata.timestamp >= ?
-                ) |, { Slice => {} }, $timestamp );
+        unless ($deleted_only) {
+            if (!$dont_export_items) {
+                push @record_ids, $_->{biblionumber} for @{
+                    $dbh->selectall_arrayref(q| (
+                        SELECT biblio_metadata.biblionumber
+                        FROM biblio_metadata
+                          LEFT JOIN items USING(biblionumber)
+                        WHERE biblio_metadata.timestamp >= ?
+                          OR items.timestamp >= ?
+                    ) UNION (
+                        SELECT biblio_metadata.biblionumber
+                        FROM biblio_metadata
+                          LEFT JOIN deleteditems USING(biblionumber)
+                        WHERE biblio_metadata.timestamp >= ?
+                          OR deleteditems.timestamp >= ?
+                    ) |, { Slice => {} }, ( $timestamp ) x 4 );
+                };
+            } else {
+                push @record_ids, $_->{biblionumber} for @{
+                    $dbh->selectall_arrayref(q| (
+                        SELECT biblio_metadata.biblionumber
+                        FROM biblio_metadata
+                        WHERE biblio_metadata.timestamp >= ?
+                    ) |, { Slice => {} }, $timestamp );
+                };
+            }
+        }
+        if ($include_deleted || $deleted_only) {
+            push @deleted_record_ids, $_->{biblionumber} for @{
+                $dbh->selectall_arrayref(q|
+                    SELECT `biblionumber`
+                    FROM `deletedbiblio`
+                    WHERE `timestamp` >= ?
+                |, { Slice => {} }, $timestamp);
             };
         }
     } else {
@@ -252,6 +280,7 @@ else {
         {   record_type        => $record_type,
             record_ids         => \@record_ids,
             record_conditions  => @marc_conditions ? \@marc_conditions : undef,
+            deleted_record_ids => \@deleted_record_ids,
             format             => $output_format,
             csv_profile_id     => $csv_profile_id,
             export_items       => (not $dont_export_items),
@@ -268,7 +297,7 @@ export records - This script exports record (biblios or authorities)
 
 =head1 SYNOPSIS
 
-export_records.pl [-h|--help] [--format=format] [--date=datetime] [--record-type=TYPE] [--dont_export_items] [--deleted_barcodes] [--clean] [--id_list_file=PATH] --filename=outputfile
+export_records.pl [-h|--help] [--format=format] [--date=datetime] [--include_deleted] [--deleted_only] [--record-type=TYPE] [--dont_export_items] [--deleted_barcodes] [--clean] [--id_list_file=PATH] --filename=outputfile
 
 =head1 OPTIONS
 
@@ -288,6 +317,16 @@ Print a brief help message.
                         set (dd/mm/yyyy[ hh:mm:ss] for metric, yyyy-mm-dd[ hh:mm:ss] for iso,
                         mm/dd/yyyy[ hh:mm:ss] for us) records exported are the ones that
                         have been modified since DATETIME.
+
+=item B<--include_deleted>
+
+ --include_deleted      If enabled, when using --date option, deleted records will be included in export as marc records
+                        with leader record status set to "d" (deleted).
+
+=item B<--include_deleted>
+
+ --include_deleted      If enabled, when using --date option, only deleted records will be included in export as marc
+                        records with leader record status set to "d" (deleted).
 
 =item B<--record-type>
 
