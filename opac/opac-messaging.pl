@@ -90,6 +90,7 @@ if ( defined $query->param('modify') && $query->param('modify') eq 'yes' ) {
 
     my $sms = $query->param('SMSnumber');
     my $sms_provider_id = $query->param('sms_provider_id');
+    if ( !defined $query->param('simple') || $query->param('simple') ne 'yes') {
     if ( defined $sms && ( $patron->smsalertnumber // '' ) ne $sms
             or ( $patron->sms_provider_id // '' ) ne $sms_provider_id ) {
         $patron->set({
@@ -97,6 +98,7 @@ if ( defined $query->param('modify') && $query->param('modify') eq 'yes' ) {
             sms_provider_id => $sms_provider_id,
             email           => $query->param('email'),
         })->store;
+    }
     }
 
     C4::Form::MessagingPreferences::handle_form_action($query, { borrowernumber => $patron->borrowernumber }, $template);
