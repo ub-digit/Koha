@@ -89,6 +89,7 @@ if ( defined $query->param('modify') && $query->param('modify') eq 'yes' ) {
 
     my $sms = $query->param('SMSnumber');
     my $sms_provider_id = $query->param('sms_provider_id');
+    if ( !defined $query->param('simple') || $query->param('simple') ne 'yes') {
     if ( defined $sms && ( $borrower->{'smsalertnumber'} // '' ) ne $sms
             or ( $borrower->{sms_provider_id} // '' ) ne $sms_provider_id ) {
         ModMember(
@@ -99,6 +100,7 @@ if ( defined $query->param('modify') && $query->param('modify') eq 'yes' ) {
         );
         # FIXME will not be needed when ModMember will be replaced
         $borrower = Koha::Patrons->find( $borrowernumber )->unblessed;
+    }
     }
 
     C4::Form::MessagingPreferences::handle_form_action($query, { borrowernumber => $borrowernumber }, $template);
