@@ -58,6 +58,15 @@ $biblio_2->append_fields(
 );
 my ($biblionumber_2, $biblioitemnumber_2) = AddBiblio($biblio_2, '');
 
+my $deleted_biblio = MARC::Record->new();
+$deleted_biblio->leader('00136nam a22000617a 4500');
+$deleted_biblio->append_fields(
+    MARC::Field->new('100', ' ', ' ', a => 'Chopra, Deepak'),
+    MARC::Field->new('245', ' ', ' ', a => 'The seven spiritual laws of success'),
+);
+my ($deleted_biblionumber) = AddBiblio($deleted_biblio, '');
+DelBiblio($deleted_biblionumber);
+
 my $bad_biblio = Koha::Biblio->new()->store();
 Koha::Biblio::Metadata->new( { biblionumber => $bad_biblio->id, format => 'marcxml', metadata => 'something wrong', schema => C4::Context->preference('marcflavour') } )->store();
 my $bad_biblionumber = $bad_biblio->id;
@@ -134,14 +143,15 @@ EOF
 };
 
 subtest 'export xml' => sub {
-    plan tests => 3;
+    plan tests => 4;
     my $generated_xml_file = '/tmp/test_export.xml';
     warning_like {
         Koha::Exporter::Record::export(
-            {   record_type     => 'bibs',
-                record_ids      => [ $biblionumber_1, $bad_biblionumber, $biblionumber_2 ],
-                format          => 'xml',
-                output_filepath => $generated_xml_file,
+            {   record_type        => 'bibs',
+                record_ids         => [ $biblionumber_1, $bad_biblionumber, $biblionumber_2 ],
+                deleted_record_ids => [ $deleted_biblionumber ],
+                format             => 'xml',
+                output_filepath    => $generated_xml_file,
             }
         );
     }
@@ -158,23 +168,28 @@ subtest 'export xml' => sub {
     while ( my $record = $records->next ) {
         push @records, $record;
     }
-    is( scalar( @records ), 2, 'Export XML: 2 records should have been exported' );
+    is( scalar( @records ), 3, 'Export XML: 3 records should have been exported' );
     my $second_record = $records[1];
     my $title = $second_record->subfield(245, 'a');
     $title = Encode::encode('UTF-8', $title);
     is( $title, $biblio_2_title, 'Export XML: The title is correctly encoded' );
+
+    my $deleted_record = $records[2];
+    # Leader has the expected value (and record status "d")
+    is( $deleted_record->leader, '00136dam a22000617a 4500', 'Deleted record has the correct leader value' );
 };
 
 subtest 'export iso2709' => sub {
-    plan tests => 3;
+    plan tests => 4;
     my $generated_mrc_file = '/tmp/test_export.mrc';
     # Get all item infos
     warning_like {
         Koha::Exporter::Record::export(
-            {   record_type     => 'bibs',
-                record_ids      => [ $biblionumber_1, $bad_biblionumber, $biblionumber_2 ],
-                format          => 'iso2709',
-                output_filepath => $generated_mrc_file,
+            {   record_type        => 'bibs',
+                record_ids         => [ $biblionumber_1, $bad_biblionumber, $biblionumber_2 ],
+                deleted_record_ids => [ $deleted_biblionumber ],
+                format             => 'iso2709',
+                output_filepath    => $generated_mrc_file,
             }
         );
     }
@@ -185,11 +200,15 @@ subtest 'export iso2709' => sub {
     while ( my $record = $records->next ) {
         push @records, $record;
     }
-    is( scalar( @records ), 2, 'Export ISO2709: 2 records should have been exported' );
+    is( scalar( @records ), 3, 'Export ISO2709: 3 records should have been exported' );
     my $second_record = $records[1];
     my $title = $second_record->subfield(245, 'a');
     $title = Encode::encode('UTF-8', $title);
     is( $title, $biblio_2_title, 'Export ISO2709: The title is correctly encoded' );
+
+    my $deleted_record = $records[2];
+    # Leader has the expected value (and record status "d")
+    is( $deleted_record->leader, '00136dam a22000617a 4500', 'Deleted record has the correct leader value' );
 };
 
 subtest 'export without record_type' => sub {
