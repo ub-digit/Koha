@@ -68,7 +68,7 @@ if (!(
         ($pnr12 and (($personalnumber eq $pnr12) or ($personalnumber eq substr($pnr12, 2)))) or
         ($pnr   and (($personalnumber eq $pnr) or (substr($personalnumber, 2) eq $pnr)))))
                                                            { $retval = 0; } # given credentials does not match with database
-elsif ($dateexpiry < $today)                               { $retval = 0; } # card is expired
+elsif ($dateexpiry lt $today)                              { $retval = 0; } # card is expired
 elsif ($cardnumber eq $personalnumber )                    { $retval = 0; } # card is temporary, not allowing offpc login
 elsif ($categorycode !~ m/(EX)|(SR)|(FR)|(UX)|(FX)|(NX)/ ) { $retval = 0; } # only listed categories may log in with cardnumber
 elsif ($lost==1)                                           { $retval = 0; } # card reported lost
