@@ -146,3 +146,8 @@ div#advanced-search p:first-of-type {
 #pat_memberentrygen #memberentry_patron_attributes #aai_PU {
     clear: both;
 }
+
+
+#pat_moremember .date-select {
+    display:none;
+}
