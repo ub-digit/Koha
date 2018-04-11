@@ -491,8 +491,11 @@ $(document).ready(function() {
   }
 
 
-
-
+    if ($("#pat_memberentrygen #menu ul li a[href*='/cgi-bin/koha/members/readingrec.pl']").length === 0) {
+        setTimeout(function() {
+            $("#pat_memberentrygen ol.attributes_table li input[value='INVCNT']").parent().hide();
+        }, 100);
+    }
 
   /* #### filter based on booksellerid #### */
 
