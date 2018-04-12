@@ -491,6 +491,12 @@ Circulation:
             - "<br />ccode: [NEWFIC,NULL,DVD]"
             - "<br />itype: [NEWBK,\"\"]"
             - "<br /> Note: the word 'NULL' can be used to block renewal on undefined fields, while an empty string \"\" will block on an empty (but defined) field."
+        -
+            - pref: AllowIssueWhenReserved
+              choices:
+                  yes: "Allow it"
+                  no: "Don't allow it"
+            - Allow issue when reserved.
     Checkin Policy:
         -
             - pref: HoldsAutoFill
