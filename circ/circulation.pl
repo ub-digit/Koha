@@ -389,6 +389,18 @@ if (@$barcodes) {
         }
     }
 
+    if ( C4::Context->preference("AllowIssueWhenReserved") ) {
+        if ( $question->{'RESERVED'} ) {
+            delete $question->{'RESERVED'};
+            delete $question->{'resborrowernumber'};
+            delete $question->{'resfirstname'};
+            delete $question->{'rescardnumber'};
+            delete $question->{'ressurname'};
+            delete $question->{'resbranchcode'};
+            delete $question->{'resreservedate'};
+        }
+    }
+
     if ( $error->{UNKNOWN_BARCODE} or not $onsite_checkout or not C4::Context->preference("OnSiteCheckoutsForce") ) {
         delete $question->{'DEBT'} if ($debt_confirmed);
         foreach my $impossible ( keys %$error ) {
