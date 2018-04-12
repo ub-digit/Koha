@@ -8,6 +8,8 @@ use CGI qw ( -utf8 );
 use JSON;
 use C4::Auth qw/check_api_auth/;
 use C4::Items;
+use C4::Context;
+use Data::Dumper;
 
 my $query = new CGI;
 
@@ -28,6 +30,17 @@ unless ($biblionumber) {
 
 my @items = C4::Items::GetItemsInfo( $biblionumber );
 
+my $itemnumbers = join(',', (map { $_->{'itemnumber'} } @items));
+
+my $dbh = C4::Context->dbh();
+my $sql = "SELECT itemnumber FROM branchtransfers WHERE datearrived IS NULL AND itemnumber IN (" . $itemnumbers .")";
+my $in_transit_items = $dbh->selectcol_arrayref($sql, undef);
+
+my @new_items = map {
+  my $item = $_;
+    (grep { /$item->{'itemnumber'}/ } @$in_transit_items ) ? {%{$item},'in_transit'=>"1"} : {%{$item},'in_transit'=>"0"}
+} @items;
+
 print $query->header(-type => 'text/json',-charset => 'utf-8');
-print encode_json({items => \@items});
+print encode_json({items => \@new_items});
 exit 0;
