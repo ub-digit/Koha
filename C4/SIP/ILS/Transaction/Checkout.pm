@@ -156,6 +156,16 @@ sub _can_we_issue {
             }
         }
     }
+
+    if ( C4::Context->preference("AllowIssueWhenReserved") ) {
+        if ( $needsconfirmation->{RESERVED} ) {
+            delete $needsconfirmation->{RESERVED};
+        }
+        if ( $issuingimpossible->{RESERVED} ) {
+            delete $issuingimpossible->{RESERVED};
+        }
+    }
+
     return ( $issuingimpossible, $needsconfirmation );
 }
 
