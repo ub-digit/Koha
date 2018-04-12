@@ -21,6 +21,7 @@ use strict;
 use warnings;
 
 use C4::Context;
+use Koha::Cache::Memory::Lite;
 
 use vars qw(@ISA @EXPORT);
 
@@ -86,6 +87,11 @@ gets frequency where $frequencyid is the identifier
 sub GetSubscriptionFrequency {
     my ($frequencyid) = @_;
 
+    my $memory_cache = Koha::Cache::Memory::Lite->get_instance;
+    my $cache_key = "SubscriptionFrequency:".$frequencyid;
+    my $cached = $memory_cache->get_from_cache($cache_key);
+    return $cached if $cached;
+
     my $dbh = C4::Context->dbh;
     my $query = qq{
         SELECT *
@@ -95,7 +101,13 @@ sub GetSubscriptionFrequency {
     my $sth = $dbh->prepare($query);
     $sth->execute($frequencyid);
 
-    return $sth->fetchrow_hashref;
+    my $result = $sth->fetchrow_hashref;
+
+    if ($result) {
+        $memory_cache->set_in_cache($cache_key, $result);
+    }
+
+    return $result;
 }
 
 =head2 AddSubscriptionFrequency
@@ -223,6 +235,10 @@ sub ModSubscriptionFrequency {
     $query .= ' SET ' . join(' = ?,', @keys) . ' = ?';
     $query .= ' WHERE id = ?';
     my $sth = $dbh->prepare($query);
+
+    my $memory_cache = Koha::Cache::Memory::Lite->get_instance;
+    my $cache_key = "SubscriptionFrequency:".$frequency->{'id'};
+    $memory_cache->clear_from_cache($cache_key);
 
     return $sth->execute(@values, $frequency->{'id'});
 }
