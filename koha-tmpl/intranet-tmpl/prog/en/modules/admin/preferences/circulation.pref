@@ -465,6 +465,12 @@ Circulation:
                   yes: Block
                   no: Allow
             - his/her auto renewals.
+        -
+            - pref: AllowIssueWhenReserved
+              choices:
+                  yes: "Allow it"
+                  no: "Don't allow it"
+            - Allow issue when reserved.
     Checkin Policy:
         -
             - pref: BlockReturnOfWithdrawnItems
