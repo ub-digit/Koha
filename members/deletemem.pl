@@ -32,6 +32,7 @@ use C4::Members;
 use Module::Load;
 use Koha::Patrons;
 use Koha::Token;
+use Koha::Database;
 
 if ( C4::Context->preference('NorwegianPatronDBEnable') && C4::Context->preference('NorwegianPatronDBEnable') == 1 ) {
     load Koha::NorwegianPatronDB, qw( NLMarkForDeletion NLSync );
@@ -73,6 +74,7 @@ if ( C4::Context->preference('NorwegianPatronDBEnable') && C4::Context->preferen
 
 my $issues = GetPendingIssues($member);     # FIXME: wasteful call when really, we only want the count
 my $countissues = scalar(@$issues);
+my $countholds =  Koha::Database->new()->schema()->resultset('Reserve')->count( { borrowernumber => $member } ) ;
 
 my $patron = Koha::Patrons->find( $member );
 unless ( $patron ) {
@@ -109,7 +111,7 @@ if (C4::Context->preference("IndependentBranches")) {
 my $op = $input->param('op') || 'delete_confirm';
 my $dbh = C4::Context->dbh;
 my $is_guarantor = $dbh->selectrow_array("SELECT COUNT(*) FROM borrowers WHERE guarantorid=?", undef, $member);
-if ( $op eq 'delete_confirm' or $countissues > 0 or $flags->{'CHARGES'}  or $is_guarantor or $deletelocal == 0) {
+if ( $op eq 'delete_confirm' or $countissues > 0 or $countholds > 0 or $flags->{'CHARGES'}  or $is_guarantor or $deletelocal == 0) {
     $template->param( picture => 1 ) if $patron->image;
 
     $template->param( adultborrower => 1 ) if $patron->category->category_type =~ /^(A|I)$/;
@@ -135,6 +137,9 @@ if ( $op eq 'delete_confirm' or $countissues > 0 or $flags->{'CHARGES'}  or $is_
     );
     if ($countissues >0) {
         $template->param(ItemsOnIssues => $countissues);
+    }
+    if ($countholds >0) {
+        $template->param(ItemsOnHold => $countholds);
     }
     if ($flags->{'CHARGES'} ne '') {
         $template->param(charges => $flags->{'CHARGES'}->{'amount'});
