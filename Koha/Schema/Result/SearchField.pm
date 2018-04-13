@@ -87,6 +87,10 @@ __PACKAGE__->add_columns(
   { data_type => "decimal", is_nullable => 1, size => [5, 2] },
   "facet_order",
   { data_type => "tinyint", is_nullable => 1 },
+  "staff_client",
+  { data_type => "tinyint", size => 1, is_nullable => 0, default => 1 },
+  "opac",
+  { data_type => "tinyint", size => 1, is_nullable => 0, default => 1 },
 );
 
 =head1 PRIMARY KEY
