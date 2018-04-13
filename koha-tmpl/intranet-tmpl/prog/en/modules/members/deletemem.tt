@@ -17,6 +17,9 @@
         <div class="dialog alert">
         <h3>Cannot delete patron</h3>
             <ul>
+            [% IF ( ItemsOnHold ) %]
+                <li>Patron has [% ItemsOnHold %] item(s) on hold.</li>
+            [% END %]
             [% IF ( ItemsOnIssues ) %]
                 <li>Patron has [% ItemsOnIssues %] item(s) checked out.</li>
             [% END %]
