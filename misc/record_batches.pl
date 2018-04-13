@@ -6,6 +6,7 @@ use Getopt::Long;
 use Pod::Usage;
 
 my $gt_biblionumber;
+my $batch_size;
 my $help;
 GetOptions(
     'gt_biblionumber=i' => \$gt_biblionumber,
@@ -65,5 +66,3 @@ Print a brief help message.
  --gt_biblionumber=BIBLIONUMBER Output batches with biblionumber >= BIBLIONUMBER
 
 =item B<--batch_size>
-
- --batch_size=BATCH_SIZE Set the batch size
