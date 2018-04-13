@@ -31,6 +31,7 @@ use C4::Members;
 use Koha::Patrons;
 use Koha::Token;
 use Koha::Patron::Categories;
+use Koha::Database;
 
 my $input = new CGI;
 
@@ -84,15 +85,19 @@ if (C4::Context->preference("IndependentBranches")) {
 
 my $op = $input->param('op') || 'delete_confirm';
 my $dbh = C4::Context->dbh;
+my $countholds =  Koha::Database->new()->schema()->resultset('Reserve')->count( { borrowernumber => $member } ) ;
 my $is_guarantor = $patron->guarantee_relationships->count;
 my $countholds = $dbh->selectrow_array("SELECT COUNT(*) FROM reserves WHERE borrowernumber=?", undef, $member);
-if ( $op eq 'delete_confirm' or $countissues > 0 or $charges or $is_guarantor ) {
+if ( $op eq 'delete_confirm' or $countissues > 0 or $charges or $is_guarantor or $countholds > 0 ) {
 
     $template->param(
         patron => $patron,
     );
     if ($countissues >0) {
         $template->param(ItemsOnIssues => $countissues);
+    }
+    if ($countholds >0) {
+        $template->param(ItemsOnHold => $countholds);
     }
     if ( $charges > 0 ) {
         $template->param(charges => $charges);
