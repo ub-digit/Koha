@@ -31,6 +31,7 @@ use C4::Members;
 use Module::Load;
 use Koha::Patrons;
 use Koha::Token;
+use Koha::Database;
 
 if ( C4::Context->preference('NorwegianPatronDBEnable') && C4::Context->preference('NorwegianPatronDBEnable') == 1 ) {
     load Koha::NorwegianPatronDB, qw( NLMarkForDeletion NLSync );
@@ -76,6 +77,7 @@ if ( C4::Context->preference('NorwegianPatronDBEnable') && C4::Context->preferen
 
 my $charges = $patron->account->non_issues_charges;
 my $countissues = $patron->checkouts->count;
+my $countholds =  Koha::Database->new()->schema()->resultset('Reserve')->count( { borrowernumber => $member } ) ;
 my $userenv = C4::Context->userenv;
 
 if ($patron->category->category_type eq "S") {
@@ -103,13 +105,16 @@ if (C4::Context->preference("IndependentBranches")) {
 my $op = $input->param('op') || 'delete_confirm';
 my $dbh = C4::Context->dbh;
 my $is_guarantor = $dbh->selectrow_array("SELECT COUNT(*) FROM borrowers WHERE guarantorid=?", undef, $member);
-if ( $op eq 'delete_confirm' or $countissues > 0 or $charges or $is_guarantor or $deletelocal == 0) {
+if ( $op eq 'delete_confirm' or $countissues > 0 or $countholds > 0 or $charges or $is_guarantor or $deletelocal == 0) {
 
     $template->param(
         patron => $patron,
     );
     if ($countissues >0) {
         $template->param(ItemsOnIssues => $countissues);
+    }
+    if ($countholds >0) {
+        $template->param(ItemsOnHold => $countholds);
     }
     if ( $charges > 0 ) {
         $template->param(charges => $charges);
