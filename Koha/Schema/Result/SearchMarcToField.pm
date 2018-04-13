@@ -71,6 +71,8 @@ __PACKAGE__->add_columns(
   { data_type => "tinyint", default_value => 0, is_nullable => 1 },
   "sort",
   { data_type => "tinyint", is_nullable => 1 },
+  "search",
+  { data_type => "tinyint", size => 1, is_nullable => 0, default => 1 },
 );
 
 =head1 PRIMARY KEY
