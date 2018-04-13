@@ -19,10 +19,13 @@
             <main>
 
     [% INCLUDE 'members-toolbar.inc' %]
-    [% IF ( ItemsOnIssues || charges || guarantees ) %]
+    [% IF ( ItemsOnIssues || ItemsOnHold  || charges || guarantees ) %]
         <div class="dialog alert">
         <h3>Cannot delete patron</h3>
             <ul>
+            [% IF ( ItemsOnHold ) %]
+                <li>Patron has [% ItemsOnHold %] item(s) on hold.</li>
+            [% END %]
             [% IF ( ItemsOnIssues ) %]
                 <li>Patron has [% ItemsOnIssues | html %] item(s) checked out.</li>
             [% END %]
