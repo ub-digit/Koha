@@ -555,7 +555,7 @@ if (C4::Context->preference('OpacSuppression')) {
     \@sort_by,
     0,
     $lang,
-    { expanded_facet => $expanded_facet, suppress => $suppress }
+    { expanded_facet => $expanded_facet, suppress => $suppress, is_opac => 1 }
     );
 
 sub _input_cgi_parse {

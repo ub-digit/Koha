@@ -48,6 +48,7 @@ use URI::Escape;
 
 use C4::Context;
 use Koha::Exceptions;
+use Koha::Caches;
 
 =head2 build_query
 
@@ -90,7 +91,7 @@ sub build_query {
             query            => $query,
             fuzziness        => $fuzzy_enabled ? 'auto' : '0',
             default_operator => 'AND',
-            default_field    => '_all',
+            fields          => $self->_query_string_fields({ is_opac => $options{is_opac} }),
             lenient          => JSON::true,
         }
     };
@@ -233,6 +234,7 @@ sub build_query_compat {
     my %options;
     $options{sort} = \@sort_params;
     $options{expanded_facet} = $params->{expanded_facet};
+    $options{is_opac} = exists $params->{is_opac} ? $params->{is_opac} : 0;
     my $query = $self->build_query( $query_str, %options );
 
     #die Dumper($query);
@@ -293,16 +295,55 @@ sub build_authorities_query {
     my @filter_parts;
     foreach my $s ( @{ $search->{searches} } ) {
         my ( $wh, $op, $val ) = @{$s}{qw(where operator value)};
-        $wh = '_all' if $wh eq '';
-        if ( $op eq 'is' || $op eq '=' ) {
-
+        if (!$wh) {
+            my %query_string_params = (
+                default_operator => 'AND',
+            );
+            if ( $op eq 'is' || $op eq '=' ) {
+                push @query_parts, {
+                    multi_match => {
+                        query => $val,
+                        fields => $self->_query_string_fields({ subfield => 'raw' }),
+                    }
+                };
+            }
+            elsif ( $op eq 'exact' ) {
+                # left and right truncation, otherwise an exact phrase
+                push @query_parts, {
+                    query_string => {
+                        query => qq("$val"),
+                        fields => $self->_query_string_fields({ subfield => 'phrase' }),
+                        %query_string_params,
+                    }
+                };
+            }
+            elsif ( $op eq 'start') {
+                push @query_parts, {
+                    query_string => {
+                        query => "$val*",
+                        $self->_query_string_fields({ subfield => 'phrase' }),
+                        %query_string_params,
+                    }
+                };
+            }
+            else {
+                push @query_parts, {
+                    query_string => {
+                        query => $val,
+                        fields => $self->_query_string_fields(),
+                        %query_string_params,
+                    }
+                };
+            }
+        }
+        elsif ( $op eq 'is' || $op eq '=' ) {
             # look for something that matches completely
             # note, '=' is about numerical vals. May need special handling.
-            # _allphrase is a special field that only groups the exact
+            # raw is a special subfield that only groups the exact
             # matches. Also, we lowercase our search because the ES
             # index lowercases its values, and term searches don't get the
             # search analyzer applied to them.
-            push @filter_parts, { term => { "$wh.phrase" => lc $val } };
+            push @query_parts, { term => { "$wh.raw" => lc $val } };
         }
         elsif ( $op eq 'exact' ) {
 
@@ -320,13 +361,10 @@ sub build_authorities_query {
         }
     }
 
-    # Merge the query and filter parts appropriately
-    # 'should' behaves like 'or', if we want 'and', use 'must'
-    my $query_part  = { bool => { should => \@query_parts } };
-    my $filter_part = { bool => { should => \@filter_parts } };
-
     # We need to add '.phrase' to all the sort headings otherwise it'll sort
     # based on the tokenised form.
+    # TODO: .phrase currently contains the tokenized form, so this will not work
+    # instead .raw should be used?
     my %s;
     if ( exists $search->{sort} ) {
         foreach my $k ( keys %{ $search->{sort} } ) {
@@ -339,20 +377,23 @@ sub build_authorities_query {
     # extract the sort stuff
     my %sort;
     %sort = ( sort => [ $search->{sort} ] ) if exists $search->{sort};
-    my $query;
-    if (@filter_parts) {
-        $query =
-          { query =>
-              { filtered => { filter => $filter_part, query => $query_part } }
-          };
-    }
-    else {
-        $query = { query => $query_part };
-    }
-    $query = { %$query, %sort };
-    return $query;
-}
 
+    # Merge the query and filter parts appropriately
+    # 'should' behaves like 'or', if we want 'and', use 'must'
+    my $elastic_query = {};
+    if (@filter_parts) {
+        $elastic_query->{bool}->{filter} = {
+            bool => {
+                must => \@filter_parts,
+            }
+        };
+    }
+    if (@query_parts) {
+        $elastic_query->{bool}->{should} = \@query_parts;
+    };
+    my $params = { query => $elastic_query };
+    return { %$params, %sort };
+}
 
 =head2 build_authorities_query_compat
 
@@ -513,7 +554,7 @@ types.
 =cut
 
 our %index_field_convert = (
-    'kw'      => '_all',
+    'kw'      => '',
     'ti'      => 'title',
     'au'      => 'author',
     'su'      => 'subject',
@@ -539,7 +580,7 @@ sub _convert_index_fields {
     # If a field starts with mc- we save it as it's used (and removed) later
     # when joining things, to indicate we make it an 'OR' join.
     # (Sorry, this got a bit ugly after special cases were found.)
-    grep { $_->{field} } map {
+    map {
         my ( $f, $t ) = split /,/;
         my $mc = '';
         if ($f =~ /^mc-/) {
@@ -551,7 +592,7 @@ sub _convert_index_fields {
             type  => $index_type_convert{ $t // '__default' }
         };
         $r->{field} = ($mc . $r->{field}) if $mc && $r->{field};
-        $r;
+        $r->{field} ? $r : undef;
     } @indexes;
 }
 
@@ -580,8 +621,8 @@ sub _convert_index_strings {
             push @res, $s;
             next;
         }
-        push @res, $conv->{field} . ":"
-          . $self->_modify_string_by_type( %$conv, operand => $term );
+        push @res, ($conv->{field} ? $conv->{field} . ':' : '')
+            . $self->_modify_string_by_type( %$conv, operand => $term );
     }
     return @res;
 }
@@ -811,6 +852,57 @@ sub _truncate_terms {
     } @words;
 
     return join ' ', @terms;
+}
+
+sub _query_string_fields {
+    my ($self, $params) = @_;
+    $params //= {
+        is_opac => 0,
+        # This is a terrible hack for authorities build_authorities_query
+        # can hopefully be removed in the future
+        subfield => undef,
+    };
+
+    my $cache = Koha::Caches->get_instance();
+    my $cache_key = 'elasticsearch_search_fields' . ($params->{is_opac} ? '_opac' : '_staff_client');
+    my $search_fields = $cache->get_from_cache($cache_key, { unsafe => 1 });
+
+    if (!$search_fields) {
+        my $schema = Koha::Database->schema;
+        my $result = $schema->resultset('SearchField')->search(
+            {
+                $params->{is_opac} ? (
+                    'opac' => 1,
+                ) : (
+                    'staff_client' => 1
+                ),
+                'search_marc_map.index_name' => $self->index,
+                'search_marc_map.marc_type' => C4::Context->preference('marcflavour'),
+                'search_marc_to_fields.search' => 1,
+            },
+            {
+                collapse => 1,
+                join => {search_marc_to_fields => 'search_marc_map'},
+            }
+        );
+        my @search_fields;
+        while (my $search_field = $result->next) {
+            push @search_fields, $search_field->name .
+                ($search_field->boost ? '^' . $search_field->boost : '');
+        }
+        $search_fields = \@search_fields;
+        $cache->set_in_cache($cache_key, $search_fields);
+    }
+    if ($params->{subfield}) {
+        my $subfield = $params->{subfield};
+        $search_fields = [
+            map {
+                my ($field, $boost) = $_ =~ /^([^\^]+)(?:\^(.+))?$/;
+                "${field}.${subfield}" . ($boost ? "^$boost" : '');
+            } @{$search_fields}
+        ];
+    }
+    return $search_fields;
 }
 
 1;

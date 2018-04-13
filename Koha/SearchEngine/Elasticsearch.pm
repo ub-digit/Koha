@@ -173,11 +173,9 @@ sub get_elasticsearch_mappings {
     # TODO cache in the object?
     my $mappings = {
         data => {
-            _all => {type => "string", analyzer => "analyser_standard"},
             properties => {
                 record => {
                     store          => "true",
-                    include_in_all => JSON::false,
                     type           => "text",
                 },
             }
@@ -187,7 +185,7 @@ sub get_elasticsearch_mappings {
     my $marcflavour = lc C4::Context->preference('marcflavour');
     $self->_foreach_mapping(
         sub {
-            my ( $name, $type, $facet, $suggestible, $sort, $marc_type ) = @_;
+            my ( $name, $type, $facet, $suggestible, $sort, $search, $marc_type ) = @_;
             return if $marc_type ne $marcflavour;
             # TODO if this gets any sort of complexity to it, it should
             # be broken out into its own function.
@@ -199,13 +197,16 @@ sub get_elasticsearch_mappings {
               ? 'boolean'
               : 'text';
 
-            if ($es_type eq 'boolean') {
-                $mappings->{data}{properties}{$name} = _elasticsearch_mapping_for_boolean( $name, $es_type, $facet, $suggestible, $sort, $marc_type );
-                return; #Boolean cannot have facets nor sorting nor suggestions
-            } else {
-                $mappings->{data}{properties}{$name} = _elasticsearch_mapping_for_default( $name, $es_type, $facet, $suggestible, $sort, $marc_type );
+            if ($search) {
+                if ($es_type eq 'boolean') {
+                    $mappings->{data}{properties}{$name} = _elasticsearch_mapping_for_boolean( $name, $es_type, $facet, $suggestible, $sort, $search, $marc_type );
+                } else {
+                    $mappings->{data}{properties}{$name} = _elasticsearch_mapping_for_default( $name, $es_type, $facet, $suggestible, $sort, $search, $marc_type );
+                }
             }
-
+            if ($es_type eq 'boolean') {
+                return; #Boolean cannot have facets nor sorting nor suggestions
+            }
             if ($facet) {
                 $mappings->{data}{properties}{ $name . '__facet' } = {
                     type  => "keyword",
@@ -226,7 +227,6 @@ sub get_elasticsearch_mappings {
                     search_analyzer => "analyser_phrase",
                     analyzer  => "analyser_phrase",
                     type            => "text",
-                    include_in_all  => JSON::false,
                     fields          => {
                         phrase => {
                             type            => "keyword",
@@ -250,7 +250,7 @@ Receives the same parameters from the $self->_foreach_mapping() dispatcher
 =cut
 
 sub _elasticsearch_mapping_for_boolean {
-    my ( $name, $type, $facet, $suggestible, $sort, $marc_type ) = @_;
+    my ( $name, $type, $facet, $suggestible, $sort, $search, $marc_type ) = @_;
 
     return {
         type            => $type,
@@ -259,7 +259,7 @@ sub _elasticsearch_mapping_for_boolean {
 }
 
 sub _elasticsearch_mapping_for_default {
-    my ( $name, $type, $facet, $suggestible, $sort, $marc_type ) = @_;
+    my ( $name, $type, $facet, $suggestible, $sort, $search, $marc_type ) = @_;
 
     return {
         search_analyzer => "analyser_standard",
@@ -286,11 +286,13 @@ sub reset_elasticsearch_mappings {
         while ( my ( $field_name, $data ) = each %$fields ) {
             my $field_type = $data->{type};
             my $field_label = $data->{label};
+            my $staff_client = exists $data->{staff_client} ? $data->{staff_client} : 1;
+            my $opac = exists $data->{opac} ? $data->{opac} : 1;
             my $mappings = $data->{mappings};
-            my $search_field = Koha::SearchFields->find_or_create({ name => $field_name, label => $field_label, type => $field_type }, { key => 'name' });
+            my $search_field = Koha::SearchFields->find_or_create({ name => $field_name, label => $field_label, type => $field_type, staff_client => $staff_client, opac => $opac }, { key => 'name' });
             for my $mapping ( @$mappings ) {
                 my $marc_field = Koha::SearchMarcMaps->find_or_create({ index_name => $index_name, marc_type => $mapping->{marc_type}, marc_field => $mapping->{marc_field} });
-                $search_field->add_to_search_marc_maps($marc_field, { facet => $mapping->{facet} || 0, suggestible => $mapping->{suggestible} || 0, sort => $mapping->{sort} } );
+                $search_field->add_to_search_marc_maps($marc_field, { facet => $mapping->{facet} || 0, suggestible => $mapping->{suggestible} || 0, sort => $mapping->{sort}, search => $mapping->{search} || 1 } );
             }
         }
     }
@@ -321,7 +323,7 @@ sub get_fixer_rules {
 
     $self->_foreach_mapping(
         sub {
-            my ( $name, $type, $facet, $suggestible, $sort, $marc_type, $marc_field ) = @_;
+            my ( $name, $type, $facet, $suggestible, $sort, $search, $marc_type, $marc_field ) = @_;
             return if $marc_type ne $marcflavour;
             my $options = '';
 
@@ -330,7 +332,9 @@ sub get_fixer_rules {
             # The split makes everything into nested arrays, but that's not
             # really a big deal, ES doesn't mind.
             $options = '-split => 1' unless $marc_field =~ m|_/| || $type eq 'sum';
-            push @rules, "marc_map('$marc_field','${name}.\$append', $options)";
+            if ($search) {
+                push @rules, "marc_map('$marc_field','${name}.\$append', $options)";
+            }
             if ($facet) {
                 push @rules, "marc_map('$marc_field','${name}__facet.\$append', $options)";
             }
@@ -428,6 +432,7 @@ sub _foreach_mapping {
                 'search_marc_to_fields.facet',
                 'search_marc_to_fields.suggestible',
                 'search_marc_to_fields.sort',
+                'search_marc_to_fields.search',
                 'search_marc_map.marc_type',
                 'search_marc_map.marc_field',
             ],
@@ -435,6 +440,7 @@ sub _foreach_mapping {
                 'facet',
                 'suggestible',
                 'sort',
+                'search',
                 'marc_type',
                 'marc_field',
             ],
@@ -448,6 +454,7 @@ sub _foreach_mapping {
             $search_field->get_column('facet'),
             $search_field->get_column('suggestible'),
             $search_field->get_column('sort'),
+            $search_field->get_column('search'),
             $search_field->get_column('marc_type'),
             $search_field->get_column('marc_field'),
         );
