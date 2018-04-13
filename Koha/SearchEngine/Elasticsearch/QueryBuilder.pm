@@ -48,6 +48,7 @@ use URI::Escape;
 
 use C4::Context;
 use Koha::Exceptions;
+use Koha::Caches;
 
 =head2 build_query
 
@@ -90,9 +91,8 @@ sub build_query {
             query            => $query,
             fuzziness        => $fuzzy_enabled ? 'auto' : '0',
             default_operator => 'AND',
-            default_field    => '_all',
+            fields          => $self->_search_fields({ is_opac => $options{is_opac}, weighted_fields => $options{weighted_fields} }),
             lenient          => JSON::true,
-            fields           => $options{fields} || [],
         }
     };
 
@@ -227,17 +227,13 @@ sub build_query_compat {
         join( ' ', $self->_create_query_string(@search_params) ) || (),
         $self->_join_queries( $self->_convert_index_strings(@$limits) ) || () );
 
-    my @fields = '_all';
-    if ( defined($params->{weighted_fields}) && $params->{weighted_fields} ) {
-        push @fields, sprintf("%s^%s", $_->name, $_->weight) for Koha::SearchFields->weighted_fields;
-    }
-
     # If there's no query on the left, let's remove the junk left behind
     $query_str =~ s/^ AND //;
     my %options;
-    $options{fields} = \@fields;
     $options{sort} = \@sort_params;
     $options{expanded_facet} = $params->{expanded_facet};
+    $options{is_opac} = $params->{is_opac};
+    $options{weighted_fields} = $params->{weighted_fields};
     my $query = $self->build_query( $query_str, %options );
 
     #die Dumper($query);
@@ -298,55 +294,103 @@ sub build_authorities_query {
 
     foreach my $s ( @{ $search->{searches} } ) {
         my ( $wh, $op, $val ) = @{$s}{qw(where operator value)};
-        $wh = '_all' if $wh eq '';
-        if ( $op eq 'is' || $op eq '='  || $op eq 'exact' ) {
+        if (!$wh) {
+            if ( $op eq 'is' || $op eq '=' || $op eq 'exact') {
+                # Match the whole field for all searchable fields, case insensitive,
+                # UTF normalized.
+                # Given that field data is "The quick brown fox"
+                # "The quick brown fox" and "the quick brown fox" will match
+                # but not "quick brown fox".
+                push @query_parts, {
+                    multi_match => {
+                        query => $val,
+                        fields => $self->_search_fields({ subfield => 'ci_raw' }),
+                    }
+                };
+            }
+            elsif ( $op eq 'start') {
+                # Match the prefix within a field for all searchable fields.
+                # Given that field data is "The quick brown fox"
+                # "The quick bro" will match, but not "quick bro"
 
-            # look for something that matches a term completely
-            # note, '=' is about numerical vals. May need special handling.
-            # Also, we lowercase our search because the ES
-            # index lowercases its values, and term searches don't get the
-            # search analyzer applied to them.
-            push @query_parts, { match_phrase => {"$wh.phrase" => lc $val} };
+                # Does not seems to be a multi prefix query
+                # so we need to create one
+                my @prefix_queries;
+                foreach my $field (@{$self->_search_fields()}) {
+                    push @prefix_queries, {
+                        prefix => { "$field.ci_raw" => $val }
+                    };
+                }
+                push @query_parts, {
+                    'bool' => {
+                        'should' => \@prefix_queries,
+                        'minimum_should_match' => 1
+                    }
+                };
+            }
+            else {
+                # Query all searchable fields.
+                # Given that field data is "The quick brown fox"
+                # a search containing any of the words will match, regardless
+                # of order.
+                #
+                # Since default operator is "AND" each of the words must match
+                # at least one field
+                push @query_parts, {
+                    query_string => {
+                        query => $val,
+                        fields => $self->_search_fields(),
+                        default_operator => 'AND',
+                    }
+                };
+            }
+        }
+        elsif ( $op eq 'is' || $op eq '=' || $op eq 'exact') {
+            # Match the whole field, case insensitive, UTF normalized.
+            push @query_parts, { term => { "$wh.ci_raw" => $val } };
         }
         elsif ( $op eq 'start' ) {
-            # startswith search, uses lowercase untokenized version of heading
-            push @query_parts, { match_phrase_prefix => {"$wh.phrase" => lc $val} };
+            # Match prefix of the field.
+            push @query_parts, { prefix => {"$wh.ci_raw" => $val} };
         }
         else {
-            # regular wordlist stuff
-#            push @query_parts, { match => {$wh => { query => $val, operator => 'and' }} };
-            my @values = split(' ',$val);
-            foreach my $v (@values) {
-                push @query_parts, { wildcard => { "$wh.phrase" => "*" . lc $v . "*" } };
-            }
+            # Regular match query for the specific field.
+            push @query_parts, {
+                match => {
+                    $wh => {
+                        query => $val,
+                        operator => 'and'
+                    }
+                }
+            };
         }
     }
 
     # Merge the query parts appropriately
     # 'should' behaves like 'or'
     # 'must' behaves like 'and'
-    # Zebra results seem to match must so using that here
-    my $query = { query =>
-                 { bool =>
-                     { must => \@query_parts  }
-                 }
-             };
+    # Zebra behaviour seem to match must so using that here
+    my $elastic_query = {};
+    $elastic_query->{bool}->{must} = \@query_parts;
 
-    my %s;
-    if ( exists $search->{sort} ) {
-        foreach my $k ( keys %{ $search->{sort} } ) {
-            my $f = $self->_sort_field($k);
-            $s{$f} = $search->{sort}{$k};
-        }
-        $search->{sort} = \%s;
+    # Filter by authtypecode if set
+    if ($search->{authtypecode}) {
+        $elastic_query->{bool}->{filter} = {
+            term => {
+                "authtype.raw" => $search->{authtypecode}
+            }
+        };
     }
 
-    # add the sort stuff
-    $query->{sort} = [ $search->{sort} ]  if exists $search->{sort};
+    my $query = {
+        query => $elastic_query
+    };
+
+    # Add the sort stuff
+    $query->{sort} = [ $search->{sort} ] if exists $search->{sort};
 
     return $query;
 }
-
 
 =head2 build_authorities_query_compat
 
@@ -441,8 +485,8 @@ sub build_authorities_query_compat {
 
     my %sort;
     my $sort_field =
-        ( $orderby =~ /^Heading/ ) ? 'Heading'
-      : ( $orderby =~ /^Auth/ )    ? 'Local-number'
+        ( $orderby =~ /^Heading/ ) ? 'Heading__sort'
+      : ( $orderby =~ /^Auth/ )    ? 'Local-Number__sort'
       :                              undef;
     if ($sort_field) {
         my $sort_order = ( $orderby =~ /Asc$/ ) ? 'asc' : 'desc';
@@ -509,7 +553,7 @@ types.
 =cut
 
 our %index_field_convert = (
-    'kw'      => '_all',
+    'kw'      => '',
     'ti'      => 'title',
     'au'      => 'author',
     'su'      => 'subject',
@@ -537,7 +581,7 @@ sub _convert_index_fields {
     # If a field starts with mc- we save it as it's used (and removed) later
     # when joining things, to indicate we make it an 'OR' join.
     # (Sorry, this got a bit ugly after special cases were found.)
-    grep { $_->{field} } map {
+    map {
         my ( $f, $t ) = split /,/;
         my $mc = '';
         if ($f =~ /^mc-/) {
@@ -549,7 +593,7 @@ sub _convert_index_fields {
             type  => $index_type_convert{ $t // '__default' }
         };
         $r->{field} = ($mc . $r->{field}) if $mc && $r->{field};
-        $r;
+        $r->{field} ? $r : undef;
     } @indexes;
 }
 
@@ -578,8 +622,8 @@ sub _convert_index_strings {
             push @res, $s;
             next;
         }
-        push @res, $conv->{field} . ":"
-          . $self->_modify_string_by_type( %$conv, operand => $term );
+        push @res, ($conv->{field} ? $conv->{field} . ':' : '')
+            . $self->_modify_string_by_type( %$conv, operand => $term );
     }
     return @res;
 }
@@ -820,6 +864,103 @@ sub _truncate_terms {
     } @words;
 
     return join ' ', @terms;
+}
+
+=head2 _search_fields
+    my $weighted_fields = $self->_search_fields({
+        is_opac => 0,
+        weighted_fields => 1,
+        subfield => 'raw'
+    });
+
+Generate a list of searchable fields to be used for Elasticsearch queries
+applied to multiple fields.
+
+Returns an arrayref of field names for either OPAC or Staff client, with
+possible weights and subfield appended to each field name depending on the
+options provided.
+
+=over 4
+
+=item C<$params>
+
+Hashref with options. The parameter C<is_opac> indicates whether the searchable
+fields for OPAC or Staff client should be retrieved. If C<weighted_fields> is set
+fields weights will be applied on returned fields. C<subfield> can be used to
+provide a subfield that will be appended to fields as "C<field_name>.C<subfield>".
+
+=back
+
+=cut
+
+sub _search_fields {
+    my ($self, $params) = @_;
+    $params //= {
+        is_opac => 0,
+        weighted_fields => 0,
+        # This is a hack for authorities build_authorities_query
+        # can hopefully be removed in the future
+        subfield => undef,
+    };
+
+    my $cache = Koha::Caches->get_instance();
+    my $cache_key = 'elasticsearch_search_fields' . ($params->{is_opac} ? '_opac' : '_staff_client');
+    my $search_fields = $cache->get_from_cache($cache_key, { unsafe => 1 });
+
+    if (!$search_fields) {
+        # The reason we don't use Koha::SearchFields->search here is we don't
+        # want or need resultset wrapped as Koha::SearchField object.
+        # It does not make any sense in this context and would cause
+        # unnecessary overhead sice we are only querying for data
+        # Also would not work, or produce strange results, with the "columns"
+        # option.
+        my $schema = Koha::Database->schema;
+        my $result = $schema->resultset('SearchField')->search(
+            {
+                $params->{is_opac} ? (
+                    'opac' => 1,
+                ) : (
+                    'staff_client' => 1
+                ),
+                'search_marc_map.index_name' => $self->index,
+                'search_marc_map.marc_type' => C4::Context->preference('marcflavour'),
+                'search_marc_to_fields.search' => 1,
+            },
+            {
+                columns => [qw/name weight/],
+                # collapse => 1,
+                join => {search_marc_to_fields => 'search_marc_map'},
+            }
+        );
+        my @search_fields;
+        while (my $search_field = $result->next) {
+            push @search_fields, [
+                $search_field->name,
+                $search_field->weight ? $search_field->weight : ()
+            ];
+        }
+        $search_fields = \@search_fields;
+        $cache->set_in_cache($cache_key, $search_fields);
+    }
+    if ($params->{subfield}) {
+        my $subfield = $params->{subfield};
+        $search_fields = [
+            map {
+                # Copy values to avoid mutating cached
+                # data (since unsafe is used)
+                my ($field, $weight) = @{$_};
+                ["${field}.${subfield}", $weight];
+            } @{$search_fields}
+        ];
+    }
+
+    if ($params->{weighted_fields}) {
+        return [map { join('^', @{$_}) } @{$search_fields}];
+    }
+    else {
+        # Exclude weight from field
+        return [map { $_->[0] } @{$search_fields}];
+    }
 }
 
 1;
