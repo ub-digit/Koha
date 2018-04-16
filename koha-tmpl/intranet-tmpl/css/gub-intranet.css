@@ -147,7 +147,7 @@ div#advanced-search p:first-of-type {
     clear: both;
 }
 
-#pat_moremember .date-select {
+#pat_moremember .date-select, #circ_circulation .date-select {
     display: none;
 }
 
