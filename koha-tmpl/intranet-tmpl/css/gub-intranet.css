@@ -147,7 +147,13 @@ div#advanced-search p:first-of-type {
     clear: both;
 }
 
-
 #pat_moremember .date-select {
-    display:none;
+    display: none;
+}
+
+
+/* Enhance focus of checkin popup message btn */
+
+#circ_returns.circ.modal-open .btn:focus {
+    border: 1px solid #004d99;
 }
