@@ -13,7 +13,7 @@
     <div id="yui-main">
     <div class="yui-b">
     [% INCLUDE 'members-toolbar.inc' %]
-    [% IF ( ItemsOnIssues || charges || guarantees ) %]
+    [% IF ( ItemsOnIssues || ItemsOnHold  || charges || guarantees ) %]
         <div class="dialog alert">
         <h3>Cannot delete patron</h3>
             <ul>
