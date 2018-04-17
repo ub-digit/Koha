@@ -40,7 +40,12 @@ $(document).ready(function() {
   });
 
   shortcut.add('F9', function() {
-    location.href = '/cgi-bin/koha/catalogue/search.pl#UB=searchtitle';
+    if (location.pathname === '/cgi-bin/koha/catalogue/search.pl' && location.hash === '#UB=searchtitle') {
+      $('fieldset#searchterms select').eq(0).val('ti,phr');
+      $('fieldset#searchterms input[name="q"]').eq(0).focus();
+    } else {
+      location.href = '/cgi-bin/koha/catalogue/search.pl#UB=searchtitle';
+    }
   });
 
   shortcut.add('F10', function() {
@@ -111,7 +116,7 @@ $(document).ready(function() {
   if (location.pathname === "/cgi-bin/koha/catalogue/search.pl" &&
     location.hash === "#UB=searchtitle") {
     $('fieldset#searchterms select').eq(0).val('ti,phr');
-    $('fieldset#searchtermsinput[name="q"]').eq(0).focus();
+    $('fieldset#searchterms input[name="q"]').eq(0).focus();
   }
 
 
@@ -491,12 +496,12 @@ $(document).ready(function() {
   }
 
 
-    if ($("#pat_memberentrygen #menu ul li a[href*='/cgi-bin/koha/members/readingrec.pl']").length === 0) {
-        setTimeout(function() {
-            $("#pat_memberentrygen ol.attributes_table li input[value='INVCNT']").parent().hide();
-        }, 100);
-    }
-    
+  if ($("#pat_memberentrygen #menu ul li a[href*='/cgi-bin/koha/members/readingrec.pl']").length === 0) {
+    setTimeout(function() {
+      $("#pat_memberentrygen ol.attributes_table li input[value='INVCNT']").parent().hide();
+    }, 100);
+  }
+
   /* #### filter based on booksellerid #### */
 
   function getParameterByName(name, url) {
