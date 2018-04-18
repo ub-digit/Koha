@@ -158,6 +158,22 @@ $(document).ready(function() {
     checkAccountTypeHandler();
 
 
+    // set status as not yet in transit when home branch and location doesnt match
+    if ($('#catalog_detail').length) {
+
+      $('#DataTables_Table_0_wrapper tbody tr').each(function() {
+        var lang = $('html').attr('lang');
+        // translations 
+        var txt = lang == 'en' ? 'Not yet in transit' : 'Ännu ej under transport';
+        var item = $(this);
+        var homebranch = item.find('.homebranch').text().trim();
+        var location = item.find('.location').text().trim();
+        if (homebranch.indexOf(location) < 0) {
+          item.find('.status').html('<span>' + txt + '<span>');
+        }
+      });
+    }
+
   }
 
   // redirect help to GU manuals
