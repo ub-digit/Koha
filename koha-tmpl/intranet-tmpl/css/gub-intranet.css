@@ -147,7 +147,8 @@ div#advanced-search p:first-of-type {
     clear: both;
 }
 
-#pat_moremember .date-select, #circ_circulation .date-select {
+#pat_moremember .date-select,
+#circ_circulation .date-select {
     display: none;
 }
 
@@ -156,4 +157,22 @@ div#advanced-search p:first-of-type {
 
 #circ_returns.circ.modal-open .btn:focus {
     border: 1px solid #004d99;
+}
+
+
+/* Override transition time for modal popup*/
+
+.modal.fade .modal-dialog {
+    transition: none;
+    -webkit-transition: none;
+}
+
+#circ_returns .modal-backdrop.fade {
+    transition: none;
+    -webkit-transition: none;
+}
+
+#circ_returns .fade {
+    transition: none!important;
+    -webkit-transition: none;
 }
