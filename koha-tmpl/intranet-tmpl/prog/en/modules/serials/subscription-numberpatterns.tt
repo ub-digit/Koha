@@ -368,6 +368,8 @@
         $(document).ready(function(){
 
             $("#numberpatternst").dataTable($.extend(true, {}, dataTablesDefaults, {
+                paging: false,
+                "order": [[ 3, "asc" ]],
                 "aoColumnDefs": [
                     { "aTargets": [ -1 ], "bSortable": false, "bSearchable": false },
                 ],
