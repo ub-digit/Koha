@@ -21,7 +21,7 @@ function printBiblio() {window.print(); }
 /* IF CAN_user_editcatalogue_edit_catalogue or ( frameworkcode == 'FA' and CAN_user_editcatalogue_fast_cataloging ) */
 
 function confirm_deletion() {
-    var order_manage_permission = $(this).data("order-manage");
+    var order_manage_permission = $("#deletebiblio").data("order-manage");
     var is_confirmed;
     if (count > 0){
         is_confirmed = alert( MSG_DELETE_ALL_ITEMS.format(count) );
