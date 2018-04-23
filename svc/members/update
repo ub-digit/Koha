@@ -57,7 +57,7 @@ else { #$action eq 'update'
 
   # Om kortnumren inte matchar (dvs nytt kort) så sparar vi det gamla numret på ny plats i posten
   # och sätter det nya kortnumret som aktivt. Alla gamla nummer ska sparas.
-  else {
+  if (!($incoming_cardnumber eq $existing_cardnumber)) {
     UpdateBorrowerAttribute($borrowernumber, {code => "GKNR", attribute => $existing_cardnumber});
     $newdata{'cardnumber'} = $incoming_cardnumber;
   }
