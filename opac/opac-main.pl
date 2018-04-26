@@ -34,6 +34,12 @@ use Koha::News;
 my $input = new CGI;
 my $dbh   = C4::Context->dbh;
 
+if (C4::Context->preference('OPACRedirect')) {
+    if (C4::Context->preference('OPACBaseURL')) {
+        print "Location: " . C4::Context->preference('OPACBaseURL') . "/cgi-bin/koha/opac-user.pl\n\n";
+    }
+}
+
 my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
     {
         template_name   => "opac-main.tt",
