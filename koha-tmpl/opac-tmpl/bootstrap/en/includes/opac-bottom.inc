@@ -3,41 +3,13 @@
 [% USE Asset %]
 [% UNLESS ( is_popup ) %]
     [% SET OpacLangSelectorMode = Koha.Preference('OpacLangSelectorMode') %]
-    [% IF ( opaccredits ) %]
-        <div class="container-fluid">
-            <div class="row-fluid">
-                <div class="span12">
-                    <div id="opaccredits" class="noprint">
-                        [% opaccredits | $raw %]
-                    </div>
-                </div>
-            </div>
-        </div>
-    [% END #/ opaccredits %]
-
-    [% IF ( OpacKohaUrl ) %]
-        <div class="container-fluid">
-            <div class="row-fluid">
-                <div class="span12">
-                    <div id="koha_url" class="clearfix noprint">
-                        <p>Powered by
-                        [% IF template.name.match('opac-main.tt') %]
-                            <a class="koha_url" href="http://koha-community.org">Koha</a>
-                        [% ELSE %]
-                            <a class="koha_url" rel="nofollow" href="http://koha-community.org">Koha</a>
-                        [% END %]</p>
-                    </div>
-                </div> <!-- /.span12 -->
-            </div> <!-- /.row-fluid -->
-        </div> <!-- /.container-fluid -->
-    [% END # / OpacKohaUrl %]
 
 </div> <!-- / #wrap in masthead.inc -->
 [% IF OpacLangSelectorMode == 'both' || OpacLangSelectorMode == 'footer' %]
     [% IF ( opaclanguagesdisplay ) %]
         [% IF ( languages_loop && opaclanguagesdisplay ) %]
             [% UNLESS ( one_language_enabled ) %]
-                <div id="changelanguage" class="navbar navbar-fixed-bottom navbar-static-bottom noprint">
+                <div id="changelanguage" class="navbar navbar-static-bottom noprint">
                     <div class="navbar-inner">
                         <ul id="i18nMenu" class="nav">
                             <li><p class="lang navbar-text"><strong>Languages:&nbsp;</strong></p></li>
