@@ -1,0 +1,2 @@
+INSERT IGNORE INTO systempreferences ( `variable`, `value`, `options`, `explanation`, `type`) VALUES
+('OPACShowCancelButtonWhenInWaitingStatus', '0', null, 'Hide cancel button in holds table when status is waiting (Found=W)', 'YesNo');
