@@ -54,6 +54,7 @@
                 </div>
             </div>
             <div class="span10">
+                <h1>Personal details</h1>
                 [% IF action == 'edit' %]
                     <div id="update-account">
                 [% ELSE %]
@@ -303,7 +304,7 @@
                                                 <label for="borrower_surname">Surname:</label>
                                             [% END %]
 
-                                            <input type="text" id="borrower_surname" name="borrower_surname" value="[% borrower.surname | html %]" />
+                                            <input type="text" id="borrower_surname" name="borrower_surname" disabled value="[% borrower.surname | html %]" />
                                             [% IF mandatory.defined('surname') %]<span class="required">Required</span>[% END %]
                                         </li>
                                     [% END %]
@@ -316,7 +317,7 @@
                                                 <label for="borrower_firstname">First name:</label>
                                             [% END %]
 
-                                            <input type="text" id="borrower_firstname" name="borrower_firstname" value="[% borrower.firstname | html %]" />
+                                            <input type="text" id="borrower_firstname" name="borrower_firstname" disabled value="[% borrower.firstname | html %]" />
                                             [% IF mandatory.defined('firstname') %]<span class="required">Required</span>[% END %]
                                         </li>
                                     [% END %]
