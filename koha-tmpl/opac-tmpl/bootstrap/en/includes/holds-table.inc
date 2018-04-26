@@ -15,7 +15,6 @@
                     [% ELSE %]
                         <th class="psort title-string">Placed on</th>
                     [% END %]
-                    <th class="title-string">Expires on</th>
                     [% UNLESS( singleBranchMode) %]
                         <th>Pick up location</th>
                     [% END %]
@@ -52,7 +51,12 @@
                     [% END %]
                         <td class="title">
                             [% IF ! onlyinfo %]
+                                [% IF !Koha.Preference('enableOpacCatalogBrowsing') && Koha.Preference('linkToExternalSite') %]
+                                    [% bibid = HOLD.biblionumber %]
+                                    <a class="title" href="[% external_url(bibid) %]">
+                                [% ELSE %]
                                 <a class="title" href="/cgi-bin/koha/opac-detail.pl?biblionumber=[% HOLD.biblionumber | html %]">
+                                [% END %]
                                     [% INCLUDE 'biblio-title.inc' biblio=HOLD.biblio %]
                                     [% HOLD.item.enumchron | html %]
                                 </a>
@@ -69,23 +73,6 @@
                                 <span class="tdlabel">Hold date:</span>
                                 [% HOLD.reservedate | $KohaDates %]
                             </span>
-                        </td>
-                        <td class="expirationdate">
-                            [% IF ! HOLD.found %]
-                                [% IF ( HOLD.expirationdate ) %]
-                                    <span title="[% HOLD.expirationdate | html %]">
-                                        <span class="tdlabel">Expiration:</span>
-                                            [% HOLD.expirationdate | $KohaDates %]
-                                    </span>
-                                [% ELSE %]
-                                    <span title="0000-00-00">
-                                        <span class="tdlabel">Expiration:</span>
-                                        Never expires
-                                    </span>
-                                [% END %]
-                            [% ELSE %]
-                                <span title="0000-00-00">-</span>
-                            [% END %]
                         </td>
                         [% UNLESS( singleBranchMode) %]
                             <td class="branch">
@@ -130,7 +117,11 @@
                                     [% IF HOLD.itemtype %]
                                         Pending for next available item of item type '[% ItemTypes.GetDescription( HOLD.itemtype ) | html %]'
                                     [% ELSE %]
-                                        Pending
+                                        [% IF HOLD.item  && !HOLD.item.onloan %]
+                                            <span class="ub-requested">Requested</span>
+                                        [% ELSE %]
+                                            <span class="ub-reserved">Reserved</span>
+                                        [% END %]
                                     [% END %]
                                 [% END %]
                             [% END %]
