@@ -1,11 +1,37 @@
 OPAC:
     Appearance:
         -
+            - pref: OPACRedirect
+              choices:
+                  yes: "Enable"
+                  no: "Disable"
+            - "redirect from homepage to userpage"
+        -
+            - pref: OPACShowCancelButtonWhenInWaitingStatus
+              choices:
+                  yes: Yes
+                  no: "No"
+            - "Hide cancel button in holds table when status is waiting (Found=W)"
+        -
             - pref: OPACUserSummary
               choices:
                   yes: Show
                   no: "Don't show"
             - "a summary of a logged in user's checkouts, overdues, holds and fines on the mainpage"
+        -
+            - pref: enableOpacCatalogBrowsing
+              choices:
+                  yes: "Enable"
+                  no: "Disable"
+            -  catalog browsing and searching.
+        -
+            - pref: linkToExternalSite
+              choices:
+                  yes: "Link to external site"
+                  no: "Link to OPAC"
+            - for links to bibliographic records. The external URL is
+            - pref: externalSiteURL
+              class: url
         -
             - For search results in the OPAC, show the item's
             - pref: OPACResultsLibrary
@@ -344,6 +370,12 @@ OPAC:
                   both: "both top and footer"
                   top: "top"
                   footer: "only footer"
+        -
+            - pref: enableCoverImagesInOpacList
+              choices:
+                  yes: Enable
+                  no: Disable
+            - "Show syndetics cover images in OPAC"
     Features:
         -
             - pref: opacuserlogin
