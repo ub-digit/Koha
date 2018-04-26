@@ -7,7 +7,7 @@
         <div class="navbar navbar-inverse navbar-static-top">
             <div class="navbar-inner">
                 <div class="container-fluid">
-                    <h1 id="logo">
+                    <h1 id="logo" class="pull-left">
                         <a class="brand" href="/cgi-bin/koha/opac-main.pl">
                             [% IF ( LibraryNameTitle ) %]
                                 [% LibraryNameTitle | html %]
@@ -16,6 +16,7 @@
                             [% END %]
                         </a>
                     </h1>
+                    <div class="navbar-appname"> My loans </div>
                     [% IF ( Koha.Preference( 'opacbookbag' ) == 1 ) %]
                         <div id="cartDetails" class="cart-message">Your cart is empty.</div>
                     [% END %]
@@ -80,7 +81,7 @@
                         [% END # / IF virtualshelves %]
                     </ul> <!-- / .nav -->
                     [% IF Koha.Preference( 'virtualshelves' ) == 1 %]<div id="listsDetails"></div>[% END %]
-                    [% IF Koha.Preference( 'opacuserlogin' ) == 1 || opaclanguagesdisplay || EnableOpacSearchHistory %]
+                    [% IF opaclanguagesdisplay || EnableOpacSearchHistory %]
                         <a id="user-menu-trigger" class="pull-right" href="#"><i class="fa fa-user fa-icon-white"></i> <span class="caret"></span></a>
                         <div id="members">
                             <ul class="nav pull-right">
@@ -134,6 +135,7 @@
 
     <div class="container-fluid">
         <div class="row-fluid">
+            [% IF Koha.Preference('enableOpacCatalogBrowsing') == 1 %]
             <div id="opac-main-search">
             <div class="span12">
                 [% IF ( OpacPublic ) %]
@@ -287,6 +289,7 @@
                 [% END # / OpacPublic %]
             </div> <!-- /.span10 -->
             </div> <!-- /.opac-main-search -->
+            [% END %]
         </div> <!-- / .row-fluid -->
     </div> <!-- /.container-fluid -->
 
