@@ -312,14 +312,15 @@ if (C4::Context->preference('BakerTaylorEnabled')) {
         BakerTaylorBookstoreURL => C4::Context->preference('BakerTaylorBookstoreURL'),
     );
 }
-
-if (C4::Context->preference("OPACAmazonCoverImages") or 
-    C4::Context->preference("GoogleJackets") or
-    C4::Context->preference("BakerTaylorEnabled") or
-    C4::Context->preference("SyndeticsCoverImages") or
-    ( C4::Context->preference('OPACCustomCoverImages') and C4::Context->preference('CustomCoverImagesURL') )
+if (C4::Context->preference("enableCoverImagesInOpacList")){
+    if (C4::Context->preference("OPACAmazonCoverImages") or
+        C4::Context->preference("GoogleJackets") or
+        C4::Context->preference("BakerTaylorEnabled") or
+        C4::Context->preference("SyndeticsCoverImages") or
+        ( C4::Context->preference('OPACCustomCoverImages') and C4::Context->preference('CustomCoverImagesURL') )
 ) {
-        $template->param(JacketImages=>1);
+            $template->param(JacketImages=>1);
+    }
 }
 
 $template->param(
