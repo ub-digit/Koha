@@ -180,6 +180,8 @@ sub get_template_and_user {
     }
 
 
+
+
     # If the user logged in is the SCO user and they try to go out of the SCO module, log the user out removing the CGISESSID cookie
     if ( $in->{type} eq 'opac' and $in->{template_name} !~ m|sco/| ) {
         if ( $user && C4::Context->preference('AutoSelfCheckID') && $user eq C4::Context->preference('AutoSelfCheckID') ) {
@@ -191,9 +193,12 @@ sub get_template_and_user {
                 -HttpOnly => 1,
             );
 
+
+
             $template->param(
                 loginprompt => 1,
                 script_name => get_script_name(),
+                lang        => C4::Languages::getlanguage(),
             );
             print $in->{query}->header(
                 {   type              => 'text/html',
@@ -514,7 +519,7 @@ sub get_template_and_user {
 
         my $library_categories = Koha::LibraryCategories->search({categorytype => 'searchdomain', show_in_pulldown => 1}, { order_by => ['categorytype', 'categorycode']});
         $template->param(
-            OpacAdditionalStylesheet                   => C4::Context->preference("OpacAdditionalStylesheet"),
+            OpacAdditionalStylesheet              => C4::Context->preference("OpacAdditionalStylesheet"),
             AnonSuggestions                       => "" . C4::Context->preference("AnonSuggestions"),
             BranchCategoriesLoop                  => $library_categories,
             opac_name                             => $opac_name,
@@ -1220,7 +1225,7 @@ sub checkauth {
     my $template_name = ( $type eq 'opac' ) ? 'opac-auth.tt' : 'auth.tt';
     my $template = C4::Templates::gettemplate( $template_name, $type, $query );
     $template->param(
-        OpacAdditionalStylesheet                   => C4::Context->preference("OpacAdditionalStylesheet"),
+        OpacAdditionalStylesheet              => C4::Context->preference("OpacAdditionalStylesheet"),
         opaclayoutstylesheet                  => C4::Context->preference("opaclayoutstylesheet"),
         login                                 => 1,
         INPUTS                                => \@inputs,
