@@ -174,9 +174,22 @@
                             [% FOREACH INPUT IN INPUTS %]
                                 <input type="hidden" name="[% INPUT.name | html %]" value="[% INPUT.value | html %]" />
                             [% END %]
-                            <label for="userid">Login</label>
+                            <label for="userid">
+                                [% IF Koha.Preference('enableCardnumberAndPersonalNumberAuth') %]
+                                    Library card number
+                                [% ELSE %]
+                                    Login
+                                [% END %]
+                            </label>
                             <input type="text"  size="25" id="userid"  name="userid" />
-                            <label for="password">Password</label><input type="password"  size="25" id="password"  name="password" />
+                            <label for="password">
+                                [% IF Koha.Preference('enableCardnumberAndPersonalNumberAuth') %]
+                                    Personal identity number
+                                [% ELSE %]
+                                    Password
+                                [% END %]
+                            </label>
+                            <input type="password"  size="25" id="password"  name="password" />
                             </fieldset>
 
                             <input type="submit" value="Log in" class="btn" />
