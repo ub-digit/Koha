@@ -1,6 +1,12 @@
 OPAC:
     Appearance:
         -
+            - pref: enableCardnumberAndPersonalNumberAuth
+              choices:
+                  yes: "Enable"
+                  no: "Disable"
+            - "use cardnumber as userid and personalnumber as password"
+        -
             - pref: OPACRedirect
               choices:
                   yes: "Enable"
