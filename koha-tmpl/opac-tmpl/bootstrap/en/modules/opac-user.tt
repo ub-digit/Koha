@@ -44,10 +44,7 @@
 
                     [% INCLUDE 'opac-note.inc' %]
 
-                    <h2>Hello, [% INCLUDE 'patron-title.inc' patron = logged_in_user %]
-                    </h2>
-
-                    <p><a href="/cgi-bin/koha/opac-main.pl?logout.x=1">Click here if you're not [% INCLUDE 'patron-title.inc' patron = logged_in_user %]</a></p>
+                    <h1>Loans and requests</h1>
 
                     [% IF ( patronupdate ) %]<div class="alert alert-info"><h3>Thank you!</h3><p>Your corrections have been submitted to the library, and a staff member will update your record as soon as possible.</p></div>[% END %]
 
@@ -149,8 +146,8 @@
                             [% IF relatives %]<li><a href="#opac-user-relative-issues">Relatives' checkouts</a></li>[% END %]
                             [% IF ( overdues_count ) %]<li><a href="#opac-user-overdues">Overdue ([% overdues_count | html %])</a></li>[% END %]
                             [% IF ( OPACFinesTab ) %]
-                            [% IF ( amountoutstanding > 0 ) %]<li><a href="#opac-user-fines">Charges ([% amountoutstanding | $Price %])</a></li>[% END %]
-                                [% IF ( amountoutstanding < 0 ) %]<li><a href="#opac-user-fines">Credits ([% amountoutstanding * -1 | $Price %])</a></li>[% END %]
+                            [% IF ( amountoutstanding > 0 ) %]<li><a href="#opac-user-fines">Charges ([% amountoutstanding | $Price %] SEK)</a></li>[% END %]
+                                [% IF ( amountoutstanding < 0 ) %]<li><a href="#opac-user-fines">Credits ([% amountoutstanding * -1 | $Price %] SEK)</a></li>[% END %]
                                 [% IF relatives_with_fines %]<li><a href="#opac-user-relative-fines">Relatives' fines</a></li>[% END %]
                             [% END %]
 
@@ -192,10 +189,7 @@
                                                 [% UNLESS ( item_level_itypes ) %]
                                                     <th>Item type</th>
                                                 [% END %]
-                                                [% IF ( show_barcode ) %]
                                                     <th>Barcode</th>
-                                                [% END %]
-                                                    <th>Call no.</th>
                                                 [% IF ( OpacRenewalAllowed && !( logged_in_user.is_expired && logged_in_user.category.effective_BlockExpiredPatronOpacActions ) ) %]
                                                     <th class="nosort">Renew</th>
                                                 [% END %]
@@ -249,7 +243,11 @@
                                                 </td>[% END # / IF JacketImages %]
 
                                                 <td class="title">
+                                                    [% IF (Koha.Preference('enableOpacCatalogBrowsing') == 0) && (Koha.Preference('linkToExternalSite') == 1) %]
+                                                    <a class="title" href="[% Koha.Preference('externalSiteURL') %]?id=[% ISSUE.biblionumber | html %]">[% INCLUDE 'biblio-title.inc' biblio=ISSUE %]</a>
+                                                    [% ELSE %]
                                                     <a class="title" href="/cgi-bin/koha/opac-detail.pl?biblionumber=[% ISSUE.biblionumber | html %]">[% INCLUDE 'biblio-title.inc' biblio=ISSUE %]</a>
+                                                    [% END %]
                                                     [% IF ( ISSUE.enumchron ) %] [% ISSUE.enumchron | html %][% END %]
                                                 </td>
 
@@ -277,16 +275,10 @@
                                                         [% END %] [% ISSUE.description | html %]
                                                     </td>
                                                 [% END %]
-                                                [% IF ( show_barcode ) %]
                                                     <td class="barcode">
                                                         <span class="tdlabel">Barcode:</span>
                                                         [% ISSUE.barcode | html %]
                                                     </td>
-                                                [% END %]
-                                                <td class="call_no">
-                                                    <span class="tdlabel">Call no.:</span>
-                                                    [% ISSUE.itemcallnumber | html %]
-                                                </td>
                                                 [% IF ( OpacRenewalAllowed && !( logged_in_user.is_expired && logged_in_user.category.effective_BlockExpiredPatronOpacActions ) ) %]
                                                     <td class="renew">
                                                     [% IF ISSUE.renewed %]<span class="blabel label-success">Renewed!</span><br />[% END %]
@@ -314,10 +306,8 @@
                                                         No longer renewable
                                                     [% ELSIF ISSUE.auto_too_much_oweing %]
                                                         Automatic renewal failed, you have unpaid fines.
-                                                        <span class="renewals">([% ISSUE.renewsleft | html %] of [% ISSUE.renewsallowed | html %] renewals remaining)</span>
                                                     [% ELSIF ISSUE.auto_account_expired %]
                                                         Automatic renewal failed, your account is expired.
-                                                        <span class="renewals">([% ISSUE.renewsleft | html %] of [% ISSUE.renewsallowed | html %] renewals remaining)</span>
                                                     [% ELSIF ( ISSUE.auto_renew || ISSUE.auto_too_soon ) %]
                                                         Automatic renewal
                                                         <span class="renewals">([% ISSUE.renewsleft | html %] of [% ISSUE.renewsallowed | html %] renewals remaining)</span>
@@ -370,7 +360,6 @@
                                     <input type="submit" class="btn" value="Renew all" />
                                 </form>
                                 [% END %]
-                                <p><a href="opac-ics.pl">Download as iCal/.ics file</a></p>
                             [% ELSE %]
                                 <table class="table table-bordered table-striped">
                                     <tr><td>You have nothing checked out</td></tr>
@@ -399,17 +388,9 @@
                                     </table>
                                 </div>
                             [% END %]
-
                             [% IF ( amountoutstanding < 0 ) %]
                                 <div id="opac-user-fines">  <h3>Credits</h3>
-                                    <table class="table table-bordered table-striped">
-                                        <thead><tr><th colspan="2">Amount</th></tr></thead>
-                                        <tbody>
-                                            <tr>
-                                                <td>You have a credit of:</td><td><a href="/cgi-bin/koha/opac-account.pl">[% amountoutstanding * -1 | $Price %]</a></td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
+                                  <p>You have a credit of: <a href="/cgi-bin/koha/opac-account.pl">[% amountoutstanding | $Price %] SEK</a></p>
                                 </div>
                             [% END %]
 
@@ -490,12 +471,13 @@
                                             [% IF ( JacketImages || AdlibrisEnabled ) %]<th class="nosort">&nbsp;</th>[% END %]
                                             <th class="anti-the">Title</th>
                                             [% UNLESS ( item_level_itypes ) %]<th>Item type</th> [% END %]
-                                            [% IF ( show_barcode ) %]<th>Barcode</th>[% END %]
-                                            <th>Call no.</th>
+                                            <th>Author</th>
                                             <th class="title-string psort">Due</th>
+                                            <th>Barcode</th>
                                             [% IF ( OpacRenewalAllowed ) %]
                                                 <th class="nosort">Renew</th>
                                             [% END %]
+
                                             [% IF ( OPACFinesTab ) %]
                                                 <th>Fines</th>
                                             [% END %]
@@ -542,7 +524,10 @@
 
                                                 <td>
                                                     <a class="title" href="/cgi-bin/koha/opac-detail.pl?bib=[% OVERDUE.biblionumber | html %]">[% INCLUDE 'biblio-title.inc' biblio=OVERDUE %]</a>
-                                                    <span class="item-details">[% OVERDUE.author | html %]</span>
+                                                </td>
+
+                                                <td class="author">
+                                                    [% OVERDUE.author | html %]
                                                 </td>
 
                                                 [% UNLESS ( item_level_itypes ) %]
@@ -552,22 +537,18 @@
                                                         [% END %] [% OVERDUE.description | html %]
                                                     </td>
                                                 [% END %]
-                                                [% IF ( show_barcode ) %]
-                                                    <td>
-                                                        <span class="tdlabel">Barcode:</span>
-                                                        [% OVERDUE.barcode | html %]
-                                                    </td>
-                                                [% END %]
-                                                <td>
-                                                    <span class="tdlabel">Call no.:</span>
-                                                    [% OVERDUE.itemcallnumber | html %]
-                                                </td>
                                                 <td>
                                                     <span title="[% OVERDUE.date_due | html %]">
                                                         <span class="tdlabel">Date due:</span>
                                                         [% OVERDUE.date_due | $KohaDates  as_due_date => 1 %]
                                                     </span>
                                                 </td>
+
+                                                <td>
+                                                    <span class="tdlabel">Barcode:</span>
+                                                    [% OVERDUE.barcode %]
+                                                </td>
+
                                                 [% IF ( OpacRenewalAllowed ) %]
                                                     <td>
                                                         [% IF ( OVERDUE.debarred ) %]
@@ -586,6 +567,7 @@
                                                         [% END %]
                                                     </td>
                                                 [% END %]
+
                                                 [% IF ( OPACFinesTab ) %]
                                                     <td>
                                                         <span class="tdlabel">Fines:</span>
@@ -604,7 +586,6 @@
                         [% END # /overdues_count %]
 
                         [% PROCESS 'holds-table.inc' HOLDS = RESERVES, SuspendHoldsOpac = SuspendHoldsOpac, showpriority = showpriority, AutoResumeSuspendedHolds = AutoResumeSuspendedHolds %]
-
                         [% IF Koha.Preference('ArticleRequests') %]
                             <div id="opac-user-article-requests">
                                 [% IF logged_in_user.article_requests_current.count %]
