@@ -66,7 +66,7 @@
                         </div>
                     [% END %]
 
-                    <h3>Fines and charges</h3>
+                    <h1>Fines and charges</h1>
 
                     [% IF ( ACCOUNT_LINES ) %]
                         <form method="post" action="opac-account-pay.pl" class="form-horizontal">
@@ -76,7 +76,6 @@
                                     [% IF ENABLE_OPAC_PAYMENTS %]<th>&nbsp;</th>[% END %]
                                     <th class="title-string">Date</th>
                                     <th>Description</th>
-                                    <th>Fine amount</th>
                                     <th>Amount outstanding</th>
                                 </tr>
                             </thead>
@@ -84,9 +83,9 @@
                             <tfoot>
                             <tr>
                                 [%- IF ENABLE_OPAC_PAYMENTS -%]
-                                    [%- SET COLSPAN = 4 -%]
-                                [%- ELSE -%]
                                     [%- SET COLSPAN = 3 -%]
+                                [%- ELSE -%]
+                                    [%- SET COLSPAN = 2 -%]
                                 [%- END -%]
                                 <th class="sum" colspan="[% COLSPAN | html %]">Total due</th>
                                 <td class="sum">[% total | $Price %]</td>
@@ -95,6 +94,7 @@
 
                             <tbody>
                                 [% FOREACH ACCOUNT_LINE IN ACCOUNT_LINES %]
+                                    [% IF ACCOUNT_LINE.amountoutstanding > 0 %]
                                     [% IF ( ACCOUNT_LINE.odd ) %]<tr class="highlight">[% ELSE %]<tr>[% END %]
                                         [% IF ENABLE_OPAC_PAYMENTS %]
                                             <td>
@@ -137,6 +137,7 @@
                                         [% IF ( ACCOUNT_LINE.amountcredit ) %]<td class="credit">[% ELSE %]<td class="debit">[% END %][% ACCOUNT_LINE.amount | $Price %]</td>
                                         [% IF ( ACCOUNT_LINE.amountoutstandingcredit ) %]<td class="credit">[% ELSE %]<td class="debit">[% END %][% ACCOUNT_LINE.amountoutstanding | $Price %]</td>
                                     </tr>
+                                    [% END %]
                                 [% END %]
                             </tbody>
 
