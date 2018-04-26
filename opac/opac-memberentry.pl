@@ -299,6 +299,7 @@ elsif ( $action eq 'update' ) {
             my $patron = Koha::Patrons->find( $borrowernumber );
             $template->param(
                 action => 'edit',
+                hidden => GetHiddenFields( $mandatory, 'modification' ),
                 nochanges => 1,
                 borrower => $patron->unblessed,
                 patron_attribute_classes => GeneratePatronAttributesForm( $borrowernumber, $attributes ),
