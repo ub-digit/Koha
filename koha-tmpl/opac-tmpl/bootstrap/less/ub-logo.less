@@ -1,0 +1,83 @@
+/*
+Go to Koha/koha-tmpl/opac-tmpl and then compile this file using this command:
+lessc --clean-css="--s0 --advanced --compatibility=ie7" bootstrap/less/ub-logo.less > bootstrap/css/ub-logo.css
+
+To have Koha import your css file edit this preference in admin:
+OpacAdditionalStylesheet: ub-logo.css
+
+More info:
+https://wiki.koha-community.org/wiki/Working_with_Bootstrap_OPAC_LESS_files
+
+*/
+
+/* put your overrides here */
+/* GU-colors */
+@gu-blue: #004b89;
+
+.navbar {
+  .navbar-appname {
+    float:left;
+    color: white;
+    font-size: 22px;
+    line-height: 14px;
+    color: #fff;
+    padding: 14px 15px 14px 14px;
+  }
+  .navbar-inner {
+    background: @gu-blue;
+    border: none;
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+
+  .divider-vertical {
+    border:none;
+    border-right: 1px solid white;
+  }
+
+  #members a.logout {
+    color: inherit;
+  }
+}
+
+
+#logo {
+    background:transparent url("../images/gub-textlogo-sv.svg") no-repeat scroll 0%;
+    border: 0;
+    float : left !important;
+    margin:0;
+    padding:0;
+    border-right: 1px solid white;
+    width:144px;
+
+    a {
+        border:0;
+        cursor:pointer;
+        display:block;
+        height:0px !important;
+        margin:0;
+        overflow:hidden;
+        padding:40px 0 0;
+        text-decoration:none;
+        width:144px;
+    }
+
+  @media only screen and (max-width: 700px) {
+      /* Screens below 700 pixels wide */
+          background:transparent url("../images/gub-textlogo-sv.svg") no-repeat scroll 0%;
+          margin: 0 0 0 20px;
+          width:144px;
+          a {
+            border:0;
+            cursor:pointer;
+            display:block;
+            height:0px !important;
+            margin:0;
+            overflow:hidden;
+            padding:40px 0 0;
+            text-decoration:none;
+            width:144px;
+          }
+
+  }
+}
