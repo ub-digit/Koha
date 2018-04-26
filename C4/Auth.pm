@@ -231,6 +231,7 @@ sub get_template_and_user {
             $template->param(
                 loginprompt => 1,
                 script_name => get_script_name(),
+                lang        => C4::Languages::getlanguage(),
             );
 
             print $in->{query}->header(
@@ -550,6 +551,7 @@ sub get_template_and_user {
 
         my @search_groups = Koha::Library::Groups->get_search_groups({ interface => 'opac' });
         $template->param(
+            OpacAdditionalStylesheet              => C4::Context->preference("OpacAdditionalStylesheet"),
             AnonSuggestions                       => "" . C4::Context->preference("AnonSuggestions"),
             LibrarySearchGroups                   => \@search_groups,
             opac_name                             => $opac_name,
@@ -1237,6 +1239,8 @@ sub checkauth {
     my $template_name = ( $type eq 'opac' ) ? 'opac-auth.tt' : 'auth.tt';
     my $template = C4::Templates::gettemplate( $template_name, $type, $query );
     $template->param(
+        OpacAdditionalStylesheet              => C4::Context->preference("OpacAdditionalStylesheet"),
+        opaclayoutstylesheet                  => C4::Context->preference("opaclayoutstylesheet"),
         login                                 => 1,
         INPUTS                                => \@inputs,
         script_name                           => get_script_name(),
