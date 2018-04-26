@@ -24,7 +24,7 @@
             <div class="span10">
                 [% IF Koha.Preference( 'EnhancedMessagingPreferencesOPAC' )  %]
                 <div id="usermessaging">
-                    <h3>Your messaging settings</h3>
+                    <h1>Messages</h1>
                     [% IF ( settings_updated ) %]
                         <div class="alert alert-success"><h4>Settings updated</h4></div>
                     [% END %]
@@ -137,27 +137,10 @@
                                     <i>Please enter numbers only. <b>(123) 456-7890</b> would be entered as <b>1234567890</b>.</i>
                                 </li></ol>
                             [% END %]
-
-                            [% IF ( SMSSendDriver == 'Email' ) %]
-                                <ol><li>
-                                    <label for="sms_provider_id">SMS provider:</label>
-                                    <select id="sms_provider_id" name="sms_provider_id"/>
-                                        <option value="">Unknown</option>
-                                        [% FOREACH s IN sms_providers %]
-                                            [% IF s.id == sms_provider_id %]
-                                                <option value="[% s.id | html %]" selected="selected">[% s.name | html %]</option>
-                                            [% ELSE %]
-                                                <option value="[% s.id | html %]">[% s.name | html %]</option>
-                                            [% END %]
-                                        [% END %]
-                                    </select>
-                                    <i>Please contact a library staff member if you are unsure of your mobile service provider, or you do not see your provider in this list.</i>
-                                </li></ol>
-                            [% END %]
                         </fieldset>
 
                         <fieldset class="action">
-                          <input type="submit" value="Submit changes" class="btn" /> <a class="cancel" href="/cgi-bin/koha/opac-user.pl">Cancel</a>
+                          <input type="submit" value="Submit changes" class="btn" />
                         </fieldset>
                     </form>
                 </div> <!-- / #usermessaging -->
