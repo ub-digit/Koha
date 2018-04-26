@@ -40,6 +40,7 @@ use Koha::Library::Groups;
 use Koha::Libraries;
 use Koha::Patrons;
 use Koha::Patron::Consents;
+use C4::Members::Attributes qw( GetBorrowerAttributeValue );
 use POSIX qw/strftime/;
 use List::MoreUtils qw/ any /;
 use Encode qw( encode is_utf8);
@@ -1859,7 +1860,55 @@ sub checkpw {
     return @return;
 }
 
+
+sub checkpw_internal_personalnumber {
+    my ( $dbh, $userid, $password, $no_set_userenv ) = @_;
+    $password = Encode::encode( 'UTF-8', $password )
+      if Encode::is_utf8($password);
+
+    if ( $userid && $userid eq C4::Context->config('user') ) {
+        if ( $password && $password eq C4::Context->config('pass') ) {
+            # Koha superuser account
+            #     C4::Context->set_userenv(0,0,C4::Context->config('user'),C4::Context->config('user'),C4::Context->config('user'),"",1);
+            return 2;
+        }
+        else {
+            return 0;
+        }
+    }
+
+    my $sth =
+      $dbh->prepare(
+        "select password,cardnumber,borrowernumber,userid,firstname,surname,borrowers.branchcode,branches.branchname,flags from borrowers join branches on borrowers.branchcode=branches.branchcode where cardnumber=?"
+      );
+    $sth->execute($userid);
+    if ( $sth->rows ) {
+        my ( $stored_hash, $cardnumber, $borrowernumber, $userid, $firstname,
+            $surname, $branchcode, $branchname, $flags )
+          = $sth->fetchrow;
+
+        my $pnr12 = GetBorrowerAttributeValue($borrowernumber, "PNR12");
+        my $pnr = GetBorrowerAttributeValue($borrowernumber, "PNR");
+        my $match = "false";
+        if (($pnr12 and (($password eq $pnr12) or ($password eq substr($pnr12, 2)))) or ($pnr and (($password eq $pnr) or (substr($password, 2) eq $pnr)))) {
+          $match = "true";
+        }
+        if ($match eq "true") {
+            C4::Context->set_userenv( $borrowernumber, $userid, $cardnumber,
+                $firstname, $surname, $branchcode, $branchname, $flags ) unless $no_set_userenv;
+            return 1, $cardnumber, $userid;
+        }
+    }
+    return 0;
+}
+
 sub checkpw_internal {
+    if (C4::Context->preference("enableCardnumberAndPersonalNumberAuth")) {
+        my @isOk = checkpw_internal_personalnumber(@_);
+        if ($isOk[0] != 0) {
+            return @isOk;
+        }
+    }
     my ( $dbh, $userid, $password, $no_set_userenv ) = @_;
 
     $password = Encode::encode( 'UTF-8', $password )
