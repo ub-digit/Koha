@@ -29,7 +29,13 @@ if($cnr) {
     my $p = Koha::Patrons->search({cardnumber => $cnr})->unblessed;
     if(@$p) {
 	my $pt = $p->[0];
-	my $pnr = C4::Members::Attributes::GetBorrowerAttributeValue($pt->{borrowernumber}, "PNR");
+    my $pnr;
+    $pnr = C4::Members::Attributes::GetBorrowerAttributeValue($pt->{borrowernumber}, "PNR");
+    if(!$pnr) {
+        $pnr = C4::Members::Attributes::GetBorrowerAttributeValue($pt->{borrowernumber}, "PNR12");
+    }
+
+    $pnr = substr($pnr, -10, 10);
 
 	$patron{card_number} = $pt->{cardnumber};
 	$patron{person_number} = $pnr;
