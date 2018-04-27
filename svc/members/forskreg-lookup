@@ -28,12 +28,16 @@ my %patron = ();
 if($cnr) {
     my $p = Koha::Patrons->search({cardnumber => $cnr})->unblessed;
     if(@$p) {
-	my $pt = $p->[0];
-	my $pnr = C4::Members::Attributes::GetBorrowerAttributeValue($pt->{borrowernumber}, "PNR");
-
-	$patron{card_number} = $pt->{cardnumber};
-	$patron{person_number} = $pnr;
-	$patron{name} = $pt->{surname}.", ".$pt->{firstname};
+        my $pt = $p->[0];
+        my $pnr;
+        $pnr = C4::Members::Attributes::GetBorrowerAttributeValue($pt->{borrowernumber}, "PNR");
+        if(!$pnr) {
+            $pnr = C4::Members::Attributes::GetBorrowerAttributeValue($pt->{borrowernumber}, "PNR12");
+        }
+        $pnr = substr($pnr, -10, 10);
+        $patron{card_number} = $pt->{cardnumber};
+        $patron{person_number} = $pnr;
+        $patron{name} = $pt->{surname}.", ".$pt->{firstname};
     }
 } elsif($pnr) {
     my $dbh = C4::Context->dbh();
@@ -49,20 +53,20 @@ if($cnr) {
     my $uniq;
     my $borrowernumber;
     if ($value) {
-	$borrowernumber = $value;
+        $borrowernumber = $value;
     }
     else {
-	$borrowernumber = '';
+        $borrowernumber = '';
     }
 
     if($borrowernumber) {
-	my $p = Koha::Patrons->search({borrowernumber => $borrowernumber})->unblessed;
-	if(@$p) {
-	    my $pt = $p->[0];
-	    $patron{card_number} = $pt->{cardnumber};
-	    $patron{person_number} = $pnr;
-	    $patron{name} = $pt->{surname}.", ".$pt->{firstname};
-	}
+        my $p = Koha::Patrons->search({borrowernumber => $borrowernumber})->unblessed;
+        if(@$p) {
+            my $pt = $p->[0];
+            $patron{card_number} = $pt->{cardnumber};
+            $patron{person_number} = $pnr;
+            $patron{name} = $pt->{surname}.", ".$pt->{firstname};
+        }
     }
 }
 
