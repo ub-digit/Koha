@@ -8,6 +8,16 @@
 })(jQuery);
 
 $(document).ready(function() {
+  // format 'received issues' field in subscription summary
+  $('#subscription_summary .rows ol li:nth-child(5)').css('white-space', 'pre');
+  $('#subscription_summary .rows ol li:nth-child(5) span.label').css('display', 'block').css('float', 'none');
+
+  //remove <br> and  format 'Nonpublic note' field in subscription summary
+  $('#subscription_summary .rows ol li:nth-child(7)').contents().last()[0].textContent = $('#subscription_summary .rows ol li:nth-child(7)').contents().last()[0].textContent.split('<br />').join('\n');
+  $('#subscription_summary .rows ol li:nth-child(7)').css('white-space', 'pre');
+  $('#subscription_summary .rows ol li:nth-child(7) span.label').css('display', 'block').css('float', 'none');
+
+
 
   // save item on enter key press
   shortcut.add('Enter', function() {
@@ -31,7 +41,10 @@ $(document).ready(function() {
   });
 
   shortcut.add('F5', function() {
-    location.href = '/cgi-bin/koha/circ/circulation-home.pl#UB=checkout';
+    console.log('location.pathname ', location.pathname);
+    if (location.pathname != '/cgi-bin/koha/circ/circulation.pl') {
+      location.href = '/cgi-bin/koha/circ/circulation-home.pl#UB=checkout';
+    }
   });
 
   shortcut.add('F6', function() {
@@ -182,6 +195,14 @@ $(document).ready(function() {
     }
 
   }
+
+  // Mark personal number as required
+  var lang = $('html').attr('lang');
+  // translations 
+  var txt = lang == 'en' ? 'Required' : 'Obligatorisk';
+  $('#pat_memberentrygen #patron_attr_6').parent().append($('<span class="required">' + txt + '</span>'));
+  $('#pat_memberentrygen label[for="patron_attr_6"]').addClass('required');
+
 
   // redirect help to GU manuals
   // set correct href
