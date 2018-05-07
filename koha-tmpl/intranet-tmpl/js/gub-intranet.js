@@ -511,12 +511,12 @@ $(document).ready(function() {
     $("#pat_maninvoice #desc").attr("required", 'required');
   }
 
-
-  if ($("#pat_memberentrygen #menu ul li a[href*='/cgi-bin/koha/members/readingrec.pl']").length === 0) {
-    setTimeout(function() {
-      $("#pat_memberentrygen ol.attributes_table li input[value='INVCNT']").parent().hide();
-    }, 100);
-  }
+  setTimeout(function() {
+      if ($("#pat_memberentrygen #menu ul li a[href*='/cgi-bin/koha/members/readingrec.pl']").length === 0) {
+          $("#pat_memberentrygen ol.attributes_table li input[value='INVCNT']").parent().hide();
+          $("#pat_moremember #patron-extended-attributes #aai li span:contains('Antal fakturor:')").parent().hide()
+      }
+  }, 100);
 
   /* #### filter based on booksellerid #### */
 
