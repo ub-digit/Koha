@@ -156,7 +156,7 @@ div#advanced-search p:first-of-type {
 /* Enhance focus of checkin popup message btn */
 
 #circ_returns.circ.modal-open .btn:focus {
-    border: 1px solid #004d99;
+    border: 2px solid #004d99;
 }
 
 
