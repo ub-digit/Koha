@@ -703,7 +703,22 @@
                 </xsl:for-each>
             </span>
         </xsl:if>
-
+        <xsl:if test="marc:datafield[@tag=852]">
+            <span class="results_summary uniform_title"><span class="label">852: </span>
+                <xsl:for-each select="marc:datafield[@tag=852]">
+                    <xsl:for-each select="marc:subfield">
+                            <strong>
+                            <xsl:value-of select="@code"/>:
+                            </strong>
+                            <xsl:value-of select="text()"/>
+                            <xsl:text> </xsl:text>
+                        <xsl:if test="position() != last()">
+                        <span class="separator"><xsl:text> | </xsl:text></span>
+                    </xsl:if>
+                    </xsl:for-each>
+                </xsl:for-each>
+            </span>
+        </xsl:if>
 
         <xsl:if test="marc:datafield[substring(@tag, 1, 1) = '6' and not(@tag=655)]">
             <span class="results_summary subjects"><span class="label">Subject(s): </span>
