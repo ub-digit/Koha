@@ -24,7 +24,9 @@ $(document).ready(function() {
   });
 
   shortcut.add('F5', function() {
-    location.href = '/cgi-bin/koha/circ/circulation-home.pl#UB=checkout';
+     if (location.pathname != '/cgi-bin/koha/circ/circulation.pl') {
+       location.href = '/cgi-bin/koha/circ/circulation-home.pl#UB=checkout';
+     }
   });
 
   shortcut.add('F6', function() {
