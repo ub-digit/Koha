@@ -88,6 +88,8 @@ Using this account is not recommended because some parts of Koha will not functi
                                             <li>It is too soon after the checkout date for this item to be renewed.</li>
                                         [% ELSIF error == 'on_reserve' %]
                                             <li>This item is on hold for another borrower.</li>
+                                       [% ELSIF error == 'auto_too_soon' %]
+                                            <li class=[% error %]>Manual renew not allowed on automatic renew.</li>
                                         [% END %]
                                     [% END %]
                                 </ul>
