@@ -8,6 +8,23 @@
 })(jQuery);
 
 $(document).ready(function() {
+  // format 'received issues' field in subscription summary
+  $('#subscription_summary .rows ol li:nth-child(5)').css('white-space', 'pre');
+  $('#subscription_summary .rows ol li:nth-child(5) span.label').css('display', 'block').css('float', 'none');
+
+  //remove <br> and  format 'Nonpublic note' field in subscription summary
+  $('#subscription_summary .rows ol li:nth-child(7)').contents().last()[0].textContent = $('#subscription_summary .rows ol li:nth-child(7)').contents().last()[0].textContent.split('<br />').join('\n');
+  $('#subscription_summary .rows ol li:nth-child(7)').css('white-space', 'pre');
+  $('#subscription_summary .rows ol li:nth-child(7) span.label').css('display', 'block').css('float', 'none');
+
+
+
+  // save item on enter key press
+  shortcut.add('Enter', function() {
+    if (location.pathname === '/cgi-bin/koha/cataloguing/additem.pl') {
+      $('input[name="add_submit"]').trigger('click');
+    }
+  });
 
   shortcut.add('F1', function() {
     location.href = '/cgi-bin/koha/catalogue/search.pl';
@@ -177,6 +194,14 @@ $(document).ready(function() {
     }
 
   }
+
+  // Mark personal number as required
+  var lang = $('html').attr('lang');
+  // translations
+  var txt = lang == 'en' ? 'Required' : 'Obligatorisk';
+  $('#pat_memberentrygen #patron_attr_6').parent().append($('<span class="required">' + txt + '</span>'));
+  $('#pat_memberentrygen label[for="patron_attr_6"]').addClass('required');
+
 
   // redirect help to GU manuals
   // set correct href
