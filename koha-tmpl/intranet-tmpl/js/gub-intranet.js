@@ -199,8 +199,8 @@ $(document).ready(function() {
   var lang = $('html').attr('lang');
   // translations
   var txt = lang == 'en' ? 'Required' : 'Obligatorisk';
-  $('#pat_memberentrygen #patron_attr_6').parent().append($('<span class="required">' + txt + '</span>'));
-  $('#pat_memberentrygen label[for="patron_attr_6"]').addClass('required');
+  $('#pat_memberentrygen input[value="PNR"]').parent().append($('<span class="required">' + txt + '</span>'))
+  $('#pat_memberentrygen input[value="PNR"]').parent().find('label').eq(0).addClass('required')
 
 
   // redirect help to GU manuals
