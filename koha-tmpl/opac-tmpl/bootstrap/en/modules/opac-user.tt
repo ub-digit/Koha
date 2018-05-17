@@ -293,7 +293,7 @@ Using this account is not recommended because some parts of Koha will not functi
                                                         Automatic renewal failed, your account is expired.
                                                     [% ELSIF ( ISSUE.auto_renew || ISSUE.auto_too_soon ) %]
                                                         <span class="automatically-renewal">Automatically renewal</span>
-                                                        <span class="renewals hidden">([% ISSUE.renewsleft %] of [% ISSUE.renewsallowed %] renewals remaining)</span>
+                                                        <span class="renewals">([% ISSUE.renewsleft %] of [% ISSUE.renewsallowed %] renewals remaining)</span>
                                                     [% ELSIF ( ISSUE.too_soon ) %]
                                                         No renewal before [% ISSUE.soonestrenewdate %]
                                                         <span class="renewals">([% ISSUE.renewsleft %] of [% ISSUE.renewsallowed %] renewals remaining)</span>
