@@ -306,7 +306,7 @@
                                                         Automatic renewal failed, your account is expired.
                                                     [% ELSIF ( ISSUE.auto_renew || ISSUE.auto_too_soon ) %]
                                                         <span class="automatically-renewal">Automatically renewal</span>
-                                                        <span class="renewals hidden">([% ISSUE.renewsleft | html %] of [% ISSUE.renewsallowed | html %] renewals remaining)</span>
+                                                        <span class="renewals">([% ISSUE.renewsleft | html %] of [% ISSUE.renewsallowed | html %] renewals remaining)</span>
                                                     [% ELSIF ( ISSUE.too_soon ) %]
                                                         No renewal before [% ISSUE.soonestrenewdate | html %]
                                                         <span class="renewals">([% ISSUE.renewsleft | html %] of [% ISSUE.renewsallowed | html %] renewals remaining)</span>
