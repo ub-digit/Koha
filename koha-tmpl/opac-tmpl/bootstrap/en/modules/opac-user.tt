@@ -70,8 +70,8 @@
 
                     [% IF ( RENEW_ERROR ) %]
                         <div class="dialog alert">
-                            <strong>Please note:</strong>
-                                Your loan renewal failed because of the following reason(s):
+                            <strong class="hidden">Please note:</strong>
+                                <span class="error-header">One or more of your loans can not be renewed:</span>
                                 <ul>
                                     [% FOREACH error IN RENEW_ERROR.split('\|') %]
                                         [% IF error == 'card_expired' %]
@@ -85,7 +85,7 @@
                                         [% ELSIF error == 'item_denied_renewal' %]
                                             <li>Item renewal is not allowed.</li>
                                        [% ELSIF error == 'auto_too_soon' %]
-                                            <li class=[% error %]>Manual renew not allowed on automatic renew.</li>
+                                            <li class=[% error %]>The item will be automatically renewed at the end of the loan period, unless it has been requested by someone else. You can not renew the loan yourself.</li>
                                         [% END %]
                                     [% END %]
                                 </ul>
@@ -305,8 +305,8 @@
                                                     [% ELSIF ISSUE.auto_account_expired %]
                                                         Automatic renewal failed, your account is expired.
                                                     [% ELSIF ( ISSUE.auto_renew || ISSUE.auto_too_soon ) %]
-                                                        Automatic renewal
-                                                        <span class="renewals">([% ISSUE.renewsleft | html %] of [% ISSUE.renewsallowed | html %] renewals remaining)</span>
+                                                        <span class="automatically-renewal">Automatically renewal</span>
+                                                        <span class="renewals hidden">([% ISSUE.renewsleft | html %] of [% ISSUE.renewsallowed | html %] renewals remaining)</span>
                                                     [% ELSIF ( ISSUE.too_soon ) %]
                                                         No renewal before [% ISSUE.soonestrenewdate | html %]
                                                         <span class="renewals">([% ISSUE.renewsleft | html %] of [% ISSUE.renewsallowed | html %] renewals remaining)</span>
@@ -354,6 +354,14 @@
                                         <input type="hidden" name="item" value="[% ISSUE.itemnumber | html %]" />
                                     [% END %]
                                     <input type="submit" class="btn" value="Renew all" />
+                                    [% IF has_at_least_one_issue_auto_renewal %]
+                                    <div class="automatically-renewal-clarification">
+                                      <h4>Do you have loans that are automatically renewed?</h4>
+                                      <p>Automatically renewed means that you don't have to renew the loans yourself. They will be automatically renewed at the end of the loan period, unless the items have been requested by someone else.</p>
+                                      <p>You will receive a message when you need to return your loans. </p>
+                                      <p>Books are automatically renewed up to 35 times, which equals approximately three years. Journals are automatically renewed up to 77 times, approximately two years.</p>
+                                    </div>
+                                    [% END %]
                                 </form>
                                 [% END %]
                             [% ELSE %]
