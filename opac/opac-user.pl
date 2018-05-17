@@ -177,10 +177,14 @@ my $count          = 0;
 my $overdues_count = 0;
 my @overdues;
 my @issuedat;
+my $has_at_least_one_issue_auto_renewal = 0;
 my $itemtypes = { map { $_->{itemtype} => $_ } @{ Koha::ItemTypes->search_with_localization->unblessed } };
 my $issues = GetPendingIssues($borrowernumber);
 if ($issues){
     foreach my $issue ( sort { $b->{date_due}->datetime() cmp $a->{date_due}->datetime() } @{$issues} ) {
+        if ($issue->{'auto_renew'}) {
+            $has_at_least_one_issue_auto_renewal = 1;
+        }
         # check for reserves
         my $restype = GetReserveStatus( $issue->{'itemnumber'} );
         if ( $restype ) {
@@ -273,6 +277,7 @@ my $overduesblockrenewing = C4::Context->preference('OverduesBlockRenewing');
 $canrenew = 0 if ($overduesblockrenewing ne 'allow' and $overdues_count == $count);
 
 $template->param( ISSUES       => \@issuedat );
+$template->param(has_at_least_one_issue_auto_renewal => $has_at_least_one_issue_auto_renewal);
 $template->param( issues_count => $count );
 $template->param( canrenew     => $canrenew );
 $template->param( OVERDUES       => \@overdues );
