@@ -539,12 +539,11 @@ $(document).ready(function() {
   }
 
   setTimeout(function() {
-      if ($("#pat_memberentrygen #menu ul li a[href*='/cgi-bin/koha/members/readingrec.pl']").length === 0) {
+      if (($("#pat_memberentrygen #menu ul li a[href*='/cgi-bin/koha/members/readingrec.pl']").length === 0) && ($("#pat_moremember #menu ul li a[href*='/cgi-bin/koha/members/readingrec.pl']").length === 0)) {
           $("#pat_memberentrygen ol.attributes_table li input[value='INVCNT']").parent().hide();
           $("#pat_moremember #patron-extended-attributes #aai li span:contains('Antal fakturor:')").parent().hide()
       }
   }, 100);
-
   /* #### filter based on booksellerid #### */
 
   function getParameterByName(name, url) {
