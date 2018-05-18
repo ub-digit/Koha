@@ -1857,13 +1857,15 @@ sub RevertWaitingStatus {
 
 =head2 ReserveSlip
 
-  ReserveSlip($args => {
-      branchcode,
-      borrowernumber,
-      biblionumber,
-      [itemnumber],
-      [barcode],
-  })
+ReserveSlip(
+    {
+        branchcode     => $branchcode,
+        borrowernumber => $borrowernumber,
+        biblionumber   => $biblionumber,
+        [ itemnumber   => $itemnumber, ]
+        [ barcode      => $barcode, ]
+    }
+  )
 
 Returns letter hash ( see C4::Letters::GetPreparedLetter ) or undef
 
@@ -1881,18 +1883,34 @@ available within the slip:
 
 sub ReserveSlip {
     my ($args) = @_;
-    my $patron = Koha::Patrons->find( $args->{borrowernumber} );
+    my $branchcode     = $args->{branchcode};
+    my $borrowernumber = $args->{borrowernumber};
+    my $biblionumber   = $args->{biblionumber};
+    my $itemnumber     = $args->{itemnumber};
+    my $barcode        = $args->{barcode};
+
+
+    my $patron = Koha::Patrons->find($borrowernumber);
 
     my $hold;
-    if ($args->{itemnumber}) {
-        $hold = Koha::Holds->search({biblionumber => $args->{biblionumber}, borrowernumber => $args->{borrowernumber}, itemnumber => $args->{itemnumber} })->next;
-    } elsif ($args->{barcode}) {
-        my $itemnumber = Koha::Items->find({ barcode => $args->{barcode} });
-        if ($args->{itemnumber}) {
-            $hold = Koha::Holds->search({biblionumber => $args->{biblionumber}, borrowernumber => $args->{borrowernumber}, itemnumber => $args->{itemnumber} })->next;
-        }
-    } else {
-        $hold = Koha::Holds->search({biblionumber => $args->{biblionumber}, borrowernumber => $args->{borrowernumber} })->next;
+    if ($itemnumber || $barcode ) {
+        $itemnumber ||= Koha::Items->find( { barcode => $barcode } )->itemnumber;
+
+        $hold = Koha::Holds->search(
+            {
+                biblionumber   => $biblionumber,
+                borrowernumber => $borrowernumber,
+                itemnumber     => $itemnumber
+            }
+        )->next;
+    }
+    else {
+        $hold = Koha::Holds->search(
+            {
+                biblionumber   => $biblionumber,
+                borrowernumber => $borrowernumber
+            }
+        )->next;
     }
 
     return unless $hold;
@@ -1901,7 +1919,7 @@ sub ReserveSlip {
     return  C4::Letters::GetPreparedLetter (
         module => 'circulation',
         letter_code => 'HOLD_SLIP',
-        branchcode => $args->{branchcode},
+        branchcode => $branchcode,
         lang => $patron->lang,
         tables => {
             'reserves'    => $reserve,
