@@ -43,6 +43,8 @@ $(document).ready(function() {
   shortcut.add('F5', function() {
      if (location.pathname != '/cgi-bin/koha/circ/circulation.pl') {
        location.href = '/cgi-bin/koha/circ/circulation-home.pl#UB=checkout';
+     }else{
+        $("#circ_circulation_issue #barcode").focus();
      }
   });
 
