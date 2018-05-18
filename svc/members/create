@@ -33,7 +33,7 @@ my $debarments = $query->param('debarments');
 
 my $origin = $query->param('origin');
 
-if ($cardnumber) { 
+if ($cardnumber) {
   $borrower{'cardnumber'} = $cardnumber;
 }
 else {
@@ -111,7 +111,7 @@ if ($email) {
 my $accept_text = $query->param('accept_text');
 
 my @debarments;
-if ($debarments) { 
+if ($debarments) {
   @debarments = split /,/, $debarments;
 }
 if ("gna" ~~ @debarments) {
@@ -145,10 +145,10 @@ if ($messaging_format) {
   foreach my $messaging_option (@{$messaging_options}) {
     if ($whichActionsToTickUsingSimpleOpacMessaging{$messaging_option->{'message_name'}}) {
       if ($messaging_format eq 'sms_email') {
-        C4::Members::Messaging::SetMessagingPreference({borrowernumber => $borrowernumber, message_attribute_id => $messaging_option->{'message_attribute_id'}, message_transport_types => ["sms", "email"]});
+        C4::Members::Messaging::SetMessagingPreference({borrowernumber => $borrowernumber, message_attribute_id => $messaging_option->{'message_attribute_id'}, message_transport_types => ["sms", "email"], days_in_advance => 2});
       }
       else {
-        C4::Members::Messaging::SetMessagingPreference({borrowernumber => $borrowernumber, message_attribute_id => $messaging_option->{'message_attribute_id'}, message_transport_types => [$messaging_format]});
+        C4::Members::Messaging::SetMessagingPreference({borrowernumber => $borrowernumber, message_attribute_id => $messaging_option->{'message_attribute_id'}, message_transport_types => [$messaging_format], days_in_advance => 2});
       }
     }
   }
