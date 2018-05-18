@@ -198,7 +198,7 @@ $(document).ready(function() {
   // Mark personal number as required
   var lang = $('html').attr('lang');
   // translations
-  var txt = lang == 'en' ? 'Required' : 'Obligatorisk';
+  var txt = lang == 'en' ? 'Required' : 'Obligatoriskt';
   $('#pat_memberentrygen input[value="PNR"]').parent().append($('<span class="required">' + txt + '</span>'))
   $('#pat_memberentrygen input[value="PNR"]').parent().find('label').eq(0).addClass('required')
 
