@@ -144,12 +144,13 @@ if ($messaging_format) {
   my %whichActionsToTickUsingSimpleOpacMessaging = map { $_ => 1 } (split /\|/, C4::Context->preference('whichActionsToTickUsingSimpleOpacMessaging')); # split the string to array and then convert to hash to use keys for easy checking
   foreach my $messaging_option (@{$messaging_options}) {
     if ($whichActionsToTickUsingSimpleOpacMessaging{$messaging_option->{'message_name'}}) {
-      if ($messaging_format eq 'sms_email') {
-        C4::Members::Messaging::SetMessagingPreference({borrowernumber => $borrowernumber, message_attribute_id => $messaging_option->{'message_attribute_id'}, message_transport_types => ["sms", "email"]});
-      }
-      else {
-        C4::Members::Messaging::SetMessagingPreference({borrowernumber => $borrowernumber, message_attribute_id => $messaging_option->{'message_attribute_id'}, message_transport_types => [$messaging_format]});
-      }
+      my $message_attribute_id = $messaging_option->{'message_attribute_id'};
+      my $message_transport_types = $messaging_format eq 'sms_email' ? ["sms", "email"] : [$messaging_format];
+      my $days_in_advance = $message_attribute_id eq 2 ? 2 : undef;
+      C4::Members::Messaging::SetMessagingPreference({borrowernumber => $borrowernumber,
+                                                      message_attribute_id => $message_attribute_id,
+                                                      message_transport_types => $message_transport_types,
+                                                      days_in_advance => $days_in_advance});
     }
   }
 }
