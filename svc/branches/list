@@ -28,13 +28,23 @@ my @list;
 foreach my $branch (@branches) {
     #    die(Dumper($branch->unblessed));
     my $br = $branch->unblessed;
-    my @categories = $branch->get_categories();
-    my @cats = map { $_->categorycode } @categories;
+
+    #    my @categories = $branch->get_categories();
+    #    my @cats = map { $_->categorycode } @categories;
+
+
+    my @categories = ();
+    my $groups = $branch->library_groups()->as_list;
+    foreach my $group (@$groups) {
+        push(@categories, $group->parent()->description());
+    }
+
+
     push(@list, {
-	"branchname" => $br->{'branchname'},
-	"branchcode" => $br->{'branchcode'},
-	"categories" => \@cats
-	 });
+        "branchname" => $br->{'branchname'},
+        "branchcode" => $br->{'branchcode'},
+        "categories" => \@categories
+         });
 }
 
 print $query->header(-type => 'text/xml',-charset => 'utf-8');
