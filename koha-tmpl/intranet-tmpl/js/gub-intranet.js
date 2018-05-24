@@ -13,9 +13,11 @@ $(document).ready(function() {
   $('#subscription_summary .rows ol li:nth-child(5) span.label').css('display', 'block').css('float', 'none');
 
   //remove <br> and  format 'Nonpublic note' field in subscription summary
-  $('#subscription_summary .rows ol li:nth-child(7)').contents().last()[0].textContent = $('#subscription_summary .rows ol li:nth-child(7)').contents().last()[0].textContent.split('<br />').join('\n');
-  $('#subscription_summary .rows ol li:nth-child(7)').css('white-space', 'pre');
-  $('#subscription_summary .rows ol li:nth-child(7) span.label').css('display', 'block').css('float', 'none');
+  if($('#subscription_summary .rows ol li:nth-child(7)').contents().last()[0]){
+    $('#subscription_summary .rows ol li:nth-child(7)').contents().last()[0].textContent = $('#subscription_summary .rows ol li:nth-child(7)').contents().last()[0].textContent.split('<br />').join('\n');
+    $('#subscription_summary .rows ol li:nth-child(7)').css('white-space', 'pre');
+    $('#subscription_summary .rows ol li:nth-child(7) span.label').css('display', 'block').css('float', 'none');
+   }
 
 
 
