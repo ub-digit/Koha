@@ -84,7 +84,7 @@
                                             <li>This item is on hold for another borrower.</li>
                                         [% ELSIF error == 'item_denied_renewal' %]
                                             <li>Item renewal is not allowed.</li>
-                                       [% ELSIF error == 'auto_too_soon' %]
+                                       [% ELSIF error == 'auto_too_soon' || error == 'auto_renew' %]
                                             <li class=[% error %]>The item will be automatically renewed at the end of the loan period, unless it has been requested by someone else. You can not renew the loan yourself.</li>
                                         [% END %]
                                     [% END %]
