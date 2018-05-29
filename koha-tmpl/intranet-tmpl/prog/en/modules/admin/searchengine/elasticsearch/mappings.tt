@@ -79,6 +79,12 @@ a.add, a.delete {
         [% CASE 'error_on_delete' %]
           An error occurred when deleting the existing mappings. Nothing has been changed!
           (search field [% m.values.field_name | html %] with mapping [% m.values.marc_field | html %].)
+        [% CASE 'error_on_update_es_mappings' %]
+          An error occurred when updating Elasticsearch index mappings: [% m.message | html %].
+        [% CASE 'reindex_required' %]
+          Index "[% m.index | html %]" needs to be reindexed
+        [% CASE 'recreate_required' %]
+          Index "[% m.index | html %]" needs to be recreated
         [% CASE 'success_on_update' %]
           Mappings updated successfully.
         [% CASE 'success_on_reset' %]
