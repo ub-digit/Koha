@@ -92,8 +92,6 @@ use MARC::Record;
 use Modern::Perl;
 use Pod::Usage;
 
-use Data::Dumper; # TODO remove
-
 my $verbose = 0;
 my $commit = 5000;
 my ($delete, $help, $man);
@@ -168,6 +166,11 @@ sub do_reindex {
     elsif (!$indexer->index_exists()) {
         # Create index if does not exist
         $indexer->create_index();
+    } elsif ($indexer->index_status_ok) {
+        # Update mapping unless index is some kind of problematic state
+        $indexer->update_mappings();
+    } elsif ($indexer->index_status_recreate_required) {
+        warn qq/Index "$index_name" has status "recreate required", suggesting it should be recreated/;
     }
 
     my $count        = 0;
