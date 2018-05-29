@@ -46,7 +46,17 @@ unless ($biblionumber) {
   exit 0;
 }
 
+# Delete all possible reserves for this item and biblio
+my $holds;
+$holds = $itemobj->current_holds;
+while (my $hold = $holds->next) {
+  $hold->delete();
+}
 
+$holds = Koha::Biblios->find($biblionumber)->current_holds;
+while (my $hold = $holds->next) {
+  $hold->delete();
+}
 
 my $delstatus = DelItemCheck($biblionumber, $itemnumber);
 unless ($delstatus == 1) {
