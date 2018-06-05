@@ -47,8 +47,8 @@ my $manual_url = Koha::Manual::get_url($refer, $language);
 
 print $query->redirect($manual_url);
 
-my $rules = GetMarcPermissionsRules();
-my $modules = GetMarcPermissionsModules();
+my $rules = GetMarcMergeRules();
+my $modules = GetMarcMergeRulesModules();
 $template->param( rules => $rules, modules => $modules );
 
 output_html_with_http_headers $query, "", $template->output;

@@ -307,8 +307,8 @@ Cataloging:
             - "Use of TY ( record type ) as a key will <i>replace</i> the default TY with the field value of your choosing."
         -
             - When importing records
-            - pref: MARCPermissions
+            - pref: MARCMergeRules
               choices:
                   yes: "use"
                   no: "don't use"
-            - MARC permissions rules to decide which action to take for each field.
+            - MARC merge rules to decide which action to take for each field.

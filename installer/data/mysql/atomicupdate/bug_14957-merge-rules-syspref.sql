@@ -1,0 +1,1 @@
+INSERT IGNORE INTO systempreferences ( `variable`, `value`, `options`, `explanation`, `type` ) VALUES ('MARCMergeRules','0','','Use the MARC merge rules system to decide what actions to take for each field when modifying records.','YesNo');
