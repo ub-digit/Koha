@@ -73,6 +73,7 @@ BEGIN {
         ModMarcPermissionsRule
         AddMarcPermissionsRule
         DelMarcPermissionsRule
+        ApplyMarcMergeRules
 
     );
 
@@ -296,12 +297,12 @@ sub ModBiblio {
 
     _strip_item_fields($record, $frameworkcode);
 
-    # apply permissions
-    if (C4::Context->preference('MARCPermissions') && $biblionumber && defined $options && exists $options->{'context'}) {
-        $record = ApplyMarcPermissions({
+    # apply merge rules
+    if (C4::Context->preference('MARCMergeRules') && $biblionumber && defined $options && exists $options->{'context'}) {
+        $record = ApplyMarcMergeRules({
                 biblionumber => $biblionumber,
                 record => $record,
-                filter => $options->{'context'},
+                context => $options->{'context'},
             }
         );
     }
@@ -3645,13 +3646,13 @@ sub RemoveAllNsb {
     return $record;
 }
 
-=head2 ApplyMarcPermissions
+=head2 ApplyMarcMergeRules
 
-    my $record = ApplyMarcPermissions($arguments)
+    my $record = ApplyMarcMergeRules($params)
 
-Applies marc permission rules to a record.
+Applies marc merge rules to a record.
 
-C<$arguments> is expected to be a hashref with below keys defined.
+C<$params> is expected to be a hashref with below keys defined.
 
 =over 4
 
@@ -3659,25 +3660,16 @@ C<$arguments> is expected to be a hashref with below keys defined.
 biblionumber of old record
 
 =item C<record>
-record that will modify old record
+Incoming record that will be merged with old record
 
-=item C<frameworkcode>
-only tags included in framework will be processed
-
-=item C<filter>
-hashref containing at least one filter module from the marc_permissions_modules
-table in form {module => filter}. Three predefined filter modules exists:
+=item C<context>
+hashref containing at least one module from marc_merge_rules_modules table
+with filter value on the form {module => filter, ...}. Three predefined
+context modules exists:
 
     * source
     * category
     * borrower
-
-=item C<log>
-optional reference to array that will be filled with rule evaluation log
-entries.
-
-=item C<nolog>
-optional boolean which when true disables logging to action log.
 
 =back
 
@@ -3687,545 +3679,38 @@ Returns:
 
 =item C<$record>
 
-new MARC record based on C<record> with C<filter> applied. If no old
+Merged MARC record based with merge rules for C<context> applied. If no old
 record for C<biblionumber> can be found, C<record> is returned unchanged.
-Default action when no matching filter found is to leave old record unchanged.
+Default action when no matching context is found to return C<record> unchanged.
+If no rules are found for a certain field tag the default is to overwrite with
+fields with this field tag from C<record>.
 
 =back
 
 =cut
 
-sub ApplyMarcPermissions {
-    my ($arguments) = @_;
-    my $biblionumber = $arguments->{biblionumber};
-    my $incoming_record = $arguments->{record};
+sub ApplyMarcMergeRules {
+    my ($params) = @_;
+    my $biblionumber = $params->{biblionumber};
+    my $incoming_record = $params->{record};
 
-    if ( !$biblionumber ) {
-        carp 'ApplyMarcPermissions called on undefined biblionumber';
+    if (!$biblionumber) {
+        carp 'ApplyMarcMergeRules called on undefined biblionumber';
         return;
     }
-    if ( !$incoming_record ) {
-        carp 'ApplyMarcPermissions called on undefined record';
+    if (!$incoming_record) {
+        carp 'ApplyMarcMergeRules called on undefined record';
         return;
     }
     my $old_record = GetMarcBiblio({ biblionumber => $biblionumber });
 
-    my $merge_rules = undef;
-    if ($old_record && $arguments->{filter} && ($merge_rules = GetMarcPermissions($arguments->{filter}))) {
-        return MergeRecords($old_record, $incoming_record, $merge_rules);
+    # Skip merge rules if called with no context
+    if ($old_record && defined $params->{context}) {
+        return Koha::MarcMergeRules->merge_records($old_record, $incoming_record, $params->{context});
     }
     return $incoming_record;
 }
 
-sub MergeRecords {
-    my ($old_record, $incoming_record, $merge_rules) = @_;
-    my $is_matching_regex = sub {
-        my ( $tag, $m ) = @_;
-
-        # tag is not exactly same as possible regex
-        $tag ne $m &&
-
-        # wildcard
-        $m ne '*' &&
-
-        # valid tagDataType
-        $m !~ /^(0[1-9A-z][\dA-Z]) |
-        ([1-9A-z][\dA-z]{2})$/x &&
-
-        # nor valid controltagDataType
-        $m !~ /00[1-9A-Za-z]{1}/ &&
-
-        # so we try it as a regex
-        $tag =~ /^$m$/
-    };
-
-    my $fields_by_tag = sub {
-        my ($record) = @_;
-        my $fields = {};
-        foreach my $field ($record->fields()) {
-            $fields->{$field->tag()} //= [];
-            push @{$fields->{$field->tag()}}, $field;
-        }
-        return $fields;
-    };
-
-    my $hash_field_data = sub {
-        my ($field) = @_;
-        my $indicators = join("\x1E", map { $field->indicator($_) } (1, 2));
-        return $indicators . "\x1E" . join("\x1E", sort map { join "\x1E", @{$_} } $field->subfields());
-    };
-
-    my $diff_by_key = sub {
-        my ($a, $b) = @_;
-        my @removed;
-        my @intersecting;
-        my @added;
-        my %keys_index = map { $_ => undef } (keys %{$a}, keys %{$b});
-        foreach my $key (keys %keys_index) {
-            if ($a->{$key} && $b->{$key}) {
-                push @intersecting, $a->{$key};
-            }
-            elsif ($a->{$key}) {
-                push @removed, $a->{$key};
-            }
-            else {
-                push @added, $b->{$key};
-            }
-        }
-        return (\@removed, \@intersecting, \@added);
-    };
-
-    my $get_matching_field_rule = sub {
-        my ($tag) = @_;
-        my $matched_rule = undef;
-        # Exact match takes precedence
-        if (exists $merge_rules->{$tag}) {
-            $matched_rule = $merge_rules->{$tag};
-        }
-        else {
-            # TODO: sorty by module/weight rule id or something, grab first matching via listutils thingy
-            my @matching_rules = map { $merge_rules->{$_} } grep { $is_matching_regex->($tag, $_) } sort keys %{$merge_rules};
-            # TODO: fix
-            if (@matching_rules) {
-                $matched_rule = pop @matching_rules;
-            }
-            elsif($merge_rules->{'*'}) {
-                $matched_rule = $merge_rules->{'*'};
-            }
-        }
-        return $matched_rule;
-    };
-
-    my $merged_record = MARC::Record->new();
-    my @merged_record_fields;
-
-    # Leader is always overwritten, or kept???
-    $merged_record->leader($incoming_record->leader());
-
-    my $current_fields = $fields_by_tag->($old_record);
-    my $incoming_fields = $fields_by_tag->($incoming_record);
-
-    # First we get all new incoming control fields
-    my @new_field_tags = grep { !(exists $current_fields->{$_}) } keys %{$incoming_fields};
-
-    foreach my $tag (@new_field_tags) {
-        my $rule = $get_matching_field_rule->($tag) // {
-            on_new => {'action' => 'skip', 'rule' => 0}
-        };
-        if (
-            $rule->{on_new}->{action} eq 'add' ||
-            $rule->{on_new}->{action} eq 'overwrite' # ???
-        ) { # Or could just be write/protect?
-            # Hmm, only one control field possible??
-            push @merged_record_fields, @{$incoming_fields->{$tag}};
-        }
-    }
-
-    # Then we get all control fields no longer present in incoming fields
-    # (removed)
-    my @deleted_field_tags = grep { !(exists $incoming_fields->{$_}) } keys %{$current_fields};
-    foreach my $tag (@deleted_field_tags) {
-        my $rule = $get_matching_field_rule->($tag) // {
-            on_deleted => {'action' => 'skip', 'rule' => 0}
-        };
-        if ($rule->{on_deleted}->{action} eq 'skip') {
-            push @merged_record_fields, @{$current_fields->{$tag}};
-        }
-    }
-
-    # Then we get the intersection of control fields, present both in
-    # current and incoming record (possibly to be overwritten)
-    my @common_field_tags = grep { exists $incoming_fields->{$_} } keys %{$current_fields};
-    foreach my $tag (@common_field_tags) {
-        # Is control field
-        my $rule = $get_matching_field_rule->($tag) // {
-            on_removed => {'action' => 'skip', 'rule' => 0},
-            on_appended => {'action' => 'skip', 'rule' => 0}
-        };
-        if ($tag < 10) {
-            # on_existing = on_match
-            if ($rule->{on_appended}->{action} eq 'skip') { # TODO: replace with "protect", "keep"
-                push @merged_record_fields, @{$current_fields->{$tag}};
-            }
-            elsif ($rule->{on_appended}->{action} eq 'append') {
-                push @merged_record_fields, @{$incoming_fields->{$tag}};
-            }
-            if (
-                $rule->{on_appended}->{action} eq 'append' &&
-                $rule->{on_removed}->{action} eq 'skip'
-            ) {
-                #TODO: This is an invalid combination for control fields, warn!!
-                # Or should perform client/server side validation to prevent this choice
-            }
-        }
-        else {
-            # Compute intersection and diff using field data
-            my %current_fields_by_data = map { $hash_field_data->($_) => $_ } @{$current_fields->{$tag}};
-            my %incoming_fields_by_data = map { $hash_field_data->($_) => $_ } @{$incoming_fields->{$tag}};
-            my ($current_fields_only, $common_fields, $incoming_fields_only) = $diff_by_key->(\%current_fields_by_data, \%incoming_fields_by_data);
-
-            # First add common fields (intersection)
-            # Unchanged
-            if (@{$common_fields}) {
-                push @merged_record_fields, @{$common_fields};
-            }
-            # Removed
-            if (@{$current_fields_only}) {
-                if ($rule->{on_removed}->{action} eq 'skip') {
-                    push @merged_record_fields, @{$current_fields_only};
-                }
-            }
-            # Appended
-            if (@{$incoming_fields_only}) {
-                if ($rule->{on_appended}->{action} eq 'append') {
-                    push @merged_record_fields, @{$incoming_fields_only};
-                }
-            }
-        }
-    }
-    if ($#merged_record_fields != 0) {
-        $merged_record->insert_fields_ordered(@merged_record_fields);
-    }
-    return $merged_record;
-}
-
-=head2 GetMarcPermissions
-
-    my $marc_permissions = GetMarcPermissions()
-
-Loads MARC field permissions from the marc_permissions table.
-
-Returns:
-
-=over 4
-
-=item C<$marc_permissions>
-
-hashref with permissions structure for use with GetMarcPermissionsAction.
-
-=back
-
-=cut
-
-sub GetMarcPermissions {
-    my ($filter) = @_;
-    my $dbh = C4::Context->dbh;
-    my $rule_count = 0;
-    my $modules = GetMarcPermissionsModules();
-    # We only care about modules included in the context/filter
-    # TODO: Perhaps make sure source => '*' is default?
-    my @filter_modules = grep { exists $filter->{$_->{name}} } @{$modules};
-
-    my $cache = Koha::Caches->get_instance();
-    my $permissions = $cache->get_from_cache('marc_permissions', { unsafe => 1 });
-
-    if (!$permissions) {
-        my $query = '
-            SELECT `marc_permissions`.*,
-                `marc_permissions_modules`.`name`,
-                `marc_permissions_modules`.`description`,
-                `marc_permissions_modules`.`specificity`
-                FROM `marc_permissions`
-                LEFT JOIN `marc_permissions_modules` ON `module` = `marc_permissions_modules`.`id`
-                ORDER BY `marc_permissions_modules`.`specificity`, `id`
-        ';
-        my $sth = $dbh->prepare($query);
-        $sth->execute();
-        while (my $perm = $sth->fetchrow_hashref) {
-            my $target = ($permissions->{$perm->{name}}->{$perm->{filter}}->{$perm->{tagfield}} //= {});
-            foreach my $event (GetMarcPermissionEvents()) {
-                $target->{$event} = { action => $perm->{$event}, rule => $perm->{'id'} };
-            }
-        }
-        $cache->set_in_cache('marc_permissions', $permissions);
-    }
-
-    my $filtered_permissions = undef;
-    foreach my $module (@filter_modules) {
-        if (
-            exists $permissions->{$module->{name}} &&
-            exists $permissions->{$module->{name}}->{$filter->{$module->{name}}}
-        ) {
-            # TODO: Support multiple overlapping filters/context??
-            $filtered_permissions = $permissions->{$module->{name}}->{$filter->{$module->{name}}};
-            last;
-        }
-    }
-    if (!$filtered_permissions) {
-        # No perms matching specific context conditions found, try wildcard value for each active context
-        foreach my $module (@filter_modules) {
-            if (exists $permissions->{$module->{name}}->{'*'}) {
-                $filtered_permissions = $permissions->{$module->{name}}->{'*'};
-                last;
-            }
-        }
-    }
-    return $filtered_permissions;
-}
-
-# TODO: Use this in GetMarcPermissions
-=head2 GetMarcPermissionsRules
-
-    my $rules = GetMarcPermissionsRules()
-
-Returns:
-
-=over 4
-
-=item C<$rules>
-
-array (in list context, arrayref otherwise) of hashrefs from marc_permissions
-table in order of module specificity and rule id.
-
-=back
-
-=cut
-
-sub GetMarcPermissionsRules {
-    my $dbh = C4::Context->dbh;
-    my @rules = ();
-
-    my $query = '
-    SELECT `marc_permissions`.`id`,
-           `marc_permissions`.`tagfield`,
-           `marc_permissions`.`filter`,
-           `marc_permissions`.`on_new`,
-           `marc_permissions`.`on_appended`,
-           `marc_permissions`.`on_removed`,
-           `marc_permissions`.`on_deleted`,
-           `marc_permissions_modules`.`name` as  `module`,
-           `marc_permissions_modules`.`description`,
-           `marc_permissions_modules`.`specificity`
-    FROM `marc_permissions`
-    LEFT JOIN `marc_permissions_modules` ON `module` = `marc_permissions_modules`.`id`
-    ORDER BY `marc_permissions_modules`.`specificity`, `id`
-    ';
-    my $sth = $dbh->prepare($query);
-    $sth->execute();
-    while ( my $row = $sth->fetchrow_hashref ) {
-        push(@rules, $row);
-    }
-
-    return wantarray ? @rules : \@rules;
-}
-
-=head2 GetMarcPermissionsModules
-
-    my $modules = GetMarcPermissionsModules()
-
-Returns:
-
-=over 4
-
-=item C<$modules>
-
-array (in list context, arrayref otherwise) of hashrefs from
-marc_permissions_modules table in order of specificity.
-
-=back
-
-=cut
-
-sub GetMarcPermissionsModules {
-    my $dbh = C4::Context->dbh;
-    my @modules = ();
-
-    my $query = '
-    SELECT *
-    FROM `marc_permissions_modules`
-    ORDER BY `specificity` DESC
-    ';
-    my $sth = $dbh->prepare($query);
-    $sth->execute();
-    while ( my $row = $sth->fetchrow_hashref ) {
-        push(@modules, $row);
-    }
-
-    return wantarray ? @modules : \@modules;
-}
-
-sub GetMarcPermissionEvents {
-    return ('on_new', 'on_appended', 'on_removed', 'on_deleted');
-}
-
-=head2 ModMarcPermissionsRule
-
-    my $success = ModMarcPermissionsRule($id, $fields)
-
-Modifies rule in the marc_permissions table.
-
-=over 4
-
-=item C<$id>
-
-rule id to modify
-
-=item C<$fields>
-
-hashref defining the table fields
-
-      * tagfield - required
-      * module - required
-      * filter - required
-      * on_new - required
-      * on_appended - required
-      * on_removed - required
-      * on_deleted - required
-
-=back
-
-Returns:
-
-=over 4
-
-=item C<$success>
-
-undef if an error occurs, otherwise true.
-
-=back
-
-=cut
-
-sub ModMarcPermissionsRule {
-    my ($id, $f) = @_;
-    my $dbh = C4::Context->dbh;
-
-    my $query = '
-    UPDATE `marc_permissions`
-    SET
-      tagfield = ?,
-      module = ?,
-      filter = ?,
-      on_new = ?,
-      on_appended = ?,
-      on_removed = ?,
-      on_deleted = ?
-    WHERE
-      id = ?
-    ';
-    my $sth = $dbh->prepare($query);
-    my $result = $sth->execute (
-        $f->{tagfield},
-        $f->{module},
-        $f->{filter},
-        $f->{on_new},
-        $f->{on_appended},
-        $f->{on_removed},
-        $f->{on_deleted},
-        $id
-    );
-    ClearMarcPermissionsRulesCache();
-    return $result;
-}
-
-sub ClearMarcPermissionsRulesCache {
-    my $cache = Koha::Caches->get_instance();
-    $cache->clear_from_cache('marc_permissions');
-}
-
-=head2 AddMarcPermissionsRule
-
-    my $success = AddMarcPermissionsRule($fields)
-
-Add rule to the marc_permissions table.
-
-=over 4
-
-=item C<$fields>
-
-hashref defining the table fields
-
-      tagfield - required
-      module - required
-      filter - required
-      on_new - required
-      on_appended - required
-      on_removed - required
-      on_deleted - required
-
-=back
-
-Returns:
-
-=over 4
-
-=item C<$success>
-
-undef if an error occurs, otherwise true.
-
-=back
-
-=cut
-
-sub AddMarcPermissionsRule {
-    my $f = shift;
-    my $dbh = C4::Context->dbh;
-    my $query = '
-    INSERT INTO `marc_permissions`
-    (
-      tagfield,
-      module,
-      filter,
-      on_new,
-      on_appended,
-      on_removed,
-      on_deleted
-    )
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-    ';
-    my $sth = $dbh->prepare($query);
-    my $result = $sth->execute (
-        $f->{tagfield},
-        $f->{module},
-        $f->{filter},
-        $f->{on_new},
-        $f->{on_appended},
-        $f->{on_removed},
-        $f->{on_deleted}
-    );
-    ClearMarcPermissionsRulesCache();
-    return $result;
-}
-
-=head2 DelMarcPermissionsRule
-
-    my $success = DelMarcPermissionsRule($id)
-
-Deletes rule from the marc_permissions table.
-
-=over 4
-
-=item C<$id>
-
-rule id to delete
-
-=back
-
-Returns:
-
-=over 4
-
-=item C<$success>
-
-undef if an error occurs, otherwise true.
-
-=back
-
-=cut
-
-sub DelMarcPermissionsRule {
-    my $id = shift;
-    my $dbh = C4::Context->dbh;
-    my $query = '
-    DELETE FROM `marc_permissions`
-    WHERE
-      id = ?
-    ';
-    my $sth = $dbh->prepare($query);
-    my $result = $sth->execute($id);
-    ClearMarcPermissionsRulesCache();
-    return $result;
-}
 1;
 
 __END__
