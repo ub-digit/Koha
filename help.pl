@@ -75,8 +75,8 @@ if ( $help_version =~ m|^(\d+)\.(\d{2}).*$| ) {
 }
 $template->param( helpVersion => $help_version );
 
-my $rules = GetMarcPermissionsRules();
-my $modules = GetMarcPermissionsModules();
+my $rules = GetMarcMergeRules();
+my $modules = GetMarcMergeRulesModules();
 $template->param( rules => $rules, modules => $modules );
 
 output_html_with_http_headers $query, "", $template->output;
