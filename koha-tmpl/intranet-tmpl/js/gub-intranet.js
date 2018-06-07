@@ -22,9 +22,11 @@ $(document).ready(function() {
 
 
   // save item on enter key press
-  shortcut.add('Enter', function() {
-    if (location.pathname === '/cgi-bin/koha/cataloguing/additem.pl') {
-      $('input[name="add_submit"]').trigger('click');
+  $(document).keypress(function(e) {
+    if(e.which == 13) {
+      if (location.pathname === '/cgi-bin/koha/cataloguing/additem.pl') {
+        $('input[name="add_submit"]').trigger('click');
+      }
     }
   });
 
