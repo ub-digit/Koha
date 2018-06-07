@@ -70,23 +70,23 @@ my $country = $query->param('country');
 if ($country) {
   $borrower{'country'} = $country;
 }
-my $b_address = $query->param('B_address');
+my $b_address = $query->param('b_address');
 if ($b_address) {
   $borrower{'B_address'} = $b_address;
 }
-my $b_address2 = $query->param('B_address2');
+my $b_address2 = $query->param('b_address2');
 if ($b_address2) {
   $borrower{'B_address2'} = $b_address2;
 }
-my $b_zipcode = $query->param('B_zipcode');
+my $b_zipcode = $query->param('b_zipcode');
 if ($b_zipcode) {
   $borrower{'B_zipcode'} = $b_zipcode;
 }
-my $b_city = $query->param('B_city');
+my $b_city = $query->param('b_city');
 if ($b_city) {
   $borrower{'B_city'} = $b_city;
 }
-my $b_country = $query->param('B_country');
+my $b_country = $query->param('b_country');
 if ($b_country) {
   $borrower{'B_country'} = $b_country;
 }
