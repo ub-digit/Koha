@@ -49,6 +49,7 @@ my $output_dir;
 my $log;
 my $maxdays;
 my $verify_issue;
+my $from_date;
 
 my $command_line_options = join(" ",@ARGV);
 
@@ -59,6 +60,7 @@ GetOptions(
     'o|out:s'   => \$output_dir,
     'm|maxdays:i' => \$maxdays,
     'i|verifyissue' => \$verify_issue,
+    'd|from-date:s' => \$from_date,
 );
 my $usage = << 'ENDUSAGE';
 
@@ -140,12 +142,22 @@ for my $overdue ( @{$overdues} ) {
       : ( $control eq 'PatronLibrary' )   ? $patron->branchcode
       :                                     $overdue->{branchcode};
 
+    unless ($branchcode) {
+        next;
+    }
+
 # In final case, CircControl must be PickupLibrary. (branchcode comes from issues table here).
     if ( !exists $is_holiday{$branchcode} ) {
         $is_holiday{$branchcode} = set_holiday( $branchcode, $today );
     }
 
-    my $datedue = dt_from_string( $overdue->{date_due} );
+    my $datedue;
+    if ($from_date and dt_from_string($from_date) > dt_from_string($overdue->{date_due})) {
+      $datedue = dt_from_string( $from_date );
+    }
+    else {
+      $datedue = dt_from_string( $overdue->{date_due} );
+    }
     if ( DateTime->compare( $datedue, $today ) == 1 ) {
         next;    # not overdue
     }
