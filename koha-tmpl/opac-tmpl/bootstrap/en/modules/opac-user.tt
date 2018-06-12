@@ -349,12 +349,12 @@
                                         [% END # /FOREACH ISSUES %]
                                     </tbody>
                                 </table>
-                                [% IF ( canrenew && !userdebarred && OpacRenewalAllowed && !( borrower.is_expired && borrower.category.effective_BlockExpiredPatronOpacActions ) ) %]
+                                [% IF ( canrenew && (!userdebarred || allowed_despite_restriction) && OpacRenewalAllowed && !( borrower.is_expired && borrower.category.effective_BlockExpiredPatronOpacActions ) ) %]
                                     <input type="submit" class="btn" value="Renew selected" />
                                 [% END %]
                                 </form>
 
-                                [% IF ( canrenew && !userdebarred && OpacRenewalAllowed && !( borrower.is_expired && borrower.category.effective_BlockExpiredPatronOpacActions ) ) %]
+                                [% IF ( canrenew && (!userdebarred || allowed_despite_restriction) && OpacRenewalAllowed && !( borrower.is_expired && borrower.category.effective_BlockExpiredPatronOpacActions ) ) %]
                                 <form id="renewall" action="/cgi-bin/koha/opac-renew.pl" method="post">
                                     <input type="hidden" name="from" value="opac_user" />
                                     <input type="hidden" name="borrowernumber" value="[% borrowernumber %]" />
@@ -910,7 +910,7 @@
             });
 
             [% IF ( GoogleJackets ) %]KOHA.Google.GetCoverFromIsbn();[% END %]
-            [% IF ( OpacRenewalAllowed && canrenew && !userdebarred ) %]
+            [% IF ( OpacRenewalAllowed && canrenew && (!userdebarred || allowed_despite_restriction)) %]
                 $("#renewselected").submit(function(){
                     valid = false;
                     $("input[type=checkbox]").each(function(){
@@ -931,7 +931,7 @@
                     e.preventDefault();
                     $("#renewall").submit();
                 });
-                [% IF ( canrenew && !userdebarred && OpacRenewalAllowed && !( borrower.is_expired && borrower.category.effective_BlockExpiredPatronOpacActions ) ) %]
+                [% IF ( canrenew && (!userdebarred || allowed_despite_restriction) && OpacRenewalAllowed && !( borrower.is_expired && borrower.category.effective_BlockExpiredPatronOpacActions ) ) %]
                     $("#checkoutst caption").append("<div id=\"renewcontrols\"><a id=\"renewselected_link\" href=\"#\">"+_("Renew selected")+"</a> <a id=\"renewall_link\" href=\"#\">"+_("Renew all")+"</a></div>");
                 [% END %]
             [% END %]
