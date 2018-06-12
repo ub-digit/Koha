@@ -97,6 +97,7 @@ my ($warning_year, $warning_month, $warning_day) = split /-/, $borr->{'dateexpir
 
 my $debar = Koha::Patrons->find( $borrowernumber )->is_debarred;
 my $userdebarred;
+my $allowed_despite_restriction = 1;
 if (C4::Context->preference( 'OPACShowDetailedDebarments')) {
     our $restrictionCodeList = [];
     if ( $borr->{'gonenoaddress'}){push $restrictionCodeList, "ADDRESS_MISSING"};
@@ -107,6 +108,9 @@ if (C4::Context->preference( 'OPACShowDetailedDebarments')) {
     foreach $hashref (@$debarments){
         $commentstring = %$hashref{'comment'};
         (($key, $cmt) = $commentstring =~m/^(OVERDUES_PROCESS)\s*(.*)$/) || (($key, $cmt) = $commentstring =~ m/^([^, ]+)[, ]+[^:]*(?:: (.*))?$/);
+        if($key ne "OVERDUES_PROCESS") {
+            $allowed_despite_restriction = 0;
+        }
         $borr->{"${key}comment"}  = $cmt;
         push $restrictionCodeList, $key;
     }
@@ -128,7 +132,7 @@ if ($debar) {
     $template->param( 'discharge_available' => $available && Koha::Patron::Discharge::is_discharged({borrowernumber => $borrowernumber}) );
 }
 
-if ( $userdebarred || $borr->{'gonenoaddress'} || $borr->{'lost'} ) {
+if ( ($userdebarred  && !$allowed_despite_restriction) || $borr->{'gonenoaddress'} || $borr->{'lost'} ) {
     $borr->{'flagged'} = 1;
     $canrenew = 0;
 }
@@ -311,6 +315,7 @@ $template->param( ISSUES       => \@issuedat );
 $template->param(has_at_least_one_issue_auto_renewal => $has_at_least_one_issue_auto_renewal);
 $template->param( issues_count => $count );
 $template->param( canrenew     => $canrenew );
+$template->param( allowed_despite_restriction => $allowed_despite_restriction);
 $template->param( OVERDUES       => \@overdues );
 $template->param( overdues_count => $overdues_count );
 
