@@ -13,17 +13,17 @@ $(document).ready(function() {
   $('#subscription_summary .rows ol li:nth-child(5) span.label').css('display', 'block').css('float', 'none');
 
   //remove <br> and  format 'Nonpublic note' field in subscription summary
-  if($('#subscription_summary .rows ol li:nth-child(7)').contents().last()[0]){
+  if ($('#subscription_summary .rows ol li:nth-child(7)').contents().last()[0]) {
     $('#subscription_summary .rows ol li:nth-child(7)').contents().last()[0].textContent = $('#subscription_summary .rows ol li:nth-child(7)').contents().last()[0].textContent.split('<br />').join('\n');
     $('#subscription_summary .rows ol li:nth-child(7)').css('white-space', 'pre');
     $('#subscription_summary .rows ol li:nth-child(7) span.label').css('display', 'block').css('float', 'none');
-   }
+  }
 
 
 
   // save item on enter key press
   $(document).keypress(function(e) {
-    if(e.which == 13) {
+    if (e.which == 13) {
       if (location.pathname === '/cgi-bin/koha/cataloguing/additem.pl') {
         $('input[name="add_submit"]').trigger('click');
       }
@@ -45,11 +45,11 @@ $(document).ready(function() {
   });
 
   shortcut.add('F5', function() {
-     if (location.pathname != '/cgi-bin/koha/circ/circulation.pl') {
-       location.href = '/cgi-bin/koha/circ/circulation-home.pl#UB=checkout';
-     }else{
-        $("#circ_circulation_issue #barcode").focus();
-     }
+    if (location.pathname != '/cgi-bin/koha/circ/circulation.pl') {
+      location.href = '/cgi-bin/koha/circ/circulation-home.pl#UB=checkout';
+    } else {
+      $("#circ_circulation_issue #barcode").focus();
+    }
   });
 
   shortcut.add('F6', function() {
@@ -205,8 +205,9 @@ $(document).ready(function() {
   var lang = $('html').attr('lang');
   // translations
   var txt = lang == 'en' ? 'Required' : 'Obligatoriskt';
-  $('#pat_memberentrygen input[value="PNR"]').parent().append($('<span class="required">' + txt + '</span>'))
-  $('#pat_memberentrygen input[value="PNR"]').parent().find('label').eq(0).addClass('required')
+  $('#pat_memberentrygen input[value="PNR"]').parent().append($('<span class="required">' + txt + '</span>'));
+  $('#pat_memberentrygen input[value="PNR"]').parent().find('label').eq(0).addClass('required');
+  $('#pat_memberentrygen input[value="PNR"]').parent().find('textarea').eq(0).attr('required', 'required');
 
 
   // redirect help to GU manuals
@@ -545,10 +546,10 @@ $(document).ready(function() {
   }
 
   setTimeout(function() {
-      if (($("#pat_memberentrygen #menu ul li a[href*='/cgi-bin/koha/members/readingrec.pl']").length === 0) && ($("#pat_moremember #menu ul li a[href*='/cgi-bin/koha/members/readingrec.pl']").length === 0)) {
-          $("#pat_memberentrygen ol.attributes_table li input[value='INVCNT']").parent().hide();
-          $("#pat_moremember #patron-extended-attributes #aai li span:contains('Antal fakturor:')").parent().hide()
-      }
+    if (($("#pat_memberentrygen #menu ul li a[href*='/cgi-bin/koha/members/readingrec.pl']").length === 0) && ($("#pat_moremember #menu ul li a[href*='/cgi-bin/koha/members/readingrec.pl']").length === 0)) {
+      $("#pat_memberentrygen ol.attributes_table li input[value='INVCNT']").parent().hide();
+      $("#pat_moremember #patron-extended-attributes #aai li span:contains('Antal fakturor:')").parent().hide()
+    }
   }, 100);
   /* #### filter based on booksellerid #### */
 
