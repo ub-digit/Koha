@@ -1,3 +1,8 @@
 .breadcrumb {
-  display:none;
+    display: none;
+}
+
+#opac-user .auto_too_soon:not(:first-child),
+#opac-user .auto_renew:not(:first-child) {
+    display: none;
 }
