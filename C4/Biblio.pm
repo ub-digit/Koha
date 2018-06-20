@@ -100,11 +100,6 @@ BEGIN {
       &CountItemsIssued
       &CountBiblioInOrders
 
-      &GetMarcMergeRules
-      &GetMarcMergeRulesModules
-      &ModMarcMergeRulesRule
-      &AddMarcMergeRulesRule
-      &DelMarcMergeRulesRule
     );
 
     # To modify something
