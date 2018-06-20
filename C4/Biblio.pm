@@ -68,11 +68,6 @@ BEGIN {
         TransformHtmlToMarc
         TransformHtmlToXml
         prepare_host_field
-        GetMarcPermissionsRules
-        GetMarcPermissionsModules
-        ModMarcPermissionsRule
-        AddMarcPermissionsRule
-        DelMarcPermissionsRule
         ApplyMarcMergeRules
 
     );
