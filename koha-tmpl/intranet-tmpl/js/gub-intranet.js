@@ -212,7 +212,7 @@ $(document).ready(function() {
 
   // redirect help to GU manuals
   // set correct href
-  $('a#helper').attr('href', 'https://medarbetarportalen.gu.se/internwebb-ub/projekt-och-forandringar/nys/utbildningar-i-koha/');
+  $('a#helper').attr('href', 'https://medarbetarportalen.gu.se/internwebb-ub/snabbhjalp-i-disken/');
   // remove default behaviour
   $('a#helper').off('click');
   // open in blank window
