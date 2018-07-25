@@ -19,16 +19,19 @@ $(document).ready(function() {
     $('#subscription_summary .rows ol li:nth-child(7) span.label').css('display', 'block').css('float', 'none');
   }
 
-
-
-  // save item on enter key press
-  $(document).keypress(function(e) {
-    if (e.which == 13) {
-      if (location.pathname === '/cgi-bin/koha/cataloguing/additem.pl') {
-        $('input[name="add_submit"]').trigger('click');
+  // Save item on enter key press unless some other form has focus
+  var $add_item_div = $('#cataloguing_additem_newitem');
+  if ($add_item_div.length) {
+    $add_item_div.find('input').add(document).keypress(function(e) {
+      if (e.which == 13) {
+        var $focused_element = $(':focus');
+        if(!$focused_element || $focused_element.closest('#cataloguing_additem_newitem').length) {
+          e.preventDefault();
+          $('#addsingle input[name="add_submit"]').trigger('click');
+        }
       }
-    }
-  });
+    });
+  }
 
   shortcut.add('F1', function() {
     location.href = '/cgi-bin/koha/catalogue/search.pl';
