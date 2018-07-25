@@ -19,16 +19,13 @@ $(document).ready(function() {
     $('#subscription_summary .rows ol li:nth-child(7) span.label').css('display', 'block').css('float', 'none');
   }
 
-  // Save item on enter key press unless some other form has focus
+  // Save item on enter key if text input in form has focus
   var $add_item_div = $('#cataloguing_additem_newitem');
   if ($add_item_div.length) {
-    $add_item_div.find('input').add(document).keypress(function(e) {
+    $add_item_div.find('input[type="text"]').keypress(function(e) {
       if (e.which == 13) {
-        var $focused_element = $(':focus');
-        if(!$focused_element || $focused_element.closest('#cataloguing_additem_newitem').length) {
-          e.preventDefault();
-          $('#addsingle input[name="add_submit"]').trigger('click');
-        }
+        e.preventDefault();
+        $('#addsingle input[name="add_submit"]').trigger('click');
       }
     });
   }
