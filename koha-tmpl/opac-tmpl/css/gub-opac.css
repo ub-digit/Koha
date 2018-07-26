@@ -2,11 +2,26 @@
     display: none;
 }
 
-#opac-user .card_expired:not(:first-child),
-#opac-user .too_many:not(:first-child),
-#opac-user .too_soon:not(:first-child),
-#opac-user .on_reserve:not(:first-child),
-#opac-user .auto_too_soon:not(:first-child),
-#opac-user .auto_renew:not(:first-child) {
+#opac-user li.card_expired ~ li.card_expired {
+    display: none;
+}
+
+#opac-user li.too_many ~ li.too_many {
+    display: none;
+}
+
+#opac-user li.too_soon ~ li.too_soon {
+    display: none;
+}
+
+#opac-user li.on_reserve ~ li.on_reserve {
+    display: none;
+}
+
+#opac-user li.auto_too_soon ~ li.auto_too_soon {
+    display: none;
+}
+
+#opac-user li.auto_renew ~ li.auto_renew {
     display: none;
 }
