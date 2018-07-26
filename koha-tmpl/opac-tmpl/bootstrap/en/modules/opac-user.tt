@@ -75,13 +75,13 @@
                                 <ul>
                                     [% FOREACH error IN RENEW_ERROR.split('\|') %]
                                         [% IF error == 'card_expired' %]
-                                            <li>Your account has expired. Please contact the library for more information.</li>
+                                            <li class="card_expired">Your account has expired. Please contact the library for more information.</li>
                                         [% ELSIF error == 'too_many' %]
-                                            <li>You have renewed this item the maximum number of times allowed.</li>
+                                            <li class="too_many">You have renewed this item the maximum number of times allowed.</li>
                                         [% ELSIF error == 'too_soon' %]
-                                            <li>It is too soon after the checkout date for this item to be renewed.</li>
+                                            <li class="too_soon">It is too soon after the checkout date for this item to be renewed.</li>
                                         [% ELSIF error == 'on_reserve' %]
-                                            <li>This item is on hold for another borrower.</li>
+                                            <li class="on_reserve">This item is on hold for another borrower.</li>
                                         [% ELSIF error == 'item_denied_renewal' %]
                                             <li>Item renewal is not allowed.</li>
                                        [% ELSIF error == 'auto_too_soon' || error == 'auto_renew' %]
