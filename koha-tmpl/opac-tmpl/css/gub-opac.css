@@ -2,6 +2,10 @@
     display: none;
 }
 
+#opac-user .card_expired:not(:first-child),
+#opac-user .too_many:not(:first-child),
+#opac-user .too_soon:not(:first-child),
+#opac-user .on_reserve:not(:first-child),
 #opac-user .auto_too_soon:not(:first-child),
 #opac-user .auto_renew:not(:first-child) {
     display: none;
