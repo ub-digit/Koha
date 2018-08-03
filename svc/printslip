@@ -1,0 +1,94 @@
+#!/usr/bin/perl
+
+# =======================================================================================
+# OBS!
+# Detta är inte färdig kod att köra. Det är ett experiment och ett förberedande inför
+# att vår Firefox-plugin kommer sluta fungera och slip-utskrifter kommer behöva ske
+# från servern istället.
+# =======================================================================================
+
+# Copyright 2008 LibLime
+#
+# This file is part of Koha.
+#
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+#
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
+
+use Modern::Perl;
+use C4::Context;
+use C4::Output;
+use CGI qw ( -utf8 );
+use C4::Auth qw/:DEFAULT get_session/;
+use C4::Reserves;
+
+use vars qw($debug);
+
+BEGIN {
+    $debug = $ENV{DEBUG} || 0;
+}
+
+my $input = new CGI;
+my $sessionID = $input->cookie("CGISESSID");
+my $session = get_session($sessionID);
+
+my $biblionumber = $input->param('biblionumber');
+my $borrowernumber = $input->param('borrowernumber');
+
+my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
+    {
+        template_name   => "circ/printslip.tt",
+        query           => $input,
+        type            => "intranet",
+        authnotrequired => 0,
+        flagsrequired   => { circulate => "circulate_remaining_permissions" },
+        debug           => $debug,
+    }
+);
+
+my $userenv = C4::Context->userenv;
+my ($slip, $is_html);
+if ( my $letter = ReserveSlip ($session->param('branch') || $userenv->{branch}, $borrowernumber, $biblionumber) ) {
+    $slip = $letter->{content};
+    $is_html = $letter->{is_html};
+}
+$template->param( slip => $slip ) if ($slip);
+$template->param( caller => 'hold-transfer' );
+$template->param( plain => !$is_html );
+
+my $KOHAROOT = "/home/koha/koha-staging/current";
+my $KOHATMPL = "${KOHAROOT}/koha-tmpl";
+
+my $out = $template->output;
+
+$out =~ s,href="/intranet-tmpl,href="${KOHATMPL}/intranet-tmpl,g;
+$out =~ s,intranet-tmpl(.*)_\d\d\.\d\d\d\d\d\d\d\.,intranet-tmpl$1.,g;
+$out =~ s,import url\("/intranet-tmpl,import url\("${KOHATMPL}/intranet-tmpl,g;
+$out =~ s,<style type="text/css">,<style type="text/css">\@page {size: A5; margin: 0} #receipt { margin: 5mm 5mm 5mm 10mm !important; } ,;
+
+open(OUTPUTFILE, ">/tmp/outputfile.html");
+binmode( OUTPUTFILE, ":utf8" );
+print OUTPUTFILE $out;
+close OUTPUTFILE;
+
+system('google-chrome --headless --no-sandbox --disable-gpu --print-to-pdf="/tmp/outputfile.pdf" "/tmp/outputfile.html"');
+
+print "Content-type: text/html; charset='UTF-8'\r\n\r\n";
+print "Wrote file...\r\n";
+print "<pre>\n";
+print "$slip";
+print "</pre>\n";
+
+use Data::Dumper;
+print "<pre>\n";
+print Dumper(\%ENV);
+print "</pre>\n";
