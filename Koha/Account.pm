@@ -120,6 +120,22 @@ sub pay {
             && $fine->debit_type_code
             && ( $fine->debit_type_code eq 'LOST' ) )
         {
+            # When paying for Lost items, check if there is an accruing fine (FU) for the same item,
+            # and set it to non-accruing.
+
+            my @accruing_fines = Koha::Account::Lines->search(
+                {
+                    borrowernumber => $self->{patron_id},
+                    accounttype => 'FU',
+                    itemnumber => $fine->itemnumber
+                });
+
+            if(@accruing_fines) {
+                my $accruing_fine = $accruing_fines[0];
+                $accruing_fine->set({accounttype => 'F'});
+                $accruing_fine->store();
+            }
+
             C4::Circulation::ReturnLostItem( $self->{patron_id}, $fine->itemnumber );
         }
 
