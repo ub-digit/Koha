@@ -118,6 +118,7 @@ if ("gna" ~~ @debarments) {
   $borrower{'gonenoaddress'} = 1;
 }
 
+$borrower{'sms_provider_id'} = 1;
 
 my ($borrowernumber, $password) = AddMember_Opac(%borrower);
 
