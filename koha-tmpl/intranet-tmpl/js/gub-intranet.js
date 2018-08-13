@@ -212,7 +212,7 @@ $(document).ready(function() {
 
   // redirect help to GU manuals
   // set correct href
-  $('a#helper').attr('href', 'https://medarbetarportalen.gu.se/internwebb-ub/snabbhjalp-i-disken/');
+  $('a#helper').attr('href', 'https://medarbetarportalen.gu.se/internwebb-ub/support-och-instruktioner/koha-manualer/');
   // remove default behaviour
   $('a#helper').off('click');
   // open in blank window
