@@ -246,7 +246,8 @@
 
                                                 <td class="title">
                                                     [% IF (Koha.Preference('enableOpacCatalogBrowsing') == 0) && (Koha.Preference('linkToExternalSite') == 1) %]
-                                                    <a class="title" href="[% Koha.Preference('externalSiteURL') %]?id=[% ISSUE.biblionumber | html %]">[% INCLUDE 'biblio-title.inc' biblio=ISSUE %]</a>
+                                                    [% bibid = ISSUE.biblionumber %]
+                                                    <a class="title" href="[% external_url(bibid) %]">[% INCLUDE 'biblio-title.inc' biblio=ISSUE %]</a>
                                                     [% ELSE %]
                                                     <a class="title" href="/cgi-bin/koha/opac-detail.pl?biblionumber=[% ISSUE.biblionumber | html %]">[% INCLUDE 'biblio-title.inc' biblio=ISSUE %]</a>
                                                     [% END %]
