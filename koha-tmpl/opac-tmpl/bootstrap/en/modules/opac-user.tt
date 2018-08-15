@@ -223,7 +223,8 @@
 
                                                 <td class="title">
                                                     [% IF (Koha.Preference('enableOpacCatalogBrowsing') == 0) && (Koha.Preference('linkToExternalSite') == 1) %]
-                                                        <a class="title" href="[% Koha.Preference('externalSiteURL') %]?id=[% ISSUE.biblionumber %]">[% ISSUE.title |html %] [% FOREACH subtitl IN ISSUE.subtitle %] [% subtitl.subfield %][% END %]</a>
+                                                        [% bibid = ISSUE.biblionumber %]
+                                                        <a class="title" href="[% external_url(bibid) %]">[% ISSUE.title |html %] [% FOREACH subtitl IN ISSUE.subtitle %] [% subtitl.subfield %][% END %]</a>
                                                     [% ELSE %]
                                                         <a class="title" href="/cgi-bin/koha/opac-detail.pl?biblionumber=[% ISSUE.biblionumber %]">[% ISSUE.title |html %] [% FOREACH subtitl IN ISSUE.subtitle %] [% subtitl.subfield %][% END %]</a>TES
                                                     [% END %]
@@ -583,7 +584,12 @@
                                             <tr>
                                         [% END %]
                                             <td class="title">
-                                                <a class="title" href="/cgi-bin/koha/opac-detail.pl?biblionumber=[% RESERVE.biblionumber %]">
+                                                [% IF !Koha.Preference('enableOpacCatalogBrowsing') && Koha.Preference('linkToExternalSite') %]
+                                                    [% bibid = RESERVE.biblionumber %]
+                                                    <a class="title" href="[% external_url(bibid) %]">
+                                                [% ELSE %]
+                                                    <a class="title" href="/cgi-bin/koha/opac-detail.pl?biblionumber=[% RESERVE.biblionumber %]">
+                                                [% END %]
                                                     [% RESERVE.biblio.title %]
                                                     [% FOREACH s IN RESERVE.biblio.subtitles %]
                                                         [% s %]
