@@ -25,7 +25,11 @@ $(document).ready(function() {
     $add_item_div.find('input[type="text"]').keypress(function(e) {
       if (e.which == 13) {
         e.preventDefault();
-        $('#addsingle input[name="add_submit"]').trigger('click');
+        if (($('#add_multiple_copies_submit:visible').length > 0)) {
+          $('#add_multiple_copies_submit').trigger('click');
+        } else {
+          $('#addsingle input[name="add_submit"]').trigger('click');
+        }
       }
     });
   }
@@ -482,13 +486,17 @@ $(document).ready(function() {
     */
 
     if ($('#catalog_moredetail').length) {
-      $(".bibliodetails select[name='itemlost']").each(function(index) {
-        if (this.value === "2") {
-          $(this).find('option').attr('disabled', 'disabled')
-        } else {
-          $(this).find('option[value="2"]').attr('disabled', 'disabled')
+      setTimeout(function() {
+        if (($('#catalog_moredetail #menu ul li a[href*="/cgi-bin/koha/tools/viewlog.pl"]').length === 0)) {
+          $('.bibliodetails select[name="itemlost"]').each(function(index) {
+            if (this.value === '2') {
+              $(this).find('option').attr('disabled', 'disabled');
+            } else {
+              $(this).find('option[value="2"]').attr('disabled', 'disabled');
+            }
+          })
         }
-      })
+      }, 100);
     }
 
 
