@@ -486,13 +486,17 @@ $(document).ready(function() {
     */
 
     if ($('#catalog_moredetail').length) {
-      $(".bibliodetails select[name='itemlost']").each(function(index) {
-        if (this.value === "2") {
-          $(this).find('option').attr('disabled', 'disabled')
-        } else {
-          $(this).find('option[value="2"]').attr('disabled', 'disabled')
+      setTimeout(function() {
+        if (($('#catalog_moredetail #menu ul li a[href*="/cgi-bin/koha/tools/viewlog.pl"]').length === 0)) {
+          $('.bibliodetails select[name="itemlost"]').each(function(index) {
+            if (this.value === '2') {
+              $(this).find('option').attr('disabled', 'disabled');
+            } else {
+              $(this).find('option[value="2"]').attr('disabled', 'disabled');
+            }
+          })
         }
-      })
+      }, 100);
     }
 
 
