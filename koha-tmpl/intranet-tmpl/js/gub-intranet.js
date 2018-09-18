@@ -25,7 +25,11 @@ $(document).ready(function() {
     $add_item_div.find('input[type="text"]').keypress(function(e) {
       if (e.which == 13) {
         e.preventDefault();
-        $('#addsingle input[name="add_submit"]').trigger('click');
+        if (($('#add_multiple_copies_submit:visible').length > 0)) {
+          $('#add_multiple_copies_submit').trigger('click');
+        } else {
+          $('#addsingle input[name="add_submit"]').trigger('click');
+        }
       }
     });
   }
