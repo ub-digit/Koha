@@ -184,21 +184,21 @@ $(document).ready(function() {
 
   }
 
-      // set status as not yet in transit when home branch and location doesnt match
-    if ($('#catalog_detail').length) {
-      $('#holdings_table tbody tr').each(function() {
-            var lang = $('html').attr('lang');
-            // translations
-            var txt = lang == 'en' ? 'Not yet in transit' : 'Ännu ej under transport';
-            var item = $(this);
-            var homebranch = item.find('.homebranch').text().trim();
-            var location = item.find('.location').text().trim();
-            var status = item.find('.status').text().trim();
-            if (status === "Available" && homebranch.indexOf(location) < 0) {
-                item.find('.status').html('<span>' + txt + '<span>');
-            }
-        });
-    }
+  // set status as not yet in transit when home branch and location doesnt match
+  if ($('#catalog_detail').length) {
+    $('#holdings_table tbody tr').each(function() {
+      var lang = $('html').attr('lang');
+      // translations
+      var txt = lang == 'en' ? 'Not yet in transit' : 'Ännu ej under transport';
+      var item = $(this);
+      var homebranch = item.find('.homebranch').text().trim();
+      var location = item.find('.location').text().trim();
+      var status = item.find('.status').text().trim();
+      if (status === "Available" && homebranch.indexOf(location) < 0) {
+        item.find('.status').html('<span>' + txt + '<span>');
+      }
+    });
+  }
   // Mark personal number as required
   var lang = $('html').attr('lang');
   // translations
@@ -279,6 +279,17 @@ $(document).ready(function() {
       hidden_elements.push($('#overlay_action').closest('fieldset').get(0));
       hidden_elements.push($('#parse_itemsyes').closest('fieldset').get(0));
       $(hidden_elements).hide();
+
+      // Add link to allow uploading authority posts
+      var lang = $('html').attr('lang');
+      // translations
+      var txt = lang == 'en' ? 'Show advanced options' : 'Visa avancerade inställningar';
+      var options_link = $('<a href="#" style="display:block; padding-bottom:10px;">' + txt + '</a>');
+      options_link.on('click', function(e) {
+        e.preventDefault();
+        $(hidden_elements).show();
+      });
+      $('#mainformsubmit').closest('fieldset').prepend(options_link);
     }
     // Detect manage marc import page
     else if ($('#tools_manage-marc-import').length) {
