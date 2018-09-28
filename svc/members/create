@@ -10,6 +10,7 @@ use C4::Auth qw/check_api_auth/;
 use C4::Members;
 use C4::Members::Attributes qw( SetBorrowerAttributes );
 
+use Koha::Patron;
 use Koha::Patron::Debarments;
 use C4::Members::Messaging;
 
@@ -120,7 +121,8 @@ if ("gna" ~~ @debarments) {
 
 $borrower{'sms_provider_id'} = 1;
 
-my ($borrowernumber, $password) = AddMember_Opac(%borrower);
+my $patron = Koha::Patron->new({%borrower})->store;
+my $borrowernumber = $patron->borrowernumber;
 
 if ($origin and $origin eq "gukort") {
   SetBorrowerAttributes($borrowernumber, [{code => "PNR12", value => $personalnumber}, {code => "PNR", value => substr($personalnumber, 2)}, {code => "ACCEPT", value => $accept_text}, {code => "IMPORT", value => "gukort"}]);
