@@ -68,7 +68,7 @@ my $can_reserve =
   ? CanItemBeReserved( $borrowernumber, $itemnumber )
   : CanBookBeReserved( $borrowernumber, $biblionumber );
 
-unless ($can_reserve eq 'OK') {
+unless ($can_reserve->{status} eq 'OK') {
   print $query->header(-type => 'text/xml', -status => '403');
   print XMLout({ status => "Reserve cannot be placed. Reason: $can_reserve", error_code => "$can_reserve" }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
   exit 0;
