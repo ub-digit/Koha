@@ -457,6 +457,8 @@ if ( $op eq 'insert' || $op eq 'save') {
               }
           }
       }
+      delete $newdata{"opacmessaging-simple-radios"};
+      delete $newdata{"simple-messaging"};
     }
 }
 
