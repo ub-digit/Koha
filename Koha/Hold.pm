@@ -186,7 +186,6 @@ sub set_waiting {
     my $patron = Koha::Patrons->find( {borrowernumber => $self->borrowernumber} );
     my $item = Koha::Items->find( $self->itemnumber() );
     my $hold = Koha::Holds->find( $self->reserve_id );
-#    my $lastpickupdate = C4::Reserves->GetLastPickupDate( $hold, $item, $patron);
 
     # Get the controlbranch
     my $controlbranch = C4::Reserves->GetReservesControlBranch( $item, $patron );
@@ -198,9 +197,6 @@ sub set_waiting {
         $branchcode = $patron->branchcode;
     }
 
-     warn $branchcode;
-     warn $patron->categorycode;
-     warn $item->itype;
      my $issuingrule = Koha::IssuingRules->get_effective_issuing_rule({
              branchcode   => $branchcode,
              categorycode => $patron->categorycode,
@@ -208,11 +204,23 @@ sub set_waiting {
      });
 
     if ( defined $issuingrule->holdspickupwait && $issuingrule->holdspickupwait > 0) {
-        $expirationdate->add(days => $issuingrule->holdspickupwait);
+        if ( defined($issuingrule) && defined $issuingrule->holdspickupwait && $issuingrule->holdspickupwait > 0 ) {
+            #If holdspickupwait is <=      0, it means this feature is disabled for this type of material.
+            if ($cancel_on_holidays) {
+                $expirationdate->add(days => $issuingrule->holdspickupwait);
+            } else {
+                 $expirationdate->add(days => $issuingrule->holdspickupwait);
+                 my $is_holiday = $calendar->is_holiday( $expirationdate );
+                 while ( $is_holiday ) {
+                     $expirationdate->add( days => 1 );
+                     $is_holiday = $calendar->is_holiday( $expirationdate );
+                 }
+             }
+         }
     }
 
     if ( C4::Context->preference("ExcludeHolidaysFromMaxPickUpDelay") ) {
-        $expirationdate = $calendar->days_forward( dt_from_string(), $issuingrule->{holdspickupwait} );
+        $expirationdate = $calendar->days_forward( dt_from_string(), $issuingrule->holdspickupwait );
     }
 
     # If patron's requested expiration date is prior to the
