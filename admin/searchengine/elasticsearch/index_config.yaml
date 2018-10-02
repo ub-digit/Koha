@@ -1,6 +1,9 @@
 ---
 # Index configuration that defines how different analyzers work.
 index:
+  mapping:
+    total_fields:
+      limit: 5000
   analysis:
     analyzer:
       # Phrase analyzer is used for phrases (phrase match, sorting)

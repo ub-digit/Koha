@@ -528,7 +528,7 @@ if ((!$nok) and $nodouble and ($op eq 'insert' or $op eq 'save')){
         }
 
         my $patron = Koha::Patrons->find( $borrowernumber );
-        $newdata{debarredcomment} = $newdata{debarred_comment};
+        #$newdata{debarredcomment} = $newdata{debarred_comment};
         delete $newdata{debarred_comment};
         delete $newdata{password2};
         $patron->set(\%newdata)->store if scalar(keys %newdata) > 1; # bug 4508 - avoid crash if we're not
