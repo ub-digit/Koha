@@ -109,6 +109,7 @@ use Koha::Holds;
 use Koha::ItemTypes;
 use Koha::SearchEngine;
 use Koha::Libraries;
+use Koha::MarcMergeRules;
 
 use vars qw($debug $cgi_debug);
 
