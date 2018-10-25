@@ -208,6 +208,19 @@ $(document).ready(function(){
 
 <h1>Manage MARC merge rules</h1>
 
+[% FOR m IN messages %]
+  <div class="dialog [% m.type | html %]">
+    [% SWITCH m.code %]
+    [% CASE 'invalid_tag_regexp' %]
+      Invalid regular expression "[% m.tag | html %]".
+    [% CASE 'invalid_control_field_actions' %]
+      Invalid combination of actions for tag [% m.tag | html %]. Control field rules do not allow "Appended: Append" and "Removed: Skip".
+    [% CASE %]
+      [% m.code | html %]
+    [% END %]
+  </div>
+[% END %]
+
 [% UNLESS Koha.Preference( 'MARCMergeRules' ) %]
     <div class="dialog message">
         The <b>MARCMergeRules</b> preference is not set, don't forget to enable it for rules to take effect.

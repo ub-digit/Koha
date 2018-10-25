@@ -16,6 +16,8 @@ package Koha::MarcMergeRule;
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
 use Modern::Perl;
+use Koha::Exceptions::MarcMergeRule;
+use Try::Tiny;
 
 use parent qw(Koha::Object);
 
@@ -26,6 +28,31 @@ my $cache = Koha::Caches->get_instance();
 Koha::MarcMergeRule - Koha SearchField Object class
 
 =cut
+
+sub set {
+    my $self = shift @_;
+    my ($rule_data) =  @_;
+
+    if ($rule_data->{tag} ne '*') {
+        eval { qr/$rule_data->{tag}/ };
+        if ($@) {
+            Koha::Exceptions::MarcMergeRule::InvalidTagRegExp->throw(
+                "Invalid tag regular expression"
+            );
+        }
+    }
+    if (
+        $rule_data->{tag} < 10 &&
+        $rule_data->{append} &&
+        !$rule_data->{remove}
+    ) {
+        Koha::Exceptions::MarcMergeRule::InvalidControlFieldActions->throw(
+            "Combination of allow append and skip remove not permitted for control fields"
+        );
+    }
+
+    $self->SUPER::set(@_);
+}
 
 sub store {
     my $self = shift @_;

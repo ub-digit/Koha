@@ -18,6 +18,7 @@ package Koha::MarcMergeRules;
 use Modern::Perl;
 use List::Util qw(first);
 use Koha::MarcMergeRule;
+use Carp;
 
 use parent qw(Koha::Objects);
 
@@ -50,7 +51,7 @@ sub context_rules {
 
     my $rules = $cache->get_from_cache('marc_merge_rules', { unsafe => 1 });
 
-    if (!$rules || 1) {
+    if (!$rules) {
         $rules = {};
         my @rules_rows = $self->_resultset()->search(
             undef,
@@ -206,43 +207,63 @@ sub merge_records {
         }
     }
 
-    # Then we get the intersection of control fields, present both in
+    # Then we get the intersection of fields, present both in
     # current and incoming record (possibly to be overwritten)
     my @common_field_tags = grep { exists $incoming_fields->{$_} } keys %{$current_fields};
     foreach my $tag (@common_field_tags) {
         my $rule = $get_matching_field_rule->($tag);
-        # Compute intersection and diff using field data
-        my $sort_weight = 0;
-        my %current_fields_by_data = map { $hash_field_data->($_) => [$sort_weight++, $_] } @{$current_fields->{$tag}};
 
-        # Always put incoming fields after current fields
-        my %incoming_fields_by_data = map { $hash_field_data->($_) => [$sort_weight++, $_] } @{$incoming_fields->{$tag}};
-
-        my ($current_fields_only, $common_fields, $incoming_fields_only) = $diff_by_key->(\%current_fields_by_data, \%incoming_fields_by_data);
-
-        my @merged_fields;
-
-        # First add common fields (intersection)
-        # Unchanged
-        if (@{$common_fields}) {
-            push @merged_fields, @{$common_fields};
-        }
-        # Removed
-        if (@{$current_fields_only}) {
-            if (!$rule->{remove}->{allow}) {
-                push @merged_fields, @{$current_fields_only};
+        # Special handling for control fields
+        if ($tag < 10) {
+            if (
+                $rule->{append}->{allow} &&
+                !$rule->{remove}->{allow}
+            ) {
+                # This should be highly unlikely since we have input validation to protect against this case
+                carp "Allowing \"append\" and skipping \"remove\" is not permitted for control fields, falling back to skipping both \"append\" and \"remove\"";
+                push @{$merged_record_fields{$tag}}, @{$current_fields->{$tag}};
+            }
+            elsif ($rule->{append}->{allow}) {
+                push @{$merged_record_fields{$tag}}, @{$incoming_fields->{$tag}};
+            }
+            else {
+                push @{$merged_record_fields{$tag}}, @{$current_fields->{$tag}};
             }
         }
-        # Appended
-        if (@{$incoming_fields_only}) {
-            if ($rule->{append}->{allow}) {
-                push @merged_fields, @{$incoming_fields_only};
-            }
-        }
-        $merged_record_fields{$tag} //= [];
+        else {
+            # Compute intersection and diff using field data
+            my $sort_weight = 0;
+            my %current_fields_by_data = map { $hash_field_data->($_) => [$sort_weight++, $_] } @{$current_fields->{$tag}};
 
-        # Sort ascending according to weight (original order)
-        push @{$merged_record_fields{$tag}}, map { $_->[1] } sort { $a->[0] <=> $b->[0] } @merged_fields;
+            # Always put incoming fields after current fields
+            my %incoming_fields_by_data = map { $hash_field_data->($_) => [$sort_weight++, $_] } @{$incoming_fields->{$tag}};
+
+            my ($current_fields_only, $common_fields, $incoming_fields_only) = $diff_by_key->(\%current_fields_by_data, \%incoming_fields_by_data);
+
+            my @merged_fields;
+
+            # First add common fields (intersection)
+            # Unchanged
+            if (@{$common_fields}) {
+                push @merged_fields, @{$common_fields};
+            }
+            # Removed
+            if (@{$current_fields_only}) {
+                if (!$rule->{remove}->{allow}) {
+                    push @merged_fields, @{$current_fields_only};
+                }
+            }
+            # Appended
+            if (@{$incoming_fields_only}) {
+                if ($rule->{append}->{allow}) {
+                    push @merged_fields, @{$incoming_fields_only};
+                }
+            }
+            $merged_record_fields{$tag} //= [];
+
+            # Sort ascending according to weight (original order)
+            push @{$merged_record_fields{$tag}}, map { $_->[1] } sort { $a->[0] <=> $b->[0] } @merged_fields;
+        }
     }
 
     my $merged_record = MARC::Record->new();

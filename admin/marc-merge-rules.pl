@@ -22,6 +22,7 @@ use warnings;
 use CGI qw ( -utf8 );
 use CGI::Cookie;
 use MARC::File::USMARC;
+use Try::Tiny;
 
 # Koha modules used
 use C4::Context;
@@ -116,21 +117,33 @@ elsif ($op eq 'edit') {
 }
 elsif ($op eq 'doedit' || $op eq 'add') {
     my $rule_data = $rule_from_cgi->($input);
-    if ($rule_data->{tag} ne '*') {
-        eval { qr/$rule_data->{tag}/ };
-        if ($@) {
-            push @{$errors}, {
-                type => 'error',
-                code => 'invalid_tag_regexp',
-                tag => $rule_data->{tag},
-                message => $@
-            };
-        }
-    }
     if (!@{$errors}) {
         my $rule = Koha::MarcMergeRules->find_or_create($rule_data);
-        $rule->set($rule_data);
-        $rule->store();
+        try {
+            $rule->set($rule_data);
+            $rule->store();
+        }
+        catch {
+            die $_ unless blessed $_ && $_->can('rethrow');
+
+            if ($_->isa('Koha::Exceptions::MarcMergeRule::InvalidTagRegExp')) {
+                push @{$errors}, {
+                    type => 'error',
+                    code => 'invalid_tag_regexp',
+                    tag => $rule_data->{tag},
+                };
+            }
+            elsif ($_->isa('Koha::Exceptions::MarcMergeRule::InvalidControlFieldActions')) {
+                push @{$errors}, {
+                    type => 'error',
+                    code => 'invalid_control_field_actions',
+                    tag => $rule_data->{tag},
+                };
+            }
+            else {
+                $_->rethrow;
+            }
+        };
         $rules = $get_rules->();
     }
 }
