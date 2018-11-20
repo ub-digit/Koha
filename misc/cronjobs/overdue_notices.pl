@@ -75,6 +75,7 @@ overdue_notices.pl
    -list-all                      list all overdues
    -date         <yyyy-mm-dd>     emulate overdues run for this date
    -email        <email_type>     type of email that will be used. Can be 'email', 'emailpro' or 'B_email'. Repeatable.
+   -owning                        Send notices from item homebranch library instead of issuing library
 
 =head1 OPTIONS
 
@@ -182,6 +183,10 @@ use it in order to send overdues on a specific date and not Now. Format: YYYY-MM
 =item B<-email>
 
 Allows to specify which type of email will be used. Can be email, emailpro or B_email. Repeatable.
+
+=item B<-owning>
+
+Use the address information from the item homebranch library instead of the issuing library.
 
 =back
 
@@ -292,6 +297,7 @@ my $verbose = 0;
 my $nomail  = 0;
 my $MAX     = 90;
 my $test_mode = 0;
+my $owning_library = 0;
 my @branchcodes; # Branch(es) passed as parameter
 my @emails_to_use;    # Emails to use for messaging
 my @emails;           # Emails given in command-line parameters
@@ -323,6 +329,7 @@ GetOptions(
     'borcat=s'       => \@myborcat,
     'borcatout=s'    => \@myborcatout,
     'email=s'        => \@emails,
+    'owning'         => \$owning_library,
 ) or pod2usage(2);
 pod2usage(1) if $help;
 pod2usage( -verbose => 2 ) if $man;
@@ -526,7 +533,11 @@ AND    TO_DAYS($date)-TO_DAYS(issues.date_due) >= 0
 END_SQL
             my @borrower_parameters;
             if ($branchcode) {
-                $borrower_sql .= ' AND issues.branchcode=? ';
+		if($owning_library) {
+		    $borrower_sql .= ' AND items.homebranch=? ';
+		} else {
+		    $borrower_sql .= ' AND issues.branchcode=? ';
+		}
                 push @borrower_parameters, $branchcode;
             }
             if ( $overdue_rules->{categorycode} ) {
