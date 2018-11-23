@@ -79,7 +79,7 @@ else { #$action eq 'update'
     system("/usr/local/etc/gucard_replace.sh $existing_cardnumber $incoming_cardnumber > /dev/null 2>&1");
   }
 
-  ModMember(%newdata);
+  $borrower->set(\%newdata)->store;
 }
 
 print $query->header(-type => 'text/xml',-charset => 'utf-8', -status => '201');
