@@ -639,19 +639,28 @@
                         <select name="refund">
                           [#% Default branch %#]
                           [% IF ( current_branch == '*' ) %]
-                            [% IF ( defaultRefundRule ) %]
+                            [% IF ( refundLostItemFeeRule.refund == 1 ) %]
                             <option value="1" selected="selected">
                             [% ELSE %]
                             <option value="1">
                             [% END %]
                                 Yes
                             </option>
-                            [% IF ( not defaultRefundRule ) %]
+
+                            [% IF ( refundLostItemFeeRule.refund == 0 ) %]
                             <option value="0" selected="selected">
                             [% ELSE %]
                             <option value="0">
                             [% END %]
                                 No
+                            </option>
+
+                            [% IF ( refundLostItemFeeRule.refund == 2 ) %]
+                            <option value="2" selected="selected">
+                            [% ELSE %]
+                            <option value="2">
+                            [% END %]
+                                Only if unpaid
                             </option>
                           [% ELSE %]
                           [#% Branch-specific %#]
@@ -660,8 +669,10 @@
                             [% ELSE %]
                                 <option value="*">
                             [% END %]
-                              [% IF defaultRefundRule %]
+                              [% IF defaultRefundRule == 1 %]
                                 Use default (Yes)
+                              [% ELSIF defaultRefundRule == 2 %]
+                                Use default (Only if unpaid)
                               [% ELSE %]
                                 Use default (No)
                               [% END %]
@@ -669,20 +680,30 @@
                             [% IF ( not refundLostItemFeeRule ) %]
                                 <option value="1">Yes</option>
                                 <option value="0">No</option>
+                                <option value="2">Only if unpaid</option>
                             [% ELSE %]
-                                [% IF ( refundLostItemFeeRule.rule_value ) %]
+                                [% IF ( refundLostItemFeeRule.refund == 1 ) %]
                                 <option value="1" selected="selected">
                                 [% ELSE %]
                                 <option value="1">
                                 [% END %]
                                     Yes
                                 </option>
-                                [% IF ( not refundLostItemFeeRule.rule_value ) %]
+
+                                [% IF ( refundLostItemFeeRule.refund == 0 ) %]
                                 <option value="0" selected="selected">
                                 [% ELSE %]
                                 <option value="0">
                                 [% END %]
                                     No
+                                </option>
+
+                                [% IF ( refundLostItemFeeRule.refund == 2 ) %]
+                                <option value="2" selected="selected">
+                                [% ELSE %]
+                                <option value="2">
+                                [% END %]
+                                    Only if unpaid
                                 </option>
                             [% END %]
                           [% END %]
