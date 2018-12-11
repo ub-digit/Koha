@@ -59,4 +59,12 @@
     bottom: 0;
     border-top: 1px solid #999;
   }
+  #hold-slip #print-attribute:not(:empty):before {
+    content: '*';
+    font-size: 6em;
+    font-weight: bold;
+    position:absolute;
+    top: 0;
+    right: 0;
+  }
 }
