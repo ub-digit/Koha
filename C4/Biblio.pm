@@ -2907,7 +2907,7 @@ sub EmbedItemsInMarcBiblios {
         # Flag indicating if there is potential hiding
         if ($opachiddenitems) {
             my %hidden_items = map { $_ => undef } C4::Items::GetHiddenItemnumbers({
-                items => @{$items},
+                items => $items,
                 borcat => $borcat
             });
             # Reduce items to non hidden items
