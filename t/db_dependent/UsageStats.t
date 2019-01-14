@@ -556,7 +556,6 @@ sub mocking_systempreferences_to_a_set_value {
         QueryAutoTruncate
         QueryFuzzy
         QueryStemming
-        QueryWeightFields
         TraceCompleteSubfields
         TraceSubjectSubdivisions
         UseICU

@@ -302,7 +302,6 @@ sub BuildReport {
         QueryAutoTruncate
         QueryFuzzy
         QueryStemming
-        QueryWeightFields
         TraceCompleteSubfields
         TraceSubjectSubdivisions
         UseICU
