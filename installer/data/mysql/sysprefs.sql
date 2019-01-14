@@ -465,7 +465,6 @@ INSERT INTO systempreferences ( `variable`, `value`, `options`, `explanation`, `
 ('QueryAutoTruncate','1',NULL,'If ON, query truncation is enabled by default','YesNo'),
 ('QueryFuzzy','1',NULL,'If ON, enables fuzzy option for searches','YesNo'),
 ('QueryStemming','1',NULL,'If ON, enables query stemming','YesNo'),
-('QueryWeightFields','1',NULL,'If ON, enables field weighting','YesNo'),
 ('QuoteOfTheDay','0',NULL,'Enable or disable display of Quote of the Day on the OPAC home page','YesNo'),
 ('RandomizeHoldsQueueWeight','0',NULL,'if ON, the holds queue in circulation will be randomized, either based on all location codes, or by the location codes specified in StaticHoldsQueueWeight','YesNo'),
 ('RecordLocalUseOnReturn','0',NULL,'If ON, statistically record returns of unissued items as local use, instead of return','YesNo'),
