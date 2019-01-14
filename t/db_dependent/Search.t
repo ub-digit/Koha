@@ -95,7 +95,6 @@ END {
 
 our $QueryStemming = 0;
 our $QueryAutoTruncate = 0;
-our $QueryWeightFields = 0;
 our $QueryFuzzy = 0;
 our $UseQueryParser = 0;
 our $SearchEngine = 'Zebra';
@@ -114,8 +113,6 @@ $contextmodule->mock('preference', sub {
         return $QueryStemming;
     } elsif ($pref eq 'QueryAutoTruncate') {
         return $QueryAutoTruncate;
-    } elsif ($pref eq 'QueryWeightFields') {
-        return $QueryWeightFields;
     } elsif ($pref eq 'QueryFuzzy') {
         return $QueryFuzzy;
     } elsif ($pref eq 'UseQueryParser') {
@@ -255,7 +252,6 @@ sub run_marc21_search_tests {
     # set search syspreferences to a known starting point
     $QueryStemming = 0;
     $QueryAutoTruncate = 0;
-    $QueryWeightFields = 0;
     $QueryFuzzy = 0;
     $UseQueryParser = 0;
     $marcflavour = 'MARC21';
@@ -533,7 +529,6 @@ ok(MARC::Record::new_from_xml($results_hashref->{biblioserver}->{RECORDS}->[0],'
     is($results_hashref->{biblioserver}->{hits}, 4, "getRecords CQL author search for Lessig returned proper number of matches");
 
     $QueryStemming = $QueryAutoTruncate = $QueryFuzzy = 0;
-    $QueryWeightFields = 1;
     ( $error, $query, $simple_query, $query_cgi,
     $query_desc, $limit, $limit_cgi, $limit_desc,
     $query_type ) = buildQuery([], [ 'salud' ], [ 'kw' ], [], [], 0, 'en');
@@ -542,7 +537,7 @@ ok(MARC::Record::new_from_xml($results_hashref->{biblioserver}->{RECORDS}->[0],'
     is($results_hashref->{biblioserver}->{hits}, 19, "Weighted query returned correct number of results");
     is(MARC::Record::new_from_xml($results_hashref->{biblioserver}->{RECORDS}->[0],'UTF-8')->title_proper(), 'Salud y seguridad de los trabajadores del sector salud: manual para gerentes y administradores^ies', "Weighted query returns best match first");
 
-    $QueryStemming = $QueryWeightFields = $QueryFuzzy = 0;
+    $QueryStemming = $QueryFuzzy = 0;
     $QueryAutoTruncate = 1;
     ( $error, $query, $simple_query, $query_cgi,
     $query_desc, $limit, $limit_cgi, $limit_desc,
@@ -559,20 +554,19 @@ ok(MARC::Record::new_from_xml($results_hashref->{biblioserver}->{RECORDS}->[0],'
     is($results_hashref->{biblioserver}->{hits}, 5, "Search for 'medic*' returns matches with automatic truncation on");
 
     $QueryStemming = $QueryFuzzy = $QueryAutoTruncate = 0;
-    $QueryWeightFields = 1;
     ( $error, $query, $simple_query, $query_cgi,
     $query_desc, $limit, $limit_cgi, $limit_desc,
     $query_type ) = buildQuery([], [ 'web application' ], [ 'kw' ], [], [], 0, 'en');
     ($error, $results_hashref, $facets_loop) = getRecords($query,$simple_query,[ ], [ 'biblioserver' ],20,0,undef,\%branches,\%itemtypes,$query_type,0);
-    is($results_hashref->{biblioserver}->{hits}, 1, "Search for 'web application' returns one hit with QueryWeightFields on");
+    is($results_hashref->{biblioserver}->{hits}, 1, "Search for 'web application' returns one hit");
 
     ( $error, $query, $simple_query, $query_cgi,
     $query_desc, $limit, $limit_cgi, $limit_desc,
     $query_type ) = buildQuery([], [ 'web "application' ], [ 'kw' ], [], [], 0, 'en');
     ($error, $results_hashref, $facets_loop) = getRecords($query,$simple_query,[ ], [ 'biblioserver' ],20,0,undef,\%branches,\%itemtypes,$query_type,0);
-    is($results_hashref->{biblioserver}->{hits}, 1, "Search for 'web \"application' returns one hit with QueryWeightFields on (bug 7518)");
+    is($results_hashref->{biblioserver}->{hits}, 1, "Search for 'web \"application' returns one hit");
 
-    $QueryStemming = $QueryWeightFields = $QueryFuzzy = $QueryAutoTruncate = 0;
+    $QueryStemming = $QueryFuzzy = $QueryAutoTruncate = 0;
     ( $error, $query, $simple_query, $query_cgi,
     $query_desc, $limit, $limit_cgi, $limit_desc,
     $query_type ) = buildQuery([], [ 'medic' ], [ 'kw' ], [], [], 0, 'en');
@@ -587,7 +581,7 @@ ok(MARC::Record::new_from_xml($results_hashref->{biblioserver}->{RECORDS}->[0],'
     ($error, $results_hashref, $facets_loop) = getRecords($query,$simple_query,[ ], [ 'biblioserver' ],20,0,undef,\%branches,\%itemtypes,$query_type,0);
     is($results_hashref->{biblioserver}->{hits}, 5, "Search for 'medic*' returns matches with automatic truncation off");
 
-    $QueryStemming = $QueryWeightFields = 1;
+    $QueryStemming = 1;
     $QueryFuzzy = $QueryAutoTruncate = 0;
     ( $error, $query, $simple_query, $query_cgi,
     $query_desc, $limit, $limit_cgi, $limit_desc,
@@ -596,7 +590,7 @@ ok(MARC::Record::new_from_xml($results_hashref->{biblioserver}->{RECORDS}->[0],'
     ($error, $results_hashref, $facets_loop) = getRecords($query,$simple_query,[ ], [ 'biblioserver' ],20,0,undef,\%branches,\%itemtypes,$query_type,0);
     is($results_hashref->{biblioserver}->{hits}, 7, "Search for 'pressed' returns matches when stemming (and query weighting) is on");
 
-    $QueryStemming = $QueryWeightFields = $QueryFuzzy = $QueryAutoTruncate = 0;
+    $QueryStemming =  $QueryFuzzy = $QueryAutoTruncate = 0;
     ( $error, $query, $simple_query, $query_cgi,
     $query_desc, $limit, $limit_cgi, $limit_desc,
     $query_type ) = buildQuery([], [ 'pressed' ], [ 'kw' ], [], [], 0, 'en');
@@ -891,7 +885,6 @@ sub run_unimarc_search_tests {
     # set search syspreferences to a known starting point
     $QueryStemming = 0;
     $QueryAutoTruncate = 0;
-    $QueryWeightFields = 0;
     $QueryFuzzy = 0;
     $UseQueryParser = 0;
     $marcflavour = 'UNIMARC';
