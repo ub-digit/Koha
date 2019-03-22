@@ -24,6 +24,7 @@ require Exporter;
 use Carp;
 use C4::Context;
 use C4::Debug;
+use Koha::Plugins::Handler;
 use vars qw(@ISA @EXPORT);
 
 our $debug;
@@ -81,6 +82,19 @@ sub UpdateStats {
     my ($params) = @_;
 # make some controls
     return () if ! defined $params;
+
+    # If there are plugins to run, run them and skip the default statistics update.
+    # This is deliberate since a plugin might update the statistics tables. Running
+    # the existing code would then cause duplicate entries.
+    if(Koha::Plugins::Handler->has_plugin_for_hook({method => 'update_stats'})) {
+        my $plugin_result = Koha::Plugins::Handler->run_hook({
+            method => 'update_stats',
+            params => $params
+        });
+
+        return;
+    }
+
 # change these arrays if new types of transaction or new parameters are allowed
     my @allowed_keys = qw (type branch amount other itemnumber itemtype borrowernumber ccode location);
     my @allowed_circulation_types = qw (renew issue localuse return onsite_checkout);
