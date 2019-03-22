@@ -24,6 +24,7 @@ use File::Path qw(remove_tree);
 use Module::Load qw(load);
 
 use C4::Context;
+use Koha::Plugins;
 use Koha::Plugins::Methods;
 
 BEGIN {
@@ -45,6 +46,61 @@ Koha::Plugins::Handler - Handler Module for running plugins
 =over 2
 
 =cut
+
+=item has_plugin_for_hook
+
+Check whether or not there are any plugins for the specified hook, returning 0 if
+no matching plugin exists, or 1 if there is at least one.
+
+=cut
+
+sub has_plugin_for_hook {
+    my ( $class, $args ) = @_;
+
+    # If plugins are disabled, no plugin can be available
+    return 0 unless ( C4::Context->config("enable_plugins") || $args->{'enable_plugins'} );
+
+    my $method = $args->{'method'};
+    
+    my @plugins = Koha::Plugins->new()->GetPlugins({
+        method => $method
+    });
+
+    if (@plugins > 0) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
+=item run_hook
+
+Run all plugins for the specified hook in sequence. Each plugin in turn will get
+input data according to the hook in question, and is assumed to return output data
+in the same format as its input, so that they can be chained.
+
+=cut
+
+sub run_hook {
+    my ( $class, $args ) = @_;
+    my $params = $args->{'params'};
+    return $params unless ( C4::Context->config("enable_plugins") || $args->{'enable_plugins'} );
+
+    my $plugin_method = $args->{'method'};
+    my @plugins = Koha::Plugins->new()->GetPlugins({
+        method => $plugin_method
+    });
+
+    foreach my $plugin (@plugins) {
+        $params = Koha::Plugins::Handler->run({
+                class => $plugin->{'class'},
+                method => $plugin_method,
+                params => $params
+            });
+    }
+    
+    return $params;
+}
 
 =item run
 
