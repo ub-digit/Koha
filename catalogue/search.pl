@@ -497,7 +497,7 @@ if ($query_cgi) {
         if ($input_name eq 'idx') {
             $scan_index_to_use = $input_value; # unless $scan_index_to_use;
         }
-        if ($input_name eq 'q') {
+        if (!defined $scan_search_term_to_use && $input_name eq 'q') {
             $scan_search_term_to_use = Encode::decode_utf8( uri_unescape( $input_value ));
         }
     }
@@ -581,8 +581,8 @@ for (my $i=0;$i<@servers;$i++) {
             $template->param( EnableSearchHistory => 1 );
         }
 
-        ## If there's just one result, redirect to the detail page
-        if ($total == 1) {         
+        ## If there's just one result, redirect to the detail page unless doing an index scan
+        if ($total == 1 && !$scan) {
             my $biblionumber = $newresults[0]->{biblionumber};
             my $defaultview = C4::Context->preference('IntranetBiblioDefaultView');
             my $views = { C4::Search::enabled_staff_search_views };
