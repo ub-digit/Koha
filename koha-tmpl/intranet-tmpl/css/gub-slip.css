@@ -67,4 +67,12 @@
     top: 0;
     right: 0;
   }
+  #hold-slip #print-attribute:not(:empty):after {
+   content: ‘*’;
+   font-size: 6em;
+   font-weight: bold;
+   position:absolute;
+   bottom: -0.4em;
+   right: 0;
+ }
 }
