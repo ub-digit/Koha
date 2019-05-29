@@ -3,6 +3,7 @@ package Koha::Exporter::Record;
 use Modern::Perl;
 use MARC::File::XML;
 use MARC::File::USMARC;
+use Carp;
 
 use C4::AuthoritiesMarc;
 use C4::Biblio;
@@ -16,11 +17,66 @@ use List::Util qw(all any);
 use MARC::Record;
 use MARC::File::XML;
 
+my %marc_conditions_operators = (
+    '=' => sub {
+        return $_[0] eq $_[1];
+    },
+    '!=' => sub {
+        return $_[0] ne $_[1];
+    },
+    '>' => sub {
+        return $_[0] gt $_[1];
+    },
+    '<' => sub {
+        return $_[0] lt $_[1];
+    },
+);
+
+# If multiple conditions all are required to match (and)
+# For matching against multiple marc targets all are also required to match
+sub _record_match_conditions {
+    my ($record, $conditions) = @_;
+
+    foreach my $condition (@{$conditions}) {
+        my ($field_tag, $subfield, $operator, $match_value) = @{$condition};
+        my @fields = $record->field($field_tag);
+        my $no_target = 0;
+
+        if (!@fields) {
+            $no_target = 1;
+        }
+        else {
+            if ($operator eq '?') {
+                return unless any { $subfield ? $_->subfield($subfield) : $_->data() } @fields;
+            } elsif ($operator eq '!?') {
+                return if any { $subfield ? $_->subfield($subfield) : $_->data() } @fields;
+            } else {
+                my $op;
+                if (exists $marc_conditions_operators{$operator}) {
+                    $op = $marc_conditions_operators{$operator};
+                } else {
+                    croak "Invalid operator: $op";
+                }
+                my @target_values = map { $subfield ? $_->subfield($subfield) : ($_->data()) } @fields;
+                if (!@target_values) {
+                    $no_target = 1;
+                }
+                else {
+                    return unless all { $op->($_, $match_value) } @target_values;
+                }
+            }
+        }
+        return if $no_target && $operator ne '!=';
+    }
+    return 1;
+}
+
 sub _get_record_for_export {
     my ($params)           = @_;
     my $record_type        = $params->{record_type};
     my $record_id          = $params->{record_id};
     my $conditions         = $params->{record_conditions};
+    my $deleted_conditions = $params->{deleted_record_conditions};
     my $dont_export_fields = $params->{dont_export_fields};
     my $clean              = $params->{clean};
 
@@ -37,54 +93,10 @@ sub _get_record_for_export {
         return;
     }
 
-    # If multiple conditions all are required to match (and)
-    # For matching against multiple marc targets all are also required to match
-    my %operators = (
-        '=' => sub {
-            return $_[0] eq $_[1];
-        },
-        '!=' => sub {
-            return $_[0] ne $_[1];
-        },
-        '>' => sub {
-            return $_[0] gt $_[1];
-        },
-        '<' => sub {
-            return $_[0] lt $_[1];
-        },
-    );
-    if ($conditions) {
-        foreach my $condition (@{$conditions}) {
-            my ($field_tag, $subfield, $operator, $match_value) = @{$condition};
-            my @fields = $record->field($field_tag);
-            my $no_target = 0;
+    return if $conditions && !_record_match_conditions($record, $conditions);
 
-            if (!@fields) {
-                $no_target = 1;
-            }
-            else {
-                if ($operator eq '?') {
-                    return unless any { $subfield ? $_->subfield($subfield) : $_->data() } @fields;
-                } elsif ($operator eq '!?') {
-                    return if any { $subfield ? $_->subfield($subfield) : $_->data() } @fields;
-                } else {
-                    my $op;
-                    if (exists $operators{$operator}) {
-                        $op = $operators{$operator};
-                    } else {
-                        die("Invalid operator: $op");
-                    }
-                    my @target_values = map { $subfield ? $_->subfield($subfield) : ($_->data()) } @fields;
-                    if (!@target_values) {
-                        $no_target = 1;
-                    }
-                    else {
-                        return unless all { $op->($_, $match_value) } @target_values;
-                    }
-                }
-            }
-            return if $no_target && $operator ne '!=';
-        }
+    if ($deleted_conditions && _record_match_conditions($record, $deleted_conditions)) {
+        _record_set_deleted($record)
     }
 
     if ($dont_export_fields) {
@@ -137,11 +149,16 @@ sub _get_deleted_biblio_for_export {
         );
         return;
     }
-    # Set deleted flag (record status, position 05)
+    _record_set_deleted($record);
+    return $record;
+}
+
+sub _record_set_deleted {
+    my ($record) = @_;
     my $leader = $record->leader;
+    # Set deleted flag (record status, position 05)
     substr $leader, 5, 1, 'd';
     $record->leader($leader);
-    return $record;
 }
 
 sub _get_authority_for_export {
