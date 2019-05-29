@@ -21,6 +21,7 @@ use MARC::File::XML;
 use List::MoreUtils qw( uniq );
 use Getopt::Long qw( GetOptions );
 use Pod::Usage qw( pod2usage );
+use Carp;
 
 use Koha::Script;
 use C4::Auth;
@@ -56,6 +57,7 @@ my (
     $start_accession,
     $end_accession,
     $marc_conditions,
+    $deleted_marc_conditions,
     $help
 );
 
@@ -82,6 +84,7 @@ GetOptions(
     'start_accession=s'       => \$start_accession,
     'end_accession=s'         => \$end_accession,
     'marc_conditions=s'       => \$marc_conditions,
+    'deleted_marc_conditions=s' => \$deleted_marc_conditions,
     'h|help|?'                => \$help
 ) || pod2usage(1);
 
@@ -131,9 +134,10 @@ if ( $deleted_barcodes and $record_type ne 'bibs' ) {
 $start_accession = dt_from_string( $start_accession ) if $start_accession;
 $end_accession   = dt_from_string( $end_accession )   if $end_accession;
 
-# Parse marc conditions
-my @marc_conditions;
-if ($marc_conditions) {
+
+sub _parse_marc_conditions {
+    my ($marc_conditions) = @_;
+    my @marc_conditions;
     foreach my $condition (split(/,\s*/, $marc_conditions)) {
         if ($condition =~ /^(\d{3})([\w\d]?)(=|(?:!=)|>|<)([^,]+)$/) {
             push @marc_conditions, [$1, $2, $3, $4];
@@ -142,9 +146,21 @@ if ($marc_conditions) {
             push @marc_conditions, [$2, $3, $1 eq 'exists' ? '?' : '!?'];
         }
         else {
-            die("Invalid condititon: $condition");
+            croak "Invalid condititon: $condition";
         }
     }
+    return @marc_conditions;
+}
+
+# Parse marc conditions
+my @marc_conditions;
+if ($marc_conditions) {
+    @marc_conditions = _parse_marc_conditions($marc_conditions);
+}
+
+my @deleted_marc_conditions;
+if ($deleted_marc_conditions) {
+    @deleted_marc_conditions = _parse_marc_conditions($deleted_marc_conditions);
 }
 
 my $dbh = C4::Context->dbh;
@@ -280,6 +296,7 @@ else {
         {   record_type        => $record_type,
             record_ids         => \@record_ids,
             record_conditions  => @marc_conditions ? \@marc_conditions : undef,
+            deleted_record_conditions  => @deleted_marc_conditions ? \@deleted_marc_conditions : undef,
             deleted_record_ids => \@deleted_record_ids,
             format             => $output_format,
             csv_profile_id     => $csv_profile_id,
@@ -423,6 +440,11 @@ Print a brief help message.
                                 <marc_target> exists regardless of target value, and
                                 "exists(<marc_target>)" will include marc records where
                                 no <marc_target> exists.
+=item B<--deleted_marc_conditions>
+
+ --deleted_marc_conditions=CONDITIONS Set record deleted flag for biblios with MARC
+                                data matching CONDITIONS.Only include biblios with MARC data matching CONDITIONS.
+                                See --marc_conditions for more information about the CONDITIONS format.
 
 =back
 
