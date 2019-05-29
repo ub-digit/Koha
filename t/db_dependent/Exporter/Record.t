@@ -286,7 +286,7 @@ subtest '_get_biblio_for_export' => sub {
 };
 
 subtest '_get_record_for_export MARC field conditions' => sub {
-    plan tests => 11;
+    plan tests => 13;
 
     my $biblio = MARC::Record->new();
     $biblio->leader('00266nam a22001097a 4500');
@@ -408,6 +408,35 @@ subtest '_get_record_for_export MARC field conditions' => sub {
         }
     );
     is( $record, undef, "Record condition \"not_exists(035a)\" should not match" );
+
+
+    ## Deleted conditions
+
+    $record = Koha::Exporter::Record::_get_record_for_export(
+        {
+            record_id => $biblionumber,
+            deleted_record_conditions => [['080', 'a', '=', '12345']],
+            record_type => 'bibs',
+        }
+    );
+    is(
+        substr($record->leader, 5, 1),
+        'd',
+        "Record deleted condition \"080a=12345\" should match and deleted flag should be set"
+    );
+
+    $record = Koha::Exporter::Record::_get_record_for_export(
+        {
+            record_id => $biblionumber,
+            deleted_record_conditions => [['080', 'a', '!=', '12345']],
+            record_type => 'bibs',
+        }
+    );
+    is(
+        substr($record->leader, 5, 1),
+        'n',
+        "Record deleted condition \"080a!=12345\" should not match and deleted flag should not be set"
+    );
 };
 
 $schema->storage->txn_rollback;
