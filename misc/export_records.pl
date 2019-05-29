@@ -323,9 +323,9 @@ Print a brief help message.
  --include_deleted      If enabled, when using --date option, deleted records will be included in export as marc records
                         with leader record status set to "d" (deleted).
 
-=item B<--include_deleted>
+=item B<--deleted_only>
 
- --include_deleted      If enabled, when using --date option, only deleted records will be included in export as marc
+ --deleted_only         If enabled, when using --date option, only deleted records will be included in export as marc
                         records with leader record status set to "d" (deleted).
 
 =item B<--record-type>
