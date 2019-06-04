@@ -68,7 +68,7 @@
     right: 0;
   }
   #hold-slip #print-attribute:not(:empty):after {
-   content: ‘*’;
+   content: '*';
    font-size: 6em;
    font-weight: bold;
    position:absolute;
