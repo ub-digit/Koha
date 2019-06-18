@@ -102,37 +102,36 @@ $(document).ready(function(){
         "sPaginationType": "four_button"
     }));
 
-    var merge_rules_presets = {
-      'Protect': {
-        'add': 0,
-        'append': 0,
-        'remove': 0,
-        'delete': 0
-      },
-      'Overwrite': {
-        'add': 1,
-        'append': 1,
-        'remove': 1,
-        'delete': 1
-      },
-      'Add new': {
-        'add': 1,
-        'append': 0,
-        'remove': 0,
-        'delete': 0
-      },
-      'Add and append': {
-        'add': 1,
-        'append': 1,
-        'remove': 0,
-        'delete': 0
-      },
-      'Protect from deletion': {
-        'add': 1,
-        'append': 1,
-        'remove': 1,
-        'delete': 0
-      },
+    var merge_rules_presets = {};
+    merge_rules_presets[_("Protect")] = {
+      'add': 0,
+      'append': 0,
+      'remove': 0,
+      'delete': 0
+    };
+    merge_rules_presets[_("Overwrite")] = {
+      'add': 1,
+      'append': 1,
+      'remove': 1,
+      'delete': 1
+    };
+    merge_rules_presets[_("Add new")] = {
+      'add': 1,
+      'append': 0,
+      'remove': 0,
+      'delete': 0
+    };
+    merge_rules_presets[_("Add and append")] = {
+      'add': 1,
+      'append': 1,
+      'remove': 0,
+      'delete': 0
+    };
+    merge_rules_presets[_("Protect from deletion")] = {
+      'add': 1,
+      'append': 1,
+      'remove': 1,
+      'delete': 0
     };
 
     var merge_rules_label_to_value = {
@@ -323,8 +322,15 @@ $(document).ready(function(){
             <th>
                 <select name="preset">
                     <option value="" selected>Custom</option>
-                    [% FOR preset IN ['Protect', 'Overwrite', 'Add new', 'Add and append', 'Protect from deletion'] %]
-                        <option value="[% preset %]">[% preset %]</option>
+                    [% FOR preset IN [
+                            'Protect',
+                            'Overwrite',
+                            'Add new',
+                            'Add and append',
+                            'Protect from deletion'
+                        ]
+                    %]
+                        <option value="[% preset | html %]">[% preset | html %]</option>
                     [% END %]
                 </select>
             </th>
@@ -386,8 +392,15 @@ $(document).ready(function(){
                 <th>
                     <select name="preset">
                         <option value="" selected>Custom</option>
-                        [% FOR preset IN ['Protect', 'Overwrite', 'Add new', 'Add and append', 'Protect from deletion'] %]
-                            <option value="[% preset %]">[% preset %]</option>
+                        [% FOR preset IN [
+                                'Protect',
+                                'Overwrite',
+                                'Add new',
+                                'Add and append',
+                                'Protect from deletion'
+                            ]
+                        %]
+                            <option value="[% preset | html %]">[% preset | html %]</option>
                         [% END %]
                     </select>
                 </th>
