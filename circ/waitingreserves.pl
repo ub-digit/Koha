@@ -89,61 +89,21 @@ my $holds = Koha::Holds->waiting->search({ priority => 0, ( $all_branches ? () :
 # get reserves for the branch we are logged into, or for all branches
 
 my $today = dt_from_string;
-my $max_pickup_delay = C4::Context->preference('ReservesMaxPickUpDelay');
 
 while ( my $hold = $holds->next ) {
     next unless ($hold->waitingdate && $hold->waitingdate ne '0000-00-00');
-    my $item = $hold->item;
-    my $patron = $hold->borrower;
-    my $biblio = $item->biblio;
-    my $holdingbranch = $item->holdingbranch;
-    my $homebranch = $item->homebranch;
-    my %getreserv = (
-        title             => $biblio->title,
-        itemnumber        => $item->itemnumber,
-        waitingdate       => $hold->waitingdate,
-        reservedate       => $hold->reservedate,
-        borrowernumber       => $patron->borrowernumber,
-        biblionumber      => $biblio->biblionumber,
-        barcode           => $item->barcode,
-        homebranch        => $homebranch,
-        holdingbranch     => $item->holdingbranch,
-        itemcallnumber    => $item->itemcallnumber,
-        enumchron         => $item->enumchron,
-        copynumber        => $item->copynumber,
-        borrowername      => $patron->surname, # FIXME Let's send $patron to the template
-        borrowerfirstname => $patron->firstname,
-        borrowerphone     => $patron->phone,
-        lastpickupdate    => $hold->lastpickupdate,
-    );
-
-    my $itemtype = Koha::ItemTypes->find( $item->effective_itemtype );
-    $getreserv{'itemtype'}       = $itemtype->description; # FIXME Should not it be translated_description?
-    $getreserv{'subtitle'}       = GetRecordValue(
-        'subtitle',
-        GetMarcBiblio({ biblionumber => $biblio->biblionumber }),
-        $biblio->frameworkcode);
-    if ( $homebranch ne $holdingbranch ) {
-        $getreserv{'dotransfer'} = 1;
-    }
-
-    $getreserv{patron} = $patron;
-    warn $getreserv{'waitingdate'};
-    warn $getreserv{'lastpickupdate'};
-    if ( $getreserv{'waitingdate'} ) {
-        my $lastpickupdate = dt_from_string($getreserv{'lastpickupdate'});
+    if ( $hold->waitingdate ) {
+        my $lastpickupdate = dt_from_string($hold->lastpickupdate);
         if ( DateTime->compare( $today, $lastpickupdate ) == 1 ) {
             if ($cancelall) {
-                my $res = cancel( $item->itemnumber, $patron->borrowernumber, $item->holdingbranch, $homebranch, !$transfer_when_cancel_all );
+                my $res = cancel( $hold->item->itemnumber, $hold->borrowernumber, $hold->item->holdingbranch, $hold->item->homebranch, !$transfer_when_cancel_all );
                 push @cancel_result, $res if $res;
                 next;
             } else {
-                push @overloop,   \%getreserv;
-                $overcount++;
+                push @over_loop, $hold;
             }
         }else{
-            push @reservloop, \%getreserv;
-            $reservcount++;
+            push @reserve_loop, $hold;
         }
     }
 }

@@ -186,7 +186,7 @@ sub AddReserve {
     }
     my ($waitingdate, $lastpickupdate);
 
-    my $item = C4::Items::GetItem( $checkitem );
+    my $item = Koha::Items->find( $checkitem ); #FIXME Prevent bad calls
     # If the reserv had the waiting status, we had the value of the resdate
     if ( $found eq 'W' ) {
         $waitingdate = $resdate;
@@ -897,8 +897,9 @@ sub CheckReserves {
                     my $branchitemrule = C4::Circulation::GetBranchItemRule($branch,$item->effective_itemtype);
                     next if ($branchitemrule->{'holdallowed'} == 0);
                     next if (($branchitemrule->{'holdallowed'} == 1) && ($branch ne $patron->branchcode));
-                    my $hold_fulfillment_policy = $branchitemrule->{hold_fulfillment_policy};
-                    next if ( ($branchitemrule->{hold_fulfillment_policy} ne 'any') && ($res->{branchcode} ne $item->$hold_fulfillment_policy) );
+                    my $hold_fulfillment_policy = $branchitemrule->{'hold_fulfillment_policy'};
+
+                    next if ( ($branchitemrule->{'hold_fulfillment_policy'} ne 'any') && ($res->{branchcode} ne $item->$hold_fulfillment_policy) );
                     next unless $item->can_be_transferred( { to => scalar Koha::Libraries->find( $res->{branchcode} ) } );
                     $priority = $res->{'priority'};
                     $highest  = $res;
@@ -1198,7 +1199,7 @@ sub ModReserveAffect {
     $hold->itemnumber($itemnumber);
     $hold->set_waiting($transferToDo);
 
-    my $item = C4::Items::GetItem( $itemnumber );
+    my $item = Koha::Items->find( $itemnumber );
     my $borrower = Koha::Patrons->find( $borrowernumber );
     $borrower = $borrower->unblessed;
     my $lastpickupdate = GetLastPickupDate( $hold, $item, $borrower );
