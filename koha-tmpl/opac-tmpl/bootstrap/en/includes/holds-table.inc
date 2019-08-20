@@ -107,7 +107,7 @@
                                     [% IF ( HOLD.found ) %]
                                         Item waiting at <b> [% HOLD.branch.branchname | html %]</b>
                                         [% IF ( HOLD.waitingdate ) %]
-                                            since [% HOLD.waitingdate | $KohaDates %] until [% RESERVE.lastpickupdate | $KohaDates %]
+                                            since [% HOLD.waitingdate | $KohaDates %] until [% HOLD.lastpickupdate | $KohaDates %]
                                         [% END %]
                                         <input type="hidden" name="pickup" value="[% HOLD.branchcode | html %]" />
                                     [% ELSE %]
