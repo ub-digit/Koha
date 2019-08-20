@@ -134,6 +134,12 @@ __PACKAGE__->table("reserves");
   datetime_undef_if_invalid: 1
   is_nullable: 1
 
+=head2 lastpickupdate
+
+  data_type: 'date'
+  datetime_undef_if_invalid: 1
+  is_nullable: 1
+
 =head2 itemtype
 
   data_type: 'varchar'
@@ -210,6 +216,8 @@ __PACKAGE__->add_columns(
     datetime_undef_if_invalid => 1,
     is_nullable => 1,
   },
+  "lastpickupdate",
+  { data_type => "date", datetime_undef_if_invalid => 1, is_nullable => 1 },
   "itemtype",
   { data_type => "varchar", is_foreign_key => 1, is_nullable => 1, size => 10 },
   "item_level_hold",
@@ -321,8 +329,8 @@ __PACKAGE__->belongs_to(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07046 @ 2019-06-17 07:24:39
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:OMFqEWyKqFTcYj7vAFXy/g
+# Created by DBIx::Class::Schema::Loader v0.07046 @ 2019-08-20 02:39:10
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:B9A9RCfZpr/rGs362rQ9RA
 
 __PACKAGE__->belongs_to(
   "item",

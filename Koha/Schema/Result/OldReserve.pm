@@ -130,6 +130,12 @@ __PACKAGE__->table("old_reserves");
   datetime_undef_if_invalid: 1
   is_nullable: 1
 
+=head2 lastpickupdate
+
+  data_type: 'date'
+  datetime_undef_if_invalid: 1
+  is_nullable: 1
+
 =head2 itemtype
 
   data_type: 'varchar'
@@ -196,6 +202,8 @@ __PACKAGE__->add_columns(
     datetime_undef_if_invalid => 1,
     is_nullable => 1,
   },
+  "lastpickupdate",
+  { data_type => "date", datetime_undef_if_invalid => 1, is_nullable => 1 },
   "itemtype",
   { data_type => "varchar", is_foreign_key => 1, is_nullable => 1, size => 10 },
   "item_level_hold",
@@ -297,8 +305,8 @@ __PACKAGE__->belongs_to(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07046 @ 2019-06-17 07:24:39
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:ZgGAW7ODBby3hGNJ41eeMA
+# Created by DBIx::Class::Schema::Loader v0.07046 @ 2019-08-20 02:39:10
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:CTozZnDtmr5SAU10tRbNUw
 
 sub koha_object_class {
     'Koha::Old::Hold';

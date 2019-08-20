@@ -160,6 +160,11 @@ __PACKAGE__->table("issuingrules");
   default_value: 0
   is_nullable: 0
 
+=head2 holdspickupwait
+
+  data_type: 'integer'
+  is_nullable: 1
+
 =head2 holds_per_record
 
   data_type: 'smallint'
@@ -272,6 +277,8 @@ __PACKAGE__->add_columns(
   { data_type => "date", datetime_undef_if_invalid => 1, is_nullable => 1 },
   "reservesallowed",
   { data_type => "smallint", default_value => 0, is_nullable => 0 },
+  "holdspickupwait",
+  { data_type => "integer", is_nullable => 1 },
   "holds_per_record",
   { data_type => "smallint", default_value => 1, is_nullable => 0 },
   "holds_per_day",
@@ -314,8 +321,8 @@ __PACKAGE__->add_columns(
 __PACKAGE__->set_primary_key("branchcode", "categorycode", "itemtype");
 
 
-# Created by DBIx::Class::Schema::Loader v0.07046 @ 2019-03-05 20:49:11
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:6bPX0BRWWQZrWFun3GP86Q
+# Created by DBIx::Class::Schema::Loader v0.07046 @ 2019-08-20 02:39:10
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:nVZzow7RuzPASVF3rdxeZg
 
 sub koha_object_class {
     'Koha::IssuingRule';
