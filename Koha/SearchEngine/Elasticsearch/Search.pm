@@ -132,8 +132,8 @@ sub count {
 
     my ( $error, $results, $facets ) = $search->search_compat(
         $query,            $simple_query, \@sort_by,       \@servers,
-        $results_per_page, $offset,       $branches,       $query_type,
-        $scan
+        $results_per_page, $offset,       undef,           $item_types,
+        $query_type,       $scan
       )
 
 A search interface somewhat compatible with L<C4::Search->getRecords>. Anything
@@ -144,9 +144,9 @@ get ignored here, along with some other things (like C<@servers>.)
 
 sub search_compat {
     my (
-        $self,     $query,            $simple_query, $sort_by,
-        $servers,  $results_per_page, $offset,       $branches,
-        $query_type,       $scan
+        $self,       $query,            $simple_query, $sort_by,
+        $servers,    $results_per_page, $offset,       $branches,
+        $item_types, $query_type,       $scan
     ) = @_;
 
     if ( $scan ) {
@@ -547,15 +547,26 @@ sub _aggregation_scan {
     my $count = scalar(@{$results->{aggregations}{$field}{buckets}});
     for (my $index = $offset; $index - $offset < $results_per_page && $index < $count; $index++) {
         my $bucket = $results->{aggregations}{$field}{buckets}->[$index];
-        # Scan values are expressed as 100 a (count) and 245a (term)
+        # Scan values are expressed as:
+        # - MARC21: 100a (count) and 245a (term)
+        # - UNIMARC: 200f (count) and 200a (term)
         my $marc = MARC::Record->new;
         $marc->encoding('UTF-8');
-        $marc->append_fields(
-            MARC::Field->new((100, ' ',  ' ', 'a' => $bucket->{doc_count}))
-        );
-        $marc->append_fields(
-            MARC::Field->new((245, ' ',  ' ', 'a' => $bucket->{key}))
-        );
+        if (C4::Context->preference('marcflavour') eq 'UNIMARC') {
+            $marc->append_fields(
+                MARC::Field->new((200, ' ',  ' ', 'f' => $bucket->{doc_count}))
+            );
+            $marc->append_fields(
+                MARC::Field->new((200, ' ',  ' ', 'a' => $bucket->{key}))
+            );
+        } else {
+            $marc->append_fields(
+                MARC::Field->new((100, ' ',  ' ', 'a' => $bucket->{doc_count}))
+            );
+            $marc->append_fields(
+                MARC::Field->new((245, ' ',  ' ', 'a' => $bucket->{key}))
+            );
+        }
         $records[$index] = $marc->as_usmarc();
     };
     # consumers of this expect a namespaced result, we provide the default
