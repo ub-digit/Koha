@@ -209,7 +209,6 @@ sub build_query_compat {
         my %options;
         $options{fields} = \@fields;
         $options{sort} = \@sort_params;
-        $options{expanded_facet} = $params->{expanded_facet};
         $query = $self->build_query( $query_str, %options );
     }
 
@@ -455,7 +454,7 @@ sub build_authorities_query_compat {
 
 =head2 _build_scan_query
 
-    my ($query, $query_str) = $builder->build_scan_query(\@operands, \@indexes)
+    my ($query, $query_str) = $builder->_build_scan_query(\@operands, \@indexes)
 
 This will build an aggregation scan query that can be issued to elasticsearch from
 the provided string input.
@@ -474,7 +473,7 @@ sub _build_scan_query {
     my ( $self, $operands, $indexes ) = @_;
 
     my $term = scalar( @$operands ) == 0 ? '' : $operands->[0];
-    my $index = scalar( @$indexes ) == 0 ? 'title' : $indexes->[0];
+    my $index = scalar( @$indexes ) == 0 ? 'subject' : $indexes->[0];
 
     my ( $f, $d ) = split( /,/, $index);
     $index = $scan_field_convert{$f} || $f;
@@ -499,7 +498,7 @@ sub _build_scan_query {
 
 =head2 _create_regex_filter
 
-    my $filter = $builder->create_regex_filter('term')
+    my $filter = $builder->_create_regex_filter('term')
 
 This will create a regex filter that can be used with an aggregation query.
 
