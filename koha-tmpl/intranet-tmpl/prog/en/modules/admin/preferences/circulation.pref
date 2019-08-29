@@ -35,6 +35,7 @@ Circulation:
                   T-prefix: Remove the first number from T-prefix style
                   libsuite8: Convert from Libsuite8 form
                   EAN13: EAN-13 or zero-padded UPC-A form
+                  updateinc9: Update incomplete 9-character
             - scanned item barcodes. Mind that any leading or trailing whitespace in a barcode gets removed before this filter.
         -
             - pref: itemBarcodeFallbackSearch
