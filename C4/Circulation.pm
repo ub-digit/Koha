@@ -207,7 +207,18 @@ sub barcodedecode {
         } else {
             warn "# [$barcode] not valid EAN-13/UPC-A\n";
         }
-	}
+	} elsif ($filter eq 'updateinc9') {
+        unless (Koha::Items->find({barcode => $barcode})) {
+            if (substr($barcode, 0, 1) eq "1") {
+                my $barcode9 = substr($barcode, -9);
+                my $item = Koha::Items->find({barcode => $barcode9});
+                if ($item) {
+                  C4::Items::ModItem({barcode => $barcode}, $item->biblionumber, $item->itemnumber);
+                }
+            }
+        }
+    }
+
     return $barcode;    # return barcode, modified or not
 }
 
