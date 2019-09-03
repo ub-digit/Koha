@@ -188,7 +188,7 @@ sub set_waiting {
     my $hold = Koha::Holds->find( $self->reserve_id );
 
     # Get the controlbranch
-    my $controlbranch = C4::Reserves->GetReservesControlBranch( $item, $patron );
+    my $controlbranch = C4::Reserves::GetReservesControlBranch( $item, $patron );
     my $hbr = C4::Context->preference('HomeOrHoldingBranch') || "homebranch";
     my $branchcode    = "*";
     if ( $controlbranch eq "ItemHomeLibrary" ) {
