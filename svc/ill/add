@@ -25,29 +25,32 @@ my $ti = $query->param('ti');
 my $au = $query->param('au');
 my $yr = $query->param('yr');
 my $isbn = $query->param('isbn');
-my $si = $query->param('si');
 my $item = $query->param('item');
-my $ll = $query->param('ll');
 my $mt = $query->param('mt');
+my $branch = $query->param('branch');
+my $location = $query->param('location');
 
 unless ($ti) {
   print $query->header(-type => 'text/xml', -status => '400');
   print XMLout({ status => "ti is required", error_code => 'ti_is_req' }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
   exit 0;
 }
-unless ($si) {
+
+unless ($branch) {
   print $query->header(-type => 'text/xml', -status => '400');
-  print XMLout({ status => "si is required", error_code => 'si_is_req' }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+  print XMLout({ status => "branch is required", error_code => 'branch_is_req' }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
   exit 0;
 }
+
+unless ($location) {
+  print $query->header(-type => 'text/xml', -status => '400');
+  print XMLout({ status => "location is required", error_code => 'location_is_req' }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+  exit 0;
+}
+
 unless ($item) {
   print $query->header(-type => 'text/xml', -status => '400');
   print XMLout({ status => "item is required", error_code => 'item_is_req' }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
-  exit 0;
-}
-unless ($ll) {
-  print $query->header(-type => 'text/xml', -status => '400');
-  print XMLout({ status => "ll is required", error_code => 'll_is_req' }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
   exit 0;
 }
 
@@ -64,12 +67,6 @@ if ($yr) {
 }
 if ($isbn) {
   $isbn =~ s/[^0-9xX]//ig;
-}
-
-unless ($si =~ /^G$|^Gcl|^Ghdk$|^Ge$|^Gg$|^Gk$|^Gm$|^Gp$|^Gumu$/) {
-  print $query->header(-type => 'text/xml', -status => '400');
-  print XMLout({ status => "wrong si", error_code => 'wrong_si' }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
-  exit 0;
 }
 
 unless ($mt =~ /^a$|^c$/) {
@@ -139,50 +136,6 @@ my $f_500 = MARC::Field->new('500', '', '', a => "$isbn");
   $record->append_fields($f_500);
 }
 
-## create a 952 field
-
-my $f_952ab = "40";
-my $f_952c = "440099";
-if ($si =~ /^G$/) {
-  $f_952ab = "44";
-  $f_952c = "440099";
-}
-if ($si =~ /^Gm$/) {
-  $f_952ab = "40";
-  $f_952c = "400099";
-   }
-if ($si =~ /^Ge$/) {
-  $f_952ab = "48";
-  $f_952c = "480099";
-}
-if ($si =~ /^Gp$/) {
-  $f_952ab = "47";
-  $f_952c = "470099";
-}
-if ($si =~ /^Gk$/) {
-  $f_952ab = "42";
-  $f_952c = "420099";
-}
-if ($si =~ /^Gg$/) {
-  $f_952ab = "49";
-  $f_952c = "490099";
-}
-if ($si =~ /^Gcl$/) {
-  $f_952ab = "50";
-  $f_952c = "500099";
-}
-if ($si =~ /^Ghdk$/) {
-  $f_952ab = "60";
-  $f_952c = "600099";
-}
-if ($si =~ /^Gumu$/) {
-  $f_952ab = "62";
-  $f_952c = "620099";
-}
-my $f_952 = MARC::Field->new('952', '', '', a => $f_952ab, b => $f_952ab, c => $f_952c, o => "$si".' '. "FJÄRR IN". ' '."$ll".' '."$shdate", p => "$item", y => "13");
-
-$record->append_fields($f_952);
-
 ## create a 942 field
 my $f_942 = MARC::Field->new('942', '', '', n => "1");
 $record->append_fields($f_942);
@@ -197,7 +150,7 @@ unless ($biblionumber) {
 }
 
 my $itemnumber;
-($biblionumber, $biblioitemnumber, $itemnumber) = AddItemFromMarc($record, $biblionumber);
+($biblionumber, $biblioitemnumber, $itemnumber) = AddItem({homebranch => $branch, holdingbranch => $branch, permanent_location => $location, location => $location, itemcallnumber => "FJÄRR IN". ' ' ."$shdate", barcode => "$item", itype => "13"}, $biblionumber);
 unless ($itemnumber) {
   print $query->header(-type => 'text/xml', -status => '400');
   print XMLout({ status => "add item error", error_code => 'add_item_error' }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
