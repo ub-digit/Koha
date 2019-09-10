@@ -40,6 +40,7 @@ else { #$action eq 'update'
   my $patrons = Koha::Patrons->search({borrowernumber => $borrowernumber});
   my $borrower = $patrons->next;
   my $existing_cardnumber = $borrower->unblessed->{'cardnumber'};
+  my $existing_categorycode = $borrower->unblessed->{'categorycode'};
 
   my $incoming_cardnumber = $query->param('cardnumber');
   my $category = $query->param('category');
@@ -64,7 +65,7 @@ else { #$action eq 'update'
 
   # Om låntagaren är student (i inkommande data) och inte har låntagarkategori SY (hos oss)
   # så sätts en studentkategori som låntagarkategori.
-  if (($category) and ($category eq "STUDENT") and ($categorycode) and !($categorycode eq "SY")) {
+  if (($category) and ($category eq "STUDENT") and ($categorycode) and !($existing_categorycode eq "SY")) {
     $newdata{'categorycode'} = $categorycode;
   }
 
