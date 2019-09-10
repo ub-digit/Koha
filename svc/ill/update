@@ -1,0 +1,64 @@
+#!/usr/bin/perl
+use strict;
+use warnings;
+use utf8;
+
+use C4::Auth qw/check_api_auth/;
+use C4::Biblio;
+use C4::Items;
+use Koha::Items;
+use MARC::Record;
+use XML::Simple;
+use POSIX qw(strftime);
+use CGI;
+
+my $query = new CGI;
+binmode STDOUT, ':encoding(UTF-8)';
+
+my ($status, $cookie, $sessionID) = check_api_auth($query, { editcatalogue => 'edit_catalogue'} );
+unless ($status eq "ok") {
+  print $query->header(-type => 'text/xml', -status => '403 Forbidden');
+  print XMLout({ status => $status }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+  exit 0;
+}
+
+my $item = $query->param('item');
+my $ll = $query->param('ll');
+
+unless ($item) {
+  print $query->header(-type => 'text/xml', -status => '400');
+  print XMLout({ status => "item is required", error_code => 'item_is_req' }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+  exit 0;
+}
+unless ($ll) {
+  print $query->header(-type => 'text/xml', -status => '400');
+  print XMLout({ status => "ll is required", error_code => 'll_is_req' }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+  exit 0;
+}
+
+my $year = strftime "%Y", localtime;
+my $month = strftime "%m", localtime;
+my $day = strftime "%d", localtime;
+my $shyear = sprintf("%02d", $year % 100);
+my $shdate = $shyear.$month.$day;
+
+my $item_obj = Koha::Items->find({ barcode => $item });
+my $item_data = $item_obj->unblessed;
+
+$item_data->{itemcallnumber} = "FJÄRR IN " . "$ll" . ' ' . "$shdate";
+$item_obj->set($item_data)->store();
+
+my $biblionumber = $item_data->{biblionumber};
+my $biblioitemnumber = $item_data->{biblioitemnumber};
+my $itemnumber = $item_data->{itemnumber};
+
+unless ($biblionumber) {
+  print $query->header(-type => 'text/xml', -status => '400');
+  print XMLout({ status => "add biblio error", error_code => 'add_biblio_error' }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+  exit 0;
+}
+
+print $query->header(-type => 'text/xml',-charset => 'utf-8');
+print XMLout({biblionumber => $biblionumber, biblioitemnumber => $biblioitemnumber, itemnumber => $itemnumber}, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+
+exit 0;
