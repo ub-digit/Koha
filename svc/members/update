@@ -41,10 +41,12 @@ else { #$action eq 'update'
   my $borrower = $patrons->next;
   my $existing_cardnumber = $borrower->unblessed->{'cardnumber'};
   my $existing_categorycode = $borrower->unblessed->{'categorycode'};
+  my $existing_userid = $borrower->unblessed->{'userid'};
 
   my $incoming_cardnumber = $query->param('cardnumber');
   my $category = $query->param('category');
   my $categorycode = $query->param('categorycode');
+  my $patronuserid = $query->param('patronuserid');
 
   my %newdata;
   $newdata{'borrowernumber'} = $borrowernumber;
@@ -69,6 +71,14 @@ else { #$action eq 'update'
     $newdata{'categorycode'} = $categorycode;
   }
 
+  # Om låntagaren har ett userid som inte börjar på x, ersätt userid med det inkommande.
+  if (substr($existing_userid, 0, 1) ne "x") {
+    $newdata{'userid'} = $patronuserid;
+  }
+  # Om låntagaren har ett userid som börjar på x samt innehåller punkt, ersätt userid med det inkommande.
+  elsif (index($existing_userid, '.') != -1) {
+    $newdata{'userid'} = $patronuserid;
+  }
 
   # Spara att de accepterat biblioteksreglerna.
   # Sparar att datat kommer från GU genom att skriva GU-kort uppdat i posten.
