@@ -256,10 +256,9 @@ $(document).ready(function(){
  &rsaquo; MARC merge rules
 </div>
 
-<div id="doc3" class="yui-t2">
-   <div id="bd">
-    <div id="yui-main">
-    <div class="yui-b">
+<div class="main container-fluid">
+<div class="row">
+<div class="col-sm-10 col-sm-push-2">
 
 <h1>Manage MARC merge rules</h1>
 
@@ -488,9 +487,17 @@ $(document).ready(function(){
 </form>
 
 </div>
+<!-- /.col-sm-10.col-sm-push-2 -->
+
+<div class="col-sm-2 col-sm-pull-10">
+    <aside>
+        [% INCLUDE 'admin-menu.inc' %]
+    </aside>
 </div>
-<div class="yui-b">
-[% INCLUDE 'admin-menu.inc' %]
+
 </div>
+<!-- /.row>
 </div>
+<!-- /main container-fluid -->
+
 [% INCLUDE 'intranet-bottom.inc' %]
