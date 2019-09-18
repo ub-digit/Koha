@@ -54,18 +54,18 @@ if ($op eq 'add_form') {
     my ( @selected_branches, $category, $av );
     if ($id) {
         $av = Koha::AuthorisedValues->new->find( $id );
-        @selected_branches = $av->library_limits->as_list;
+        @selected_branches = $av->library_limits ? $av->library_limits->as_list : [];
     } else {
         $category = $input->param('category');
     }
 
-    my $branches = Koha::Libraries->search( {}, { order_by => ['branchname'] } );
+    my $branches = Koha::Libraries->search( {}, { order_by => ['branchname'] } )->unblessed;
     my @branches_loop;
-    while ( my $branch = $branches->next ) {
+    foreach my $branch ( @$branches ) {
         push @branches_loop, {
-            branchcode => $branch->branchcode,
-            branchname => $branch->branchname,
-            selected   => any {$_->branchcode eq $branch->branchcode} @selected_branches,
+            branchcode => $branch->{branchcode},
+            branchname => $branch->{branchname},
+            selected   => 0, #any {$_->{branchcode} eq $branch->{branchcode]} @selected_branches,
         };
     }
 
