@@ -99,7 +99,7 @@ $(document).ready(function(){
             {"bSearchable": false, "bSortable": false},
             {"bSearchable": false, "bSortable": false}
         ],
-        "sPaginationType": "four_button"
+        "pagingType": "simple"
     }));
 
     var merge_rules_presets = {};
