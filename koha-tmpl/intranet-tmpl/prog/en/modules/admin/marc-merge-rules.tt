@@ -28,15 +28,17 @@ function doSubmit(op, id) {
     var valid = true;
     if( op == 'add' || op == 'edit') {
         var validate = [
-                        $('#marc-merge-rules-form input[name="filter"]'),
-                        $('#marc-merge-rules-form input[name="tag"]')
-                       ];
-        for(var i=0; i < validate.length; i++) {
-            if(validate[i].val().length == 0) {
-                validate[i].addClass('required');
-                valid = false;
-            } else {
-                validate[i].removeClass('required');
+            $('#marc-merge-rules-form input[name="filter"]'),
+            $('#marc-merge-rules-form input[name="tag"]')
+        ];
+        for(var i = 0; i < validate.length; i++) {
+            if (validate[i].length) {
+                if(validate[i].val().length == 0) {
+                    validate[i].addClass('required');
+                    valid = false;
+                } else {
+                    validate[i].removeClass('required');
+                }
             }
         }
     }
