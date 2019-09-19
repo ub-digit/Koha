@@ -313,7 +313,7 @@ $(document).ready(function(){
     $.validator.addMethod(
         "phone",
         function(value, element, phone) {
-            var e164 = "^\\+?[1-9]\\d{1,14}$";
+            var e164 = "^\\+?[0-9]\\d{1,14}$";
             var re = new RegExp(e164);
 
             let has_plus = value.charAt(0) === '+';
