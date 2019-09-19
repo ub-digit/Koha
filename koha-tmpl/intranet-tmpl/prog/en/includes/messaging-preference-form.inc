@@ -9,9 +9,9 @@
         <table>
             <tr>
                 <th>Paper</th>
-                [% IF ( SMSSendDriver ) %]<th>SMS</th>[% END %]
+                [% IF Koha.Preference('SMSSendDriver') %]<th>SMS</th>[% END %]
                 <th>Email</th>
-                [% IF ( SMSSendDriver ) %]<th>SMS & Email</th>[% END %]
+                [% IF Koha.Preference('SMSSendDriver') %]<th>SMS & Email</th>[% END %]
             </tr>
             [% FOREACH messaging_preference IN messaging_preferences %]
                 [% IF ( messaging_preference.Advance_Notice ) %]
@@ -37,7 +37,7 @@
                         [% END %]
                         </td>
                         [% IF ( messaging_preference.transport_sms ) %]
-                            [% IF ( SMSSendDriver ) %]
+                            [% IF Koha.Preference('SMSSendDriver') %]
                                 <td>
                                     [% IF ( messaging_preference.transports_sms ) %]
                                         <label class="radio">
@@ -73,7 +73,7 @@
                         [% END %]
 
                         [% IF ( messaging_preference.transport_sms ) %]
-                            [% IF ( SMSSendDriver ) %]
+                            [% IF Koha.Preference('SMSSendDriver') %]
                                 <td>
                                     [% IF ( messaging_preference.transports_sms && messaging_preference.transports_email) %]
                                         <label class="radio">
