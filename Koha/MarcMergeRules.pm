@@ -66,8 +66,7 @@ sub context_rules {
         my @rules_rows = $self->_resultset()->search(
             undef,
             {
-                prefetch => 'module',
-                order_by => { -desc => [qw/module.specificity me.id/] }
+                order_by => { -desc => [qw/id/] }
             }
         );
         foreach my $rule_row (@rules_rows) {
