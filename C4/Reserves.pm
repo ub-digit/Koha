@@ -1970,7 +1970,8 @@ sub RevertWaitingStatus {
     SET
       priority = 1,
       found = NULL,
-      waitingdate = NULL
+      waitingdate = NULL,
+      expirationdate = NULL
     WHERE
       reserve_id = ?
     ";
