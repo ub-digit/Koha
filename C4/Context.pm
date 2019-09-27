@@ -106,6 +106,7 @@ use Koha::Config::SysPref;
 use Koha::Config::SysPrefs;
 use Koha::Config;
 use Koha;
+use Koha::Plugins::Handler;
 
 =head1 NAME
 
@@ -520,6 +521,16 @@ sub set_preference {
 
     my $variable_case = $variable;
     $variable = lc $variable;
+
+    my $plugin_result = Koha::Plugins::Handler->run_hook(
+        {
+            method => 'set_preference_before',
+            params => {
+                variable => $variable,
+                value => $value
+            }
+        });
+
 
     my $syspref = Koha::Config::SysPrefs->find($variable);
     $type =
