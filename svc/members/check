@@ -36,6 +36,30 @@ my $sql = "SELECT DISTINCT borrowernumber
 
 my $value = $dbh->selectrow_array($sql, undef, $personalnumber, substr($personalnumber, 2));
 
+
+my $res;
+if ($value) {
+
+  $sql = "SELECT DISTINCT ba.attribute AS 'anstslut',
+          b.categorycode
+          FROM borrower_attributes ba
+          JOIN borrowers b
+          ON ba.borrowernumber = b.borrowernumber
+          WHERE ba.code = 'ANSTSLUT'
+          AND ba.borrowernumber = ?";
+
+ 
+ $res = $dbh->selectrow_hashref($sql, undef, $value); 
+}
+
+
+my $expirationdate = '';
+my $categorycode = '';
+if ($res) {
+  $expirationdate = $res->{anstslut};
+  $categorycode = $res->{categorycode};
+}
+
 my $uniq;
 my $borrowernumber;
 if ($value) {
@@ -48,4 +72,4 @@ else {
 }
 
 print $query->header(-type => 'text/xml',-charset => 'utf-8');
-print XMLout({uniq => $uniq, borrowernumber => $borrowernumber}, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+print XMLout({uniq => $uniq, borrowernumber => $borrowernumber, expirationdate => $expirationdate, categorycode => $categorycode}, NoAttr => 1, RootName => 'response', XMLDecl => 1);
