@@ -1969,6 +1969,7 @@ sub AddReturn {
     if ($doreturn) {
         die "The item is not issed and cannot be returned" unless $issue; # Just in case...
         $patron or warn "AddReturn without current borrower";
+        $is_overdue = $issue->is_overdue();
 
         if ($patron) {
             eval {
