@@ -49,6 +49,7 @@ $borrower{'surname'} = $query->param('surname');
 $borrower{'address'} = $query->param('address');
 $borrower{'city'} = $query->param('city');
 $borrower{'lang'} = $query->param('lang');
+$borrower{'dateexpiry'} = $query->param('dateexpiry');
 
 # Optional fields
 my $patronuserid = $query->param('patronuserid');

@@ -47,9 +47,36 @@ else { #$action eq 'update'
   my $category = $query->param('category');
   my $categorycode = $query->param('categorycode');
   my $patronuserid = $query->param('patronuserid');
+  my $newpnr = $query->param('new_pnr');
+  my $firstname = $query->param('firstname');
+  my $surname = $query->param('surname');
+  my $phone = $query->param('phone');
+  my $email = $query->param('email');
+
+  # If new pnr is present, update in Koha
+  if ($newpnr) {
+    UpdateBorrowerAttribute($borrowernumber, {code => "PNR12", attribute => $newpnr});
+    UpdateBorrowerAttribute($borrowernumber, {code => "PNR", attribute => substr($newpnr, 2)});
+  }
 
   my %newdata;
   $newdata{'borrowernumber'} = $borrowernumber;
+
+  if ($firstname) {
+    newdata{'firstname'} = $firstname;
+  }
+
+  if ($surname) {
+    newdata{'surname'} = $surname;
+  }
+
+  if ($phone) {
+    newdata{'phone'} = $phone;
+  }
+
+  if ($semail) {
+    newdata{'email'} = $email;
+  }
 
   # Ta bort spärrarna GU och WR
   my $debarments = GetDebarments({borrowernumber => $borrowernumber});
