@@ -36,6 +36,8 @@ unless ($ll) {
   exit 0;
 }
 
+my $itype = $query->param('itype');
+
 my $year = strftime "%Y", localtime;
 my $month = strftime "%m", localtime;
 my $day = strftime "%d", localtime;
@@ -46,6 +48,7 @@ my $item_obj = Koha::Items->find({ barcode => $item });
 my $item_data = $item_obj->unblessed;
 
 $item_data->{itemcallnumber} = "FJÄRR IN " . "$ll" . ' ' . "$shdate";
+$item_data->{itype} = $itype;
 $item_obj->set($item_data)->store();
 
 my $biblionumber = $item_data->{biblionumber};
