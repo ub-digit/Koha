@@ -29,6 +29,8 @@ my $item = $query->param('item');
 my $mt = $query->param('mt');
 my $branch = $query->param('branch');
 my $location = $query->param('location');
+my $borrowernumber = $query->param('borrowernumber');
+my $pickup_location = $query->param('pickup_location');
 
 unless ($ti) {
   print $query->header(-type => 'text/xml', -status => '400');
@@ -157,7 +159,28 @@ unless ($itemnumber) {
   exit 0;
 }
 
+# Add reservation
+my $reserve_status;
+if ($borrowernumber) {
+  my $borrower = Koha::Patrons->find($borrowernumber);
+  if ($borrower) {
+    my $reserve_id = C4::Reserves::AddReserve($pickup_location, $borrowernumber, $biblionumber, undef, 1, undef, undef, undef, $ti, $itemnumber);
+    if ($reserve_id) {
+      $reserve_status = 'success';
+    }
+    else {
+      $reserve_status = 'error';
+    }
+  }
+  else {
+    $reserve_status = 'no_borrower_found';
+  }
+}
+else {
+  $reserve_status = 'no_borrower_supplied';
+}
+
 print $query->header(-type => 'text/xml',-charset => 'utf-8');
-print XMLout({biblionumber => $biblionumber, biblioitemnumber => $biblioitemnumber, itemnumber => $itemnumber}, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+print XMLout({biblionumber => $biblionumber, biblioitemnumber => $biblioitemnumber, itemnumber => $itemnumber, reserve_status => $reserve_status}, NoAttr => 1, RootName => 'response', XMLDecl => 1);
 
 exit 0;
