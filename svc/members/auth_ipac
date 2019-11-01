@@ -1,0 +1,97 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+use CGI qw ( -utf8 );
+use C4::Auth qw/check_api_auth/;
+use C4::Members;
+use C4::Members::Attributes qw( GetBorrowerAttributeValue );
+use Koha::Patrons;
+use XML::Simple;
+
+my $query = new CGI;
+binmode STDOUT, ':encoding(UTF-8)';
+
+my $cardnumber= $query->url_param('cardnumber');
+my $personalnumber = $query->url_param('personalnumber');
+my $api_key = $query->url_param('api_key');
+my $server_api_key = $ENV{'HTTP_X_KOHA_IPAC_API_KEY'};
+
+# Wrong or missing api key (INVALID_KEY)
+if (!$api_key || $api_key ne $server_api_key) {
+    print $query->header(-type => 'text/xml', -status => '403');
+    print XMLout({ status => "Invalid key", error_code => 'INVALID_KEY' }, NoAttr => 1, RootName => 'error', XMLDecl => 1);
+    exit 0;
+}
+
+# Missing cardnumber or personalnumber (INVALID_CREDENTIALS)
+if (!$cardnumber || !$personalnumber) {
+    print $query->header(-type => 'text/xml', -status => '403');
+    print XMLout({ status => "Invalid credentials 1", error_code => 'INVALID_CREDENTIALS' }, NoAttr => 1, RootName => 'error', XMLDecl => 1);
+    exit 0;
+}
+
+# Truncate incoming personalnumber to 10 characters, we know it exists at this point
+if(length($personalnumber) == 12) {
+    $personalnumber = substr($personalnumber, 2);
+}
+
+my $patrons = Koha::Patrons->search({cardnumber => $cardnumber});
+my $borrower = $patrons->next;
+
+# Borrower not found (INVALID_CREDENTIALS)
+if (!$borrower) {
+    print $query->header(-type => 'text/xml', -status => '403');
+    print XMLout({ status => "Invalid credentials 2", error_code => 'INVALID_CREDENTIALS' }, NoAttr => 1, RootName => 'error', XMLDecl => 1);
+    exit 0;
+}
+
+my $borrowernumber = $borrower->unblessed->{'borrowernumber'};
+my $dateexpiry       = $borrower->unblessed->{'dateexpiry'};
+my $today = `date +"%Y-%m-%d"`;
+
+# Borrower expired (INVALID_CREDENTIALS)
+if ($dateexpiry lt $today) {
+    print $query->header(-type => 'text/xml', -status => '403');
+    print XMLout({ status => "Invalid credentials 3", error_code => 'INVALID_CREDENTIALS' }, NoAttr => 1, RootName => 'error', XMLDecl => 1);
+    exit 0;
+}
+
+my $pnr12 = GetBorrowerAttributeValue($borrowernumber, "PNR12");
+my $pnr10 = GetBorrowerAttributeValue($borrowernumber, "PNR");
+my $pnr12_valid = 0;
+my $pnr10_valid = 0;
+
+if($pnr12 && $personalnumber eq substr($pnr12, 2)) {
+    $pnr12_valid = 1;
+} elsif($pnr10 && $personalnumber eq $pnr10) {
+    $pnr10_valid = 1;
+}
+
+# Personalnumber not matching borrower (INVALID_CREDENTIALS)
+if (!$pnr12_valid && !$pnr10_valid) {
+    print $query->header(-type => 'text/xml', -status => '403');
+    print XMLout({ status => "Invalid credentials 4", error_code => 'INVALID_CREDENTIALS' }, NoAttr => 1, RootName => 'error', XMLDecl => 1);
+    exit 0;
+}
+
+# All is well, we have the correct user
+
+my $print_msg = GetBorrowerAttributeValue($borrowernumber, "PRINT");
+my $firstname = $borrower->unblessed->{'firstname'};
+my $surname = $borrower->unblessed->{'surname'};
+my $screen_msg = "";
+
+my $response = {
+    status => "OK",
+    cardnumber => $cardnumber,
+    firstname => $firstname,
+    surname => $surname,
+    print_msg => $print_msg,
+    screen_msg => $screen_msg
+};
+
+print $query->header(-type => 'text/xml; charset: UTF-8', -status => '200');
+print XMLout($response, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+
