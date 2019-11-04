@@ -3,6 +3,7 @@
 use strict;
 use warnings;
 
+use utf8;
 use CGI qw ( -utf8 );
 use C4::Auth qw/check_api_auth/;
 use C4::Members;
@@ -48,15 +49,9 @@ if (!$borrower) {
 }
 
 my $borrowernumber = $borrower->unblessed->{'borrowernumber'};
-my $dateexpiry       = $borrower->unblessed->{'dateexpiry'};
+my $dateexpiry = $borrower->unblessed->{'dateexpiry'};
+my $lang = $borrower->unblessed->{'lang'};
 my $today = `date +"%Y-%m-%d"`;
-
-# Borrower expired (INVALID_CREDENTIALS)
-if ($dateexpiry lt $today) {
-    print $query->header(-type => 'text/xml', -status => '403');
-    print XMLout({ status => "Invalid credentials 3", error_code => 'INVALID_CREDENTIALS' }, NoAttr => 1, RootName => 'error', XMLDecl => 1);
-    exit 0;
-}
 
 my $pnr12 = GetBorrowerAttributeValue($borrowernumber, "PNR12");
 my $pnr10 = GetBorrowerAttributeValue($borrowernumber, "PNR");
@@ -78,10 +73,19 @@ if (!$pnr12_valid && !$pnr10_valid) {
 
 # All is well, we have the correct user
 
+my $screen_msg = "";
+# Borrower expired, add screen_msg
+if ($dateexpiry lt $today) {
+    if ($lang eq "en") {
+        $screen_msg = "Patron has expired.";
+    } else {
+        $screen_msg = "Låntagarens konto är utgånget.";
+    }
+}
+
 my $print_msg = GetBorrowerAttributeValue($borrowernumber, "PRINT");
 my $firstname = $borrower->unblessed->{'firstname'};
 my $surname = $borrower->unblessed->{'surname'};
-my $screen_msg = "";
 
 my $response = {
     status => "OK",
