@@ -19,17 +19,27 @@ my $personalnumber = $query->url_param('personalnumber');
 my $api_key = $query->url_param('api_key');
 my $server_api_key = $ENV{'HTTP_X_KOHA_IPAC_API_KEY'};
 
+my $response_hash = {
+    cardnumber => $cardnumber,
+    firstname => undef,
+    surname => undef,
+    print_msg => undef,
+    screen_msg => undef
+};
+
 # Wrong or missing api key (INVALID_KEY)
 if (!$api_key || $api_key ne $server_api_key) {
+    $response_hash->{status} = "INVALID_KEY";
     print $query->header(-type => 'text/xml', -status => '403');
-    print XMLout({ status => "Invalid key", error_code => 'INVALID_KEY' }, NoAttr => 1, RootName => 'error', XMLDecl => 1);
+    print XMLout($response_hash, NoAttr => 1, RootName => 'response', XMLDecl => 1);
     exit 0;
 }
 
 # Missing cardnumber or personalnumber (INVALID_CREDENTIALS)
 if (!$cardnumber || !$personalnumber) {
+    $response_hash->{status} = "INVALID_CREDENTIALS";
     print $query->header(-type => 'text/xml', -status => '403');
-    print XMLout({ status => "Invalid credentials", error_code => 'INVALID_CREDENTIALS' }, NoAttr => 1, RootName => 'error', XMLDecl => 1);
+    print XMLout($response_hash, NoAttr => 1, RootName => 'response', XMLDecl => 1);
     exit 0;
 }
 
@@ -43,8 +53,9 @@ my $borrower = $patrons->next;
 
 # Borrower not found (INVALID_CREDENTIALS)
 if (!$borrower) {
+    $response_hash->{status} = "INVALID_CREDENTIALS";
     print $query->header(-type => 'text/xml', -status => '403');
-    print XMLout({ status => "Invalid credentials", error_code => 'INVALID_CREDENTIALS' }, NoAttr => 1, RootName => 'error', XMLDecl => 1);
+    print XMLout($response_hash, NoAttr => 1, RootName => 'response', XMLDecl => 1);
     exit 0;
 }
 
@@ -66,8 +77,9 @@ if($pnr12 && $personalnumber eq substr($pnr12, 2)) {
 
 # Personalnumber not matching borrower (INVALID_CREDENTIALS)
 if (!$pnr12_valid && !$pnr10_valid) {
+    $response_hash->{status} = "INVALID_CREDENTIALS";
     print $query->header(-type => 'text/xml', -status => '403');
-    print XMLout({ status => "Invalid credentials", error_code => 'INVALID_CREDENTIALS' }, NoAttr => 1, RootName => 'error', XMLDecl => 1);
+    print XMLout($response_hash, NoAttr => 1, RootName => 'response', XMLDecl => 1);
     exit 0;
 }
 
