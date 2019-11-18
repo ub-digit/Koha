@@ -207,7 +207,7 @@ sub barcodedecode {
         }
 	} elsif ($filter eq 'updateinc9') {
         unless (Koha::Items->find({barcode => $barcode})) {
-            if (substr($barcode, 0, 1) eq "1") {
+            if ((length($barcode) == 10 && substr($barcode, 0, 1) eq "1") || (length($barcode) == 14 && substr($barcode, 0, 5) eq "14000")) {
                 my $barcode9 = substr($barcode, -9);
                 my $item = Koha::Items->find({barcode => $barcode9});
                 if ($item) {
