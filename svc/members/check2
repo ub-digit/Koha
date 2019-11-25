@@ -1,0 +1,76 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+use CGI qw ( -utf8 );
+use XML::Simple;
+use C4::Auth qw/check_api_auth/;
+
+use C4::Members;
+use C4::Members::Attributes qw( CheckUniqueness );
+use C4::Context;
+
+my $query = new CGI;
+binmode STDOUT, ':encoding(UTF-8)';
+
+my ($status, $cookie, $sessionID) = check_api_auth($query, { editcatalogue => 'edit_catalogue'} );
+unless ($status eq "ok") {
+  print $query->header(-type => 'text/xml', -status => '403 Forbidden');
+  print XMLout({ status => $status }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+  exit 0;
+}
+
+
+# Assume 12 digit personalnumber
+my $personalnumber = $query->param('personalnumber');
+
+
+my $dbh = C4::Context->dbh();
+my $sql = "SELECT DISTINCT borrowernumber
+           FROM borrower_attributes
+           WHERE code = 'PNR12'
+           AND attribute = ?
+           OR code = 'PNR12'
+           AND substring(attribute, -10) = ?
+           OR code = 'PNR'
+           AND attribute = ?";
+
+my $value = $dbh->selectrow_array($sql, undef, $personalnumber, $personalnumber, substr($personalnumber, 2));
+
+
+my $res;
+if ($value) {
+  $sql = "SELECT ba.attribute AS 'anstslut',
+          b.categorycode
+          FROM borrowers b
+          LEFT OUTER JOIN borrower_attributes ba
+          ON ba.borrowernumber = b.borrowernumber
+          AND ba.code = 'ANSTSLUT'
+          WHERE b.borrowernumber = ?";
+
+ 
+ $res = $dbh->selectrow_hashref($sql, undef, $value); 
+}
+
+
+my $expirationdate = '';
+my $categorycode = '';
+if ($res) {
+  $expirationdate = $res->{anstslut};
+  $categorycode = $res->{categorycode};
+}
+
+my $uniq;
+my $borrowernumber;
+if ($value) {
+ $uniq = "false";
+ $borrowernumber = $value;
+}
+else {
+  $uniq = "true";
+  $borrowernumber = '';
+}
+
+print $query->header(-type => 'text/xml',-charset => 'utf-8');
+print XMLout({uniq => $uniq, borrowernumber => $borrowernumber, expirationdate => $expirationdate, categorycode => $categorycode}, NoAttr => 1, RootName => 'response', XMLDecl => 1);
