@@ -105,7 +105,8 @@ sub do_checkin {
         $self->alert_type('04');            # send to other branch
     }
     if ($messages->{WasTransfered}) { # set into transit so tell unit
-        $self->{item}->destination_loc($issue->item->homebranch);
+        # $self->{item}->destination_loc($issue->item->homebranch);
+        $self->{item}->destination_loc($self->{item}->location);
         $self->alert_type('04');            # send to other branch
     }
     if ($messages->{ResFound}) {
