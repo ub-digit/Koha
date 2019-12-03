@@ -22,7 +22,6 @@ unless ($status eq "ok") {
 }
 
 
-# Assume 12 digit personalnumber
 my $personalnumber = $query->param('personalnumber');
 
 
@@ -36,7 +35,7 @@ my $sql = "SELECT DISTINCT borrowernumber
            OR code = 'PNR'
            AND attribute = ?";
 
-my $value = $dbh->selectrow_array($sql, undef, $personalnumber, $personalnumber, substr($personalnumber, 2));
+my $value = $dbh->selectrow_array($sql, undef, $personalnumber, $personalnumber, substr($personalnumber, -10));
 
 
 my $res;
