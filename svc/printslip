@@ -24,6 +24,8 @@
 # You should have received a copy of the GNU General Public License
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
+use Data::Dumper;
+
 use Modern::Perl;
 use C4::Context;
 use C4::Output;
@@ -37,12 +39,15 @@ BEGIN {
     $debug = $ENV{DEBUG} || 0;
 }
 
+
 my $input = new CGI;
 my $sessionID = $input->cookie("CGISESSID");
 my $session = get_session($sessionID);
 
 my $biblionumber = $input->param('biblionumber');
 my $borrowernumber = $input->param('borrowernumber');
+my $itemnumber = $input->param('itemnumber');
+my $barcode = $input->param('barcode');
 
 my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
     {
@@ -56,8 +61,10 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user(
 );
 
 my $userenv = C4::Context->userenv;
+
 my ($slip, $is_html);
-if ( my $letter = ReserveSlip ($session->param('branch') || $userenv->{branch}, $borrowernumber, $biblionumber) ) {
+
+if ( my $letter = ReserveSlip ({'branchcode'=>($session->param('branch') || $userenv->{branch}), 'borrowernumber'=>$borrowernumber, 'biblionumber'=>$biblionumber, 'itemnumber'=>$itemnumber, 'barcode'=>$barcode}) ) {
     $slip = $letter->{content};
     $is_html = $letter->{is_html};
 }
@@ -75,17 +82,57 @@ $out =~ s,intranet-tmpl(.*)_\d\d\.\d\d\d\d\d\d\d\.,intranet-tmpl$1.,g;
 $out =~ s,import url\("/intranet-tmpl,import url\("${KOHATMPL}/intranet-tmpl,g;
 $out =~ s,<style type="text/css">,<style type="text/css">\@page {size: A5; margin: 0} #receipt { margin: 5mm 5mm 5mm 10mm !important; } ,;
 
-open(OUTPUTFILE, ">/tmp/outputfile.html");
+my $outputfile = "/tmp/printjob-item-${itemnumber}-barcode-${barcode}";
+open(OUTPUTFILE, ">${outputfile}.html");
 binmode( OUTPUTFILE, ":utf8" );
 print OUTPUTFILE $out;
 close OUTPUTFILE;
 
-system('google-chrome --headless --no-sandbox --disable-gpu --print-to-pdf="/tmp/outputfile.pdf" "/tmp/outputfile.html"');
+# convert pdf to html with chrome
+system("google-chrome --headless --no-sandbox --disable-gpu --print-to-pdf=${outputfile}.pdf ${outputfile}.html");
+
+# get ipno and map to a printer
+my $ipno = $ENV{'REMOTE_ADDR'};
+
+# client computer ipno mapped to slip printer name
+my %mapping_table = (
+    '130.241.17.135' => 'ASLIP01',
+    '130.241.17.241' => 'DSLIP01',
+    '130.241.31.22' => 'ESLIP01-EXP',
+    '130.241.31.30' => 'ESLIP02-UPP',
+    '130.241.16.206' => 'GSLIP01-EXP',
+    '130.241.17.80' => 'GSLIP02-LAS',
+    '130.241.16.201' => 'KSLIP01-EXP',
+    '130.241.17.191' => 'KSLIP02-UPP',
+    '130.241.16.167' => 'MSLIP01-EXP',
+    '130.241.16.165' => 'MSLIP01-EXP',
+    '130.241.16.166' => 'MSLIP02-UPP',
+    '130.241.17.165' => 'PSLIP01-EXP',
+    '130.241.16.182' => 'PSLIP02-UPP',
+);
+
+my $queue_name = $mapping_table{$ipno};
+
+# convert to pcl
+system("gs -dSAFER -dBATCH -dNOPAUSE -sDEVICE=pxlmono -sOutputFile=${outputfile}.pcl ${outputfile}.pdf");
+
+# print the file
+system("lp -d ${queue_name} ${outputfile}.pcl");
+
+# remove the files
+system("rm -f ${outputfile}.html");
+system("rm -f ${outputfile}.pdf");
+system("rm -f ${outputfile}.pcl");
 
 print "Content-type: text/html; charset='UTF-8'\r\n\r\n";
 print "Wrote file...\r\n";
 print "<pre>\n";
 print "$slip";
+print "</pre>\n";
+
+print "<pre>\n";
+print "${ipno}";
+print "${queue_name}";
 print "</pre>\n";
 
 use Data::Dumper;
