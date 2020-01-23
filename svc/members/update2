@@ -102,6 +102,10 @@ else { #$action eq 'update'
       $newdata{'categorycode'} = $categorycode;
   }
 
+  if($patronuserid) {
+      $newdata{'userid'} = $patronuserid;
+  }
+
   # Spara att de accepterat biblioteksreglerna.
   # Sparar att datat kommer från GU genom att skriva GU-kort uppdat i posten.
   UpdateBorrowerAttribute($borrowernumber, {code => "ACCEPT", attribute => "Biblioteksreglerna accepteras"});
@@ -112,6 +116,13 @@ else { #$action eq 'update'
     system("/usr/local/etc/gucard_replace.sh $existing_cardnumber $incoming_cardnumber > /dev/null 2>&1");
   }
 
+  # Update ANSTSLUT if provided
+  if (defined($last_employment_date) && $last_employment_date) {
+      UpdateBorrowerAttribute($borrowernumber, {code => "ANSTSLUT", attribute => $last_employment_date});
+  }
+
+  $borrower->set(\%newdata)->store;
+
   # Renew user if msg is from Ladok registration and user has real cardnumber
   if (defined($msgtype) && $msgtype eq "student_participation" && (($existing_cardnumber ne $existing_pnr) && ($existing_cardnumber ne $existing_pnr12))) {
       $borrower->renew_account;
@@ -121,13 +132,6 @@ else { #$action eq 'update'
   if (defined($msgtype) && $msgtype eq "card" && (($existing_cardnumber eq $existing_pnr) || ($existing_cardnumber eq $existing_pnr12))) {
       $borrower->renew_account;
   }
-
-  # Update ANSTSLUT if provided
-  if (defined($last_employment_date) && $last_employment_date) {
-      UpdateBorrowerAttribute($borrowernumber, {code => "ANSTSLUT", attribute => $last_employment_date});
-  }
-  
-  $borrower->set(\%newdata)->store;
 }
 
 print $query->header(-type => 'text/xml',-charset => 'utf-8', -status => '201');
