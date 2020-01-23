@@ -69,7 +69,7 @@ if (!(
 elsif ($dateexpiry lt $today)                               { $retval = '-1';  }  # card is expired
 elsif ($categorycode eq 'PE')                               { $retval = "110"; }  # GUB-personal
 elsif ($categorycode=~m/(SY)|(FY)/ )                        { $retval = "101"; }  # students/researchers with     special authorization
-elsif ($categorycode=~m/(F[AEHIKLMNSTVX])|(S[AEHIKLMNSU])/) { $retval = "100"; }  # students/researchers without  special authorization
+elsif ($categorycode=~m/(F[AEHIKLMNSTVX])|(S[AEHIKLMNSU]?)/) { $retval = "100"; }  # students/researchers without  special authorization
 elsif ($categorycode eq 'GU')                               { $retval = "100"; }  # GUB-personal
 else                                                        { $retval =  "-1"; }  # all other cases
 print $retval;
