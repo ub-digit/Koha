@@ -55,11 +55,7 @@
               [% ELSE %]
                 <option value='address'>Street address</option>
               [% END %]
-              [% IF searchfieldstype == "dateofbirth" %]
-                <option selected="selected" value='dateofbirth'>Date of birth</option>
-              [% ELSE %]
-                <option value='dateofbirth'>Date of birth</option>
-              [% END %]
+              <!-- removed dataofbirth (GUB) -->
               [% IF searchfieldstype == "sort1" %]
                 <option selected="selected" value='sort1'>Sort field 1</option>
               [% ELSE %]
@@ -85,18 +81,7 @@
               [% END %]
             </select>
         </p>
-
-        <p>
-            <label for="branchcode">Library: </label>
-            [% SET branches = Branches.all( selected => branchcode_filter, only_from_group => 1 ) %]
-            <select name="branchcode_filter" id="branchcode">
-                [% IF branches.size != 1 %]
-                  <option value="">Any</option>
-                [% END %]
-                [% PROCESS options_for_libraries libraries => branches %]
-            </select>
-        </p>
-
+        <!-- removed library filter  (GUB) -->
         <p>
             <label for="categorycode">Category: </label>
             [% SET categories = Categories.all() %]
