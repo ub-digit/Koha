@@ -143,7 +143,7 @@
                         <label for="searchfieldstype_filter">Search field:</label>
                         <select name="searchfieldstype" id="searchfieldstype_filter">
                             [% pref_fields = Koha.Preference('DefaultPatronSearchFields').split(',') %]
-                            [% default_fields = [ 'standard', 'surname', 'cardnumber', 'email', 'borrowernumber', 'userid', 'phone', 'address', 'dateofbirth', 'sort1', 'sort2' ] %]
+                            [% default_fields = [ 'standard', 'surname', 'cardnumber', 'email', 'borrowernumber', 'userid', 'phone', 'address', 'sort1', 'sort2' ] %]
                             [% search_options = default_fields.merge(pref_fields).unique %]
                             [% FOREACH s_o IN search_options %]
                                 [% display_name = PROCESS patron_fields name=s_o %]
@@ -183,16 +183,7 @@
                           [% END %]
                         </select>
                       </li>
-                      <li>
-                        <label for="branchcode_filter">Library:</label>
-                        [% SET branches = Branches.all( selected => branchcode_filter, only_from_group => 1 ) %]
-                        <select id="branchcode_filter">
-                          [% IF branches.size != 1 %]
-                            <option value="">Any</option>
-                          [% END %]
-                          [% PROCESS options_for_libraries libraries => branches %]
-                        </select>
-                      </li>
+                      <!--  Removed library filter (GUB) --> 
                     </ol>
                     <fieldset class="action">
                       <input type="submit" value="Search" />
