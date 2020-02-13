@@ -377,13 +377,22 @@
                                                     <h4>[% attribute.lib | html %]</h4>
                                                     <ol>
                                                         [% FOREACH item IN attribute.items %]
-                                                            <li>
-                                                                <span class="label">[% item.description | html %]: </span>
-                                                                [% IF ( item.value_description ) %]
-                                                                    [% item.value_description | html %]
+                                                            <!-- Hides 'antal fakturor' attribute if user has no rights to view system logs (GUB) -->  
+                                                            [% UNLESS ( CAN_user_tools_view_system_logs ) %]
+                                                               [% IF item.code == 'INVCNT' || item.code == 'ANSTSLUT' %]
+                                                                <li class="hidden">
                                                                 [% ELSE %]
-                                                                    [% item.value| html | html_line_break %]
-                                                                [% END %]
+                                                                <li>
+                                                               [% END %]
+                                                            [% ELSE %]
+                                                                <li>
+                                                            [% END %]
+                                                            <span class="label">[% item.description | html %]: </span>
+                                                            [% IF ( item.value_description ) %]
+                                                                [% item.value_description | html %]
+                                                            [% ELSE %]
+                                                                [% item.value| html | html_line_break %]
+                                                            [% END %]
                                                             </li>
                                                         [% END %]
                                                     </ol>

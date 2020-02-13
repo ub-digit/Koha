@@ -8,6 +8,9 @@
            <span class="circ-hlt">Checkouts are BLOCKED because fine balance is OVER THE LIMIT.</span>
         [% END %]
         <a href="/cgi-bin/koha/members/pay.pl?borrowernumber=[% patron.borrowernumber | uri %]" class="btn btn-default btn-xs" >Make payment</a>
-        <a href="/cgi-bin/koha/members/paycollect.pl?borrowernumber=[% patron.borrowernumber | uri %]" class="btn btn-default btn-xs" >Pay all fines</a></li>
+        [% IF ( CAN_user_tools_view_system_logs ) %]
+        	<a href="/cgi-bin/koha/members/paycollect.pl?borrowernumber=[% patron.borrowernumber | uri %]" class="btn btn-default btn-xs" >Pay all fines</a></li>
+        [% END %]
+
     </li>
 [% END %]

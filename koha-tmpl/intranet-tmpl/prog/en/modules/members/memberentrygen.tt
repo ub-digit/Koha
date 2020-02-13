@@ -1124,7 +1124,16 @@
                 <legend id="[% pa_loo.class | html %]_lgd">[% pa_loo.lib | html %]</legend>
             [% END %]
             [% FOREACH patron_attribute IN pa_loo.items %]
-                <li data-category_code="[% patron_attribute.category_code | html %]">
+                <!-- Hides 'antal fakturor' attribute if user has no rights to view system logs (GUB) -->  
+                [% UNLESS ( CAN_user_tools_view_system_logs ) %]
+                   [% IF patron_attribute.code == 'INVCNT' || patron_attribute.code == 'ANSTSLUT'  %]
+                    <li data-category_code="[% patron_attribute.category_code | html %]" class="hidden">
+                    [% ELSE %]
+                    <li data-category_code="[% patron_attribute.category_code | html %]">
+                   [% END %]
+                [% ELSE %]
+                    <li data-category_code="[% patron_attribute.category_code | html %]">
+                [% END %]
                     <label for="[% patron_attribute.form_id | html %]">[% patron_attribute.description | html %]: </label>
                         [% IF ( patron_attribute.use_dropdown ) %]
                             <select id="[% patron_attribute.form_id | html %]" name="[% patron_attribute.form_id | html %]">
