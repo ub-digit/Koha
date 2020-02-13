@@ -69,5 +69,6 @@ suggestible:
 sort:
   default:
     type: icu_collation_keyword
+    language: sv
     index: false
     numeric: true
