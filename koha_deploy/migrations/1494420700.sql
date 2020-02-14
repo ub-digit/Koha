@@ -1,6 +1,0 @@
-CREATE TABLE IF NOT EXISTS testing2 (
-  id MEDIUMINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
-  value TEXT
-);
-INSERT INTO testing2(value) VALUES('test3');
-INSERT INTO testing2(value) VALUES("test4");
