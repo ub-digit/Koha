@@ -413,53 +413,31 @@
                     <input type="text" size="20" name="listprice" id="listprice" value="[% listprice | html %]" onchange="updateCosts()" /> [% IF (listincgst == 1) %](tax inclusive)[% ELSE %](tax exclusive)[% END %]
             </li>
             <li>
-                    <label for="uncertainprice">Uncertain price: </label>
-                    [% IF ( uncertainprice ) %]
-                    <input type="checkbox" name="uncertainprice"  id="uncertainprice" value="1" checked="checked" />
-                    [% ELSE %]
-                    <input type="checkbox" name="uncertainprice" id="uncertainprice" value="1" />
-                [% END %]
+                <!-- GU hide uncertain price -->
+                <input type="hidden" name="uncertainprice" id="uncertainprice" value="1" />
             </li>
+            <!-- GU hide tax rate -->
             [% IF ( gst_values ) %]
-                <li>
-                    <label for="tax_rate">Tax rate: </label>
-                    <select name="tax_rate" id="tax_rate" onchange="updateCosts();">
-                        [% SET gst_found = 0 %]
                         [% FOREACH gst IN gst_values %]
                           [% IF ( gst.option == tax_rate ) %]
-                            <option value="[% gst.option | html %]" selected="selected">[% gst.option * 100 | html %]%</option>
-                            [% SET gst_found = 1 %]
-                          [% ELSE %]
-                            <option value="[% gst.option | html %]">[% gst.option * 100 | html %]%</option>
+                            <input type="hidden" name="tax_rate" value="[% gst.option | html%]" />
                           [% END %]
                         [% END %]
-
-                        [% IF !gst_found %]
-                            <option value="[% tax_rate | html %]" selected="selected">[% tax_rate * 100 | html %]%</option>
-                        [% END %]
-                    </select>
-
-                    [% IF !gst_found %]<span class="required">Tax rate not defined in system preference TaxRates!</span>[% END %]
             [% ELSE %]
                     <input type="hidden" name="tax_rate" value="0" />
-                </li>
             [% END %]
-            <li>
-                <label for="discount">Discount: </label>
-                [% IF ( orderdiscount ) %]
-                    <input type="text" size="6" name="discount" id="discount" value="[% orderdiscount | html %]" onchange="updateCosts();" />%
-                [% ELSE %]
-                    <input type="text" size="6" name="discount" id="discount" value="[% discount | html %]" onchange="updateCosts();" />%
-                [% END %]
-            </li>
+            <!-- GU hide discount field -->
+            [% IF ( orderdiscount ) %]
+                <input type="hidden" size="6" name="discount" id="discount" value="[% orderdiscount | html %]" onchange="updateCosts();" />
+            [% ELSE %]
+                <input type="hidden" size="6" name="discount" id="discount" value="[% discount | html %]" onchange="updateCosts();" />
+            [% END %]
             <li>
                 <label for="rrp">Retail price: </label>
                 <input type="text" size="20" name="rrp" id="rrp" value="[% rrp | html %]" /> (adjusted for [% cur_active | html %], [% IF (listincgst == 1) %]tax inclusive[% ELSE %]tax exclusive[% END %])
             </li>
-            <li>
-                <label for="replacementprice">Replacement cost: </label>
-                <input type="text" size="20" name="replacementprice" id="replacementprice" value="[% replacementprice | html | $Price on_editing => 1 %]" />
-            </li>
+            <!-- GU hide replacement cost field -->
+                <input type="hidden" size="20" name="replacementprice" id="replacementprice" value="[% replacementprice | html | $Price on_editing => 1 %]" />
             <li>
                 <label for="ecost">Budgeted cost: </label>
                 <input type="text" size="20" name="ecost" id="ecost" value="[% ecost | html %]" readonly="readonly"  /> [% IF (listincgst == 1) %](tax inclusive)[% ELSE %](tax exclusive)[% END %]
