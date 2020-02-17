@@ -1130,6 +1130,9 @@ ENDSQL
 
     my @query_params;
     my @whereclauses;
+
+    push @whereclauses, " time_queued > (NOW() - INTERVAL 3 MONTH) ";
+
     if ( exists $params->{'borrowernumber'} ) {
         push @whereclauses, ' borrowernumber = ? ';
         push @query_params, $params->{'borrowernumber'};
