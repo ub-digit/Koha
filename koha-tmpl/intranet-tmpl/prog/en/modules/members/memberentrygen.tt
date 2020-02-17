@@ -1124,15 +1124,37 @@
                 <legend id="[% pa_loo.class | html %]_lgd">[% pa_loo.lib | html %]</legend>
             [% END %]
             [% FOREACH patron_attribute IN pa_loo.items %]
-                <!-- Hides 'antal fakturor' attribute if user has no rights to view system logs (GUB) -->  
+                 <!-- Hides additional attributes if user has no rights to view them (GUB) -->  
                 [% UNLESS ( CAN_user_tools_view_system_logs ) %]
-                   [% IF patron_attribute.code == 'INVCNT' || patron_attribute.code == 'ANSTSLUT'  %]
+                   [% IF patron_attribute.code == 'INVCNT' || patron_attribute.code == 'ANSTSLUT' || patron_attribute.code == 'TILLH_KOD' %]
                     <li data-category_code="[% patron_attribute.category_code | html %]" class="hidden">
                     [% ELSE %]
-                    <li data-category_code="[% patron_attribute.category_code | html %]">
+                        [% IF patron_attribute.code == 'ROLL' %]
+                            [% IF categorycode == 'GU' || categorycode == 'F' || categorycode == 'PE'%]
+                                <li data-category_code="[% patron_attribute.category_code | html %]" style="pointer-events:none; opacity:0.6;">
+                            [% ELSE %]
+                                <li data-category_code="[% patron_attribute.category_code | html %]" class="hidden">
+                            [% END%]
+                        [% ELSIF patron_attribute.code == 'TILLH' %]
+                                <li data-category_code="[% patron_attribute.category_code | html %]" style="pointer-events:none; opacity:0.6;">
+                        [% ELSE %]
+                            <li data-category_code="[% patron_attribute.category_code | html %]">
+                        [% END %]
                    [% END %]
                 [% ELSE %]
-                    <li data-category_code="[% patron_attribute.category_code | html %]">
+                    [% IF patron_attribute.code == 'TILLH_KOD' %]
+                        <li data-category_code="[% patron_attribute.category_code | html %]" class="hidden">
+                    [% ELSIF patron_attribute.code == 'ROLL' %]
+                            [% IF categorycode == 'GU' || categorycode == 'F' || categorycode == 'PE'%]
+                                <li data-category_code="[% patron_attribute.category_code | html %]" style="pointer-events:none; opacity:0.6;">
+                            [% ELSE %]
+                                <li data-category_code="[% patron_attribute.category_code | html %]" class="hidden">
+                            [% END%]
+                    [% ELSIF patron_attribute.code == 'TILLH' %]
+                        <li data-category_code="[% patron_attribute.category_code | html %]" style="pointer-events:none; opacity:0.6;">
+                    [% ELSE %]
+                        <li data-category_code="[% patron_attribute.category_code | html %]">
+                    [% END %]
                 [% END %]
                     <label for="[% patron_attribute.form_id | html %]">[% patron_attribute.description | html %]: </label>
                         [% IF ( patron_attribute.use_dropdown ) %]

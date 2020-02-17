@@ -377,15 +377,29 @@
                                                     <h4>[% attribute.lib | html %]</h4>
                                                     <ol>
                                                         [% FOREACH item IN attribute.items %]
-                                                            <!-- Hides 'antal fakturor' attribute if user has no rights to view system logs (GUB) -->  
+                                                            <!-- Hides additional attributes if user has no rights to view them (GUB) -->  
                                                             [% UNLESS ( CAN_user_tools_view_system_logs ) %]
-                                                               [% IF item.code == 'INVCNT' || item.code == 'ANSTSLUT' %]
-                                                                <li class="hidden">
+                                                               [% IF item.code == 'INVCNT' || item.code == 'ANSTSLUT' || patron_attribute.code == 'TILLH_KOD' %]
+                                                                    <li class="hidden">
+                                                                [% ELSIF item.code == 'ROLL' %]
+                                                                    [% IF patron.categorycode == 'GU' || patron.categorycode == 'F' || patron.categorycode == 'PE' %]
+                                                                        <li>
+                                                                    [% ELSE %]
+                                                                        <li class="hidden">
+                                                                    [% END%]
                                                                 [% ELSE %]
-                                                                <li>
-                                                               [% END %]
+                                                                    <li>
+                                                                [% END %]
                                                             [% ELSE %]
-                                                                <li>
+                                                                [% IF item.code == 'ROLL' %]
+                                                                    [% IF patron.categorycode == 'GU' || patron.categorycode == 'F' || patron.categorycode == 'PE'%]
+                                                                        <li>
+                                                                    [% ELSE %]
+                                                                        <li class="hidden">
+                                                                    [% END%]
+                                                                [% ELSE %]
+                                                                    <li>
+                                                                [% END %]
                                                             [% END %]
                                                             <span class="label">[% item.description | html %]: </span>
                                                             [% IF ( item.value_description ) %]
