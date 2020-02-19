@@ -74,13 +74,13 @@ else { #$action eq 'update'
     $newdata{'surname'} = $surname;
   }
 
-  if ($phone) {
-    $newdata{'phone'} = $phone;
-  }
+  # if ($phone) {
+  #   $newdata{'phone'} = $phone;
+  # }
 
-  if ($email) {
-    $newdata{'email'} = $email;
-  }
+  # if ($email) {
+  #   $newdata{'email'} = $email;
+  # }
 
   # Ta bort spärrarna GU och WR om vi får ett KORT-meddelande, inte annars
   if (defined($msgtype) && $msgtype eq "card") {
