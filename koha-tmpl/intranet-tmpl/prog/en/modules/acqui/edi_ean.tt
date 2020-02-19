@@ -19,10 +19,13 @@
     <form action="/cgi-bin/koha/acqui/basket.pl" method="get">
          <p>Select ordering library account: </p>
          <select id="ean" name="ean">
+             <!-- GUB Add default value-->
+             <option value="gub-not-valid">- Select library account</option>
              [% FOREACH eanacct IN eans %]
              <option value="[% eanacct.ean | html %]">[% eanacct.branch.branchname | html %] ([% eanacct.ean | html %]) [% IF eanacct.description %][[% eanacct.description | html %]][% END %]</option>
              [% END %]
         </select>
+        <span style="display:none; color:#ff0000; font-weight: bold;" class="gub-selection-required"> Required!</span>
         <input type="hidden" id="basketno" value="[% basketno | html %]" name="basketno" />
         <input type="hidden" value="ediorder" name="op" />
         <p>
@@ -38,5 +41,15 @@
     </aside>
 </div> <!-- /.col-sm-2.col-sm-pull-10 -->
 </div>
-
+<!-- GUB validate mandatory selection -->
+<script>
+    $('form[action |= "/cgi-bin/koha/acqui/basket.pl"]').submit(function(){
+        let option = $('#ean').children("option:selected"). val();
+        if (option == 'gub-not-valid'){
+            $('.gub-selection-required').css('display', 'inline');
+            return false
+        }
+        return true;
+    });
+</script>
 [% INCLUDE 'intranet-bottom.inc' %]
