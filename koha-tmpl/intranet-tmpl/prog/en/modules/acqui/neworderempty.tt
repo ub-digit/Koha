@@ -301,7 +301,7 @@
             <li>
                 <label class="required" for="quantity">Quantity: </label>
                 [% IF subscriptionid %]
-                    <input type="text" size="20" id="quantity" name="quantity" value="1" onchange="updateCosts();" />
+                    <input type="text" size="20" maxlength="2" id="quantity" name="quantity" value="1" onchange="updateCosts();" />
                 [% ELSIF AcqCreateItemOrdering %]
                     [% IF basket.is_standing %]
                         <input type="text" readonly="readonly" size="20" id="quantity" name="quantity" value="1" />
@@ -310,9 +310,9 @@
                     [% END %]
                 [% ELSE %]
                     [% IF basket.is_standing %]
-                        <input type="text" readonly="readonly" size="20" id="quantity" name="quantity" value="1" />
+                        <input type="text" maxlength="2" readonly="readonly" size="20" id="quantity" name="quantity" value="1" />
                     [% ELSE %]
-                        <input type="text" size="20" id="quantity" name="quantity" value="[% quantityrec | html %]" onchange="updateCosts();" />
+                        <input type="text" maxlength="2" size="20" id="quantity" name="quantity" value="[% quantityrec | html %]" onchange="updateCosts();" />
                     [% END %]
                 [% END %]
                 <span class="required">Required</span>
