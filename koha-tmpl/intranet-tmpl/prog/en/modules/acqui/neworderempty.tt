@@ -381,7 +381,7 @@
             </li>
             <li>
                 <!-- GUB hide uncertain price -->
-                <input type="hidden" name="uncertainprice" id="uncertainprice" value="1" />
+                <input type="hidden" name="uncertainprice" id="uncertainprice" value="0" />
             </li>
             <!-- GUB hide tax rate -->
             [% IF ( gst_values ) %]
