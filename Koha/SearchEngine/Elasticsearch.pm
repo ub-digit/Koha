@@ -738,6 +738,8 @@ sub marc_records_to_documents {
                 if ($field =~ /__sort$/) {
                     # Make sure to keep the sort field length sensible. 255 was chosen as a nice round value.
                     $record_document->{$field} = [substr(join(' ', @{$record_document->{$field}}), 0, 255)];
+                    # Strip any initial non-word characters which don't make much sense to sort on
+                    $record_document->{$field} = [map { s/^\W+//u; $_ } @{$record_document->{$field}}];
                 }
             }
         }
