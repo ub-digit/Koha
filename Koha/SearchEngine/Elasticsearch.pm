@@ -1519,7 +1519,7 @@ sub get_facetable_fields {
 
     # These should correspond to the ES field names, as opposed to the CCL
     # things that zebra uses.
-    my @search_field_names = qw( author itype location su-geo title-series subject ccode holdingbranch homebranch ln );
+    my @search_field_names = qw( author gub-format itype location su-geo title-series subject ccode holdingbranch homebranch ln );
     my @faceted_fields = Koha::SearchFields->search(
         { name => { -in => \@search_field_names }, facet_order => { '!=' => undef } }, { order_by => ['facet_order'] }
     )->as_list;
