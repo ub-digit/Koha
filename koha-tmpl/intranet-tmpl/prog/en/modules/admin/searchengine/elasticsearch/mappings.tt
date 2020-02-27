@@ -451,6 +451,7 @@ a.add, a.delete {
                                                 <td>
                                                     [% SWITCH f.name %]
                                                     [% CASE 'author' %]<span>Authors</span>
+                                                    [% CASE 'gub-format' %]<span>Format</span>
                                                     [% CASE 'itype' %]<span>Item types</span>
                                                     [% CASE 'location' %]<span>Locations</span>
                                                     [% CASE 'su-geo' %]<span>Places</span>
