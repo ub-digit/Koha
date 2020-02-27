@@ -136,6 +136,7 @@ if ( $op eq 'delete_confirm' ) {
         foreach my $myorder (@orders){
             my $biblionumber = $myorder->{'biblionumber'};
             my $biblio = Koha::Biblios->find( $biblionumber );
+            if (!$biblio) { next; }
             my $countbiblio = $biblio->active_orders->count;
             my $ordernumber = $myorder->{'ordernumber'};
             my $cnt_subscriptions = $biblio->subscriptions->count;
@@ -477,6 +478,7 @@ sub get_order_infos {
     my $biblionumber = $order->{'biblionumber'};
     if ( $biblionumber ) { # The biblio still exists
         my $biblio = Koha::Biblios->find( $biblionumber );
+        if (!$biblio) { next; }
         my $countbiblio = $biblio->active_orders->count;
 
         my $ordernumber = $order->{'ordernumber'};
