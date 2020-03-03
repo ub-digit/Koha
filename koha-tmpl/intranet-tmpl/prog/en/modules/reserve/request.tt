@@ -92,7 +92,7 @@
                     <div id="circ_holds_select">
                         <ul class="nav nav-tabs" role="tablist">
                             <li role="presentation"><a href="#holds_patronsearch_pane" aria-controls="holds_patronsearch_pane" role="tab" data-toggle="tab">Patrons</a></li>
-                            <li role="presentation"><a href="#holds_clubsearch_pane" aria-controls="holds_clubsearch_pane" role="tab" data-toggle="tab">Clubs</a></li>
+                            <!-- GUB removed clubs from tab-navigation --> 
                         </ul>
                         <div class="tab-content">
                             <div role="tabpanel" class="tab-pane" id="holds_patronsearch_pane">
