@@ -10,7 +10,7 @@
         <th>Patron</th>
         <th>Notes</th>
         <th>Date</th>
-        <th>Expiration</th>
+        <!--GUB hide expiration date header -->
         <th>Pickup library</th>
         <th>Details</th>
         [% IF ( CAN_user_reserveforothers_modify_holds_priority ) %]
@@ -113,7 +113,8 @@
                     [% hold.date | $KohaDates %]
                 [% END %]
             </td>
-            <td><input type="text" class="datepicker" value="[% hold.expirationdate | $KohaDates %]" size="10" name="expirationdate" /></td>
+            <!-- GUB hide date picker collumn -->
+            <input type="hidden" value="[% hold.expirationdate | $KohaDates %]" name="expirationdate" />
 
             <td>
                 [% IF ( hold.found ) %]
