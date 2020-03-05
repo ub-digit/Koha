@@ -41,7 +41,7 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
 
 my $patron = Koha::Patrons->find( $borrowernumber );
 my $account = $patron->account;
-my $accountlines = $account->lines->search({ amountoutstanding => { '>=' => 0 }});
+my $accountlines = $account->lines->search({ amountoutstanding => { '>' => 0 }});
 my $total_outstanding = $accountlines->total_outstanding;
 my $outstanding_credits = $account->outstanding_credits;
 
