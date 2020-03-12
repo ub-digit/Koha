@@ -460,8 +460,8 @@ sub get_order_infos {
     $line{budget_name}    = $budget->{budget_name};
 
     # If we have an actual cost that should be the total, otherwise use the ecost
-    my $cost_tax_included = $line{unitprice_tax_included} || $line{ecost_tax_included};
-    my $cost_tax_excluded = $line{unitprice_tax_excluded} || $line{ecost_tax_excluded};
+    my $cost_tax_included = $line{ecost_tax_included};
+    my $cost_tax_excluded = $line{ecost_tax_excluded};
     $line{total_tax_included} = get_rounded_price($cost_tax_included) * $line{quantity};
     $line{total_tax_excluded} = get_rounded_price($cost_tax_excluded) * $line{quantity};
     $line{tax_value} = $line{tax_value_on_ordering};
