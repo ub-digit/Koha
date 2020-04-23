@@ -12,6 +12,7 @@
 <script src="https://cdn.jsdelivr.net/jsbarcode/3.6.0/JsBarcode.all.min.js"></script>
 [% BLOCK cssinclude %][% END %]
 <style>
+
     #opac-barcode #barcode-wrapper {
         border: 1px solid #ccc;
         border-radius: 4px;
@@ -30,12 +31,13 @@
             display:block;
         }
     }
+    .barcode-success, .barcode-error, .barcode-wrapper {
+        display:none;
+    }
 </style>
 </head>
 [% INCLUDE 'bodytag.inc' bodyid='opac-barcode' bodyclass='scrollto' %]
 [% INCLUDE 'masthead.inc' %]
-
-
 <div class="main">
     <div class="container-fluid">
         <div class="row-fluid">
@@ -50,8 +52,11 @@
                     [% INCLUDE 'opac-note.inc' %]
 
                     <h1>Your barcode</h1>
-                    <p>
+                    <p class="barcode-success">
                         This is the barcode for your librarycard. If you don't have your GU-card available you can use this barcode in the self-service machines.
+                    </p>
+                    <p class="barcode-error">
+                        Your cardnumber is invalid. Contact personal. 
                     </p>
                     <div id="barcode-wrapper">
                         <svg id="cardbarcode"></svg>
@@ -68,9 +73,19 @@
 [% INCLUDE 'opac-bottom.inc' %]
 [% BLOCK jsinclude %]
     <script>
-
         $(document).ready(function(){
-            JsBarcode("#cardbarcode",[% cardnumber %] );
+            let cardnumber = "[% cardnumber %]";
+            if (!isNaN(cardnumber)) {
+                JsBarcode("#cardbarcode",cardnumber );
+                $('.barcode-success').show();
+                $('#barcode-wrapper').show();
+                $('.barcode-error').hide();
+            }
+            else {
+                $('.barcode-success').hide();
+                $('#barcode-wrapper').hide();
+                $('.barcode-error').show();
+            }
         });
     </script>
 [% END %]
