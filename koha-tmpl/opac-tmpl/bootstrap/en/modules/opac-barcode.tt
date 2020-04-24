@@ -20,20 +20,22 @@
         margin: 0 auto;
         margin-bottom: 20px;
         padding: 10px 10px 0 10px;
-        @media only screen and (max-width: 767px) {
-            margin-bottom: 200px;
-        }
     }
     @media only screen and (max-width: 767px) {
         #opac-barcode #barcode-wrapper {
             text-align: center;
-            margin-bottom: 100px;
+            margin-bottom: 400px;
             display:block;
+        }
+        #cardbarcode {
+            width: 100%; 
+            height: 100%;
         }
     }
     .barcode-success, .barcode-error, .barcode-wrapper {
         display:none;
     }
+
 </style>
 </head>
 [% INCLUDE 'bodytag.inc' bodyid='opac-barcode' bodyclass='scrollto' %]
@@ -76,7 +78,9 @@
         $(document).ready(function(){
             let cardnumber = "[% cardnumber %]";
             if (!isNaN(cardnumber)) {
-                JsBarcode("#cardbarcode",cardnumber );
+                JsBarcode("#cardbarcode", cardnumber, {
+                    width: 2,
+                });
                 $('.barcode-success').show();
                 $('#barcode-wrapper').show();
                 $('.barcode-error').hide();
