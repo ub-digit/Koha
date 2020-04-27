@@ -136,7 +136,7 @@
             [% ELSE %]
                 <li>
             [% END %]
-                <a href="/cgi-bin/koha/opac-barcode.pl">Barcode</a></li>
+                <a href="/cgi-bin/koha/opac-barcode.pl">your barcode</a></li>
 
 
         </ul>

@@ -55,7 +55,7 @@
 
                     <h1>Your barcode</h1>
                     <p class="barcode-success">
-                        This is the barcode for your librarycard. If you don't have your GU-card available you can use this barcode in the self-service machines.
+                        This is the barcode for your library card. If you don't have your GU-card or library card available you can use this barcode in the self-service machines.
                     </p>
                     <p class="barcode-error">
                         Your cardnumber is invalid. Contact personal. 
