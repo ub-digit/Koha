@@ -25,6 +25,7 @@
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Data::Dumper;
+use YAML::XS 'LoadFile';
 
 use Modern::Perl;
 use C4::Context;
@@ -72,7 +73,10 @@ $template->param( slip => $slip ) if ($slip);
 $template->param( caller => 'hold-transfer' );
 $template->param( plain => !$is_html );
 
-my $KOHAROOT = "/home/koha/koha-staging/current";
+my $configfile = $ENV{'GUB_PRINTSLIP_CONFIG'} || "/etc/koha/gub/printslip/config.yaml";
+my $config = LoadFile($config_file);
+
+my $KOHAROOT = $config->{'koha-root'};
 my $KOHATMPL = "${KOHAROOT}/koha-tmpl";
 
 my $out = $template->output;
@@ -95,23 +99,8 @@ system("google-chrome --headless --no-sandbox --disable-gpu --print-to-pdf=${out
 my $ipno = $ENV{'REMOTE_ADDR'};
 
 # client computer ipno mapped to slip printer name
-my %mapping_table = (
-    '130.241.17.135' => 'ASLIP01',
-    '130.241.17.241' => 'DSLIP01',
-    '130.241.31.22' => 'ESLIP01-EXP',
-    '130.241.31.30' => 'ESLIP02-UPP',
-    '130.241.16.206' => 'GSLIP01-EXP',
-    '130.241.17.80' => 'GSLIP02-LAS',
-    '130.241.16.201' => 'KSLIP01-EXP',
-    '130.241.17.191' => 'KSLIP02-UPP',
-    '130.241.16.167' => 'MSLIP01-EXP',
-    '130.241.16.165' => 'MSLIP01-EXP',
-    '130.241.16.166' => 'MSLIP02-UPP',
-    '130.241.17.165' => 'PSLIP01-EXP',
-    '130.241.16.182' => 'PSLIP02-UPP',
-);
-
-my $queue_name = $mapping_table{$ipno};
+my $pc_to_printer_mapping = $config->{'pc-to-printer-mapping'};
+my $queue_name = $pc_to_printer_mapping->{$ipno};
 
 # convert to pcl
 system("gs -dSAFER -dBATCH -dNOPAUSE -sDEVICE=pxlmono -sOutputFile=${outputfile}.pcl ${outputfile}.pdf");
