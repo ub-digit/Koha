@@ -1,12 +1,5 @@
 #!/usr/bin/perl
 
-# =======================================================================================
-# OBS!
-# Detta är inte färdig kod att köra. Det är ett experiment och ett förberedande inför
-# att vår Firefox-plugin kommer sluta fungera och slip-utskrifter kommer behöva ske
-# från servern istället.
-# =======================================================================================
-
 # Copyright 2008 LibLime
 #
 # This file is part of Koha.
@@ -25,6 +18,7 @@
 # along with Koha; if not, see <http://www.gnu.org/licenses>.
 
 use Data::Dumper;
+use YAML::XS 'LoadFile';
 
 use Modern::Perl;
 use C4::Context;
@@ -72,7 +66,10 @@ $template->param( slip => $slip ) if ($slip);
 $template->param( caller => 'hold-transfer' );
 $template->param( plain => !$is_html );
 
-my $KOHAROOT = "/home/koha/koha-staging/current";
+my $configfile = $ENV{'GUB_PRINTSLIP_CONFIG'} || "/etc/koha/gub/printslip/config.yaml";
+my $config = LoadFile($config_file);
+
+my $KOHAROOT = $config->{'koha-root'};
 my $KOHATMPL = "${KOHAROOT}/koha-tmpl";
 
 my $out = $template->output;
@@ -80,7 +77,7 @@ my $out = $template->output;
 $out =~ s,href="/intranet-tmpl,href="${KOHATMPL}/intranet-tmpl,g;
 $out =~ s,intranet-tmpl(.*)_\d\d\.\d\d\d\d\d\d\d\.,intranet-tmpl$1.,g;
 $out =~ s,import url\("/intranet-tmpl,import url\("${KOHATMPL}/intranet-tmpl,g;
-$out =~ s,<style type="text/css">,<style type="text/css">\@page {size: A5; margin: 0} #receipt { margin: 5mm 5mm 5mm 10mm !important; } ,;
+$out =~ s,<style>,<style type="text/css">\@page {size: A5; margin: 0} #receipt { margin: 5mm 5mm 5mm 10mm !important; } ,;
 
 my $outputfile = "/tmp/printjob-item-${itemnumber}-barcode-${barcode}";
 open(OUTPUTFILE, ">${outputfile}.html");
@@ -95,47 +92,33 @@ system("google-chrome --headless --no-sandbox --disable-gpu --print-to-pdf=${out
 my $ipno = $ENV{'REMOTE_ADDR'};
 
 # client computer ipno mapped to slip printer name
-my %mapping_table = (
-    '130.241.17.135' => 'ASLIP01',
-    '130.241.17.241' => 'DSLIP01',
-    '130.241.31.22' => 'ESLIP01-EXP',
-    '130.241.31.30' => 'ESLIP02-UPP',
-    '130.241.16.206' => 'GSLIP01-EXP',
-    '130.241.17.80' => 'GSLIP02-LAS',
-    '130.241.16.201' => 'KSLIP01-EXP',
-    '130.241.17.191' => 'KSLIP02-UPP',
-    '130.241.16.167' => 'MSLIP01-EXP',
-    '130.241.16.165' => 'MSLIP01-EXP',
-    '130.241.16.166' => 'MSLIP02-UPP',
-    '130.241.17.165' => 'PSLIP01-EXP',
-    '130.241.16.182' => 'PSLIP02-UPP',
-);
-
-my $queue_name = $mapping_table{$ipno};
+my $pc_to_printer_mapping = $config->{'pc-to-printer-mapping'};
+my $queue_name = $pc_to_printer_mapping->{$ipno};
 
 # convert to pcl
-system("gs -dSAFER -dBATCH -dNOPAUSE -sDEVICE=pxlmono -sOutputFile=${outputfile}.pcl ${outputfile}.pdf");
+#system("gs -dSAFER -dBATCH -dNOPAUSE -sDEVICE=pxlmono -sOutputFile=${outputfile}.pcl ${outputfile}.pdf");
 
 # print the file
-system("lp -d ${queue_name} ${outputfile}.pcl");
+system("lp -d ${queue_name} ${outputfile}.pdf");
 
 # remove the files
-system("rm -f ${outputfile}.html");
-system("rm -f ${outputfile}.pdf");
-system("rm -f ${outputfile}.pcl");
+#system("rm -f ${outputfile}.html");
+#system("rm -f ${outputfile}.pdf");
+#system("rm -f ${outputfile}.pcl");
 
 print "Content-type: text/html; charset='UTF-8'\r\n\r\n";
-print "Wrote file...\r\n";
-print "<pre>\n";
-print "$slip";
-print "</pre>\n";
+print "Skriver ut SLIP...\r\n";
+#print "Wrote file...\r\n";
+#print "<pre>\n";
+#print "$slip";
+#print "</pre>\n";
 
-print "<pre>\n";
-print "${ipno}";
-print "${queue_name}";
-print "</pre>\n";
+#print "<pre>\n";
+#print "${ipno}";
+#print "${queue_name}";
+#print "</pre>\n";
 
 use Data::Dumper;
-print "<pre>\n";
-print Dumper(\%ENV);
-print "</pre>\n";
+#print "<pre>\n";
+#print Dumper(\%ENV);
+#print "</pre>\n";
