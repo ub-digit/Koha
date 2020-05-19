@@ -181,15 +181,7 @@ bib to add, while the second argument is the desired MARC
 framework code.
 
 This function also accepts a third, optional argument: a hashref
-to additional options.  The only defined option is C<defer_marc_save>,
-which if present and mapped to a true value, causes C<AddBiblio>
-to omit the call to save the MARC in C<biblio_metadata.metadata>
-This option is provided B<only>
-for the use of scripts such as C<bulkmarcimport.pl> that may need
-to do some manipulation of the MARC record for item parsing before
-saving it and which cannot afford the performance hit of saving
-the MARC record twice.  Consequently, do not use that option
-unless you can guarantee that C<ModBiblioMarc> will be called.
+to additional options.
 
 =cut
 
@@ -197,13 +189,9 @@ sub AddBiblio {
     my $record          = shift;
     my $frameworkcode   = shift;
     my $options         = @_ ? shift : undef;
-    my $defer_marc_save = 0;
     if (!$record) {
         carp('AddBiblio called with undefined record');
         return;
-    }
-    if ( defined $options and exists $options->{'defer_marc_save'} and $options->{'defer_marc_save'} ) {
-        $defer_marc_save = 1;
     }
 
     if (C4::Context->preference('BiblioAddsAuthorities')) {
@@ -226,7 +214,7 @@ sub AddBiblio {
     _koha_marc_update_biblioitem_cn_sort( $record, $olddata, $frameworkcode );
 
     # now add the record
-    ModBiblioMarc( $record, $biblionumber, $frameworkcode ) unless $defer_marc_save;
+    ModBiblioMarc( $record, $biblionumber, $frameworkcode );
 
     # update OAI-PMH sets
     if(C4::Context->preference("OAI-PMH:AutoUpdateSets")) {
@@ -273,8 +261,8 @@ sub ModBiblio {
     }
 
     if ( C4::Context->preference("CataloguingLog") ) {
-        my $newrecord = GetMarcBiblio({ biblionumber => $biblionumber });
-        logaction( "CATALOGUING", "MODIFY", $biblionumber, "biblio BEFORE=>" . $newrecord->as_formatted );
+        my $oldrecord = GetMarcBiblio({ biblionumber => $biblionumber });
+        logaction( "CATALOGUING", "MODIFY", $biblionumber, "biblio BEFORE=>" . $oldrecord->as_formatted );
     }
 
     if ( !$disable_autolink && C4::Context->preference('BiblioAddsAuthorities') ) {
