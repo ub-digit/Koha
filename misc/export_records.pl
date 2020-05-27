@@ -103,9 +103,6 @@ if ($include_deleted || $deleted_only) {
    if ($record_type ne 'bibs') {
         pod2usage(q|Option "--include_deleted" or "--deleted_only" can only be used with "--record-type=bibs"|);
     }
-    if (!$timestamp) {
-        pod2usage(q|Option "--include_deleted" or "--deleted_only" requires that "--date" is also set|);
-    }
     if ($output_format eq 'csv') {
         pod2usage(q|Option "--include_deleted" or "--deleted_only" cannot be used with "--format=csv"|);
     }
@@ -278,6 +275,9 @@ if ( @record_ids and $id_list_file ) {
     # intersection
     my %record_ids = map { $_ => 1 } @record_ids;
     @record_ids = grep $record_ids{$_}, @filter_record_ids;
+
+    my %deleted_record_ids = map { $_ => 1 } @deleted_record_ids;
+    @deleted_record_ids = grep $deleted_record_ids{$_}, @filter_record_ids;
 }
 
 if ($deleted_barcodes) {
@@ -338,12 +338,14 @@ Print a brief help message.
 =item B<--include_deleted>
 
  --include_deleted      If enabled, when using --date option, deleted records will be included in export as marc records
-                        with leader record status set to "d" (deleted).
+                        with leader record status set to "d" (deleted). This option is only valid for biblio records.
+                        Items will not be included in deleted records.
 
 =item B<--deleted_only>
 
  --deleted_only         If enabled, when using --date option, only deleted records will be included in export as marc
-                        records with leader record status set to "d" (deleted).
+                        records with leader record status set to "d" (deleted). This option is only valid for biblio records.
+                        Items will not be included in deleted records.
 
 =item B<--record-type>
 
