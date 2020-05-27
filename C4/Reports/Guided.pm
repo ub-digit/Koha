@@ -44,10 +44,10 @@ BEGIN {
     @ISA    = qw(Exporter);
     @EXPORT = qw(
       get_report_types get_report_areas get_report_groups get_columns build_query get_criteria
-      save_report get_saved_reports execute_query
+      save_report get_saved_reports execute_query execute_query_pg
       get_column_type get_distinct_values save_dictionary get_from_dictionary
       delete_definition delete_report format_results get_sql
-      nb_rows update_sql
+      nb_rows nb_rows_pg update_sql
       GetReservedAuthorisedValues
       GetParametersFromSQL
       IsAuthorisedValueValid
@@ -416,6 +416,55 @@ sub get_criteria {
     return ( \@criteria_array );
 }
 
+sub nb_rows_pg {
+    my $sql = shift or return;
+
+    my $derived_name = 'xxx';
+    # make sure the derived table name is not already used
+    while ( $sql =~ m/$derived_name/ ) {
+        $derived_name .= 'x';
+    }
+
+
+    my $dbname = C4::Context->config("pg_database");
+    my $dbhost = C4::Context->config("pg_hostname");
+    my $dbport = C4::Context->config("pg_port");
+    my $dbuser = C4::Context->config("pg_user");
+    my $dbpass = C4::Context->config("pg_pass");
+    my $connstr = "dbi:Pg:dbname=$dbname;host=$dbhost;port=$dbport";
+    my $dbh = DBI->connect($connstr, $dbuser, $dbpass, {AutoCommit => 1});
+    my $sth;
+    my $n = 0;
+
+    my $RaiseError = $dbh->{RaiseError};
+    my $PrintError = $dbh->{PrintError};
+    $dbh->{RaiseError} = 1;
+    $dbh->{PrintError} = 0;
+    eval {
+        $sth = $dbh->prepare(qq{
+            SELECT COUNT(*) FROM
+            ( $sql ) $derived_name
+        });
+
+        $sth->execute();
+    };
+    $dbh->{RaiseError} = $RaiseError;
+    $dbh->{PrintError} = $PrintError;
+    if ($@) { # To catch "Duplicate column name" caused by the derived table, or any other syntax error
+        $sth = $dbh->prepare($sql);
+        $sth->execute;
+        # Loop through the complete results, fetching 1,000 rows at a time.  This
+        # lowers memory requirements but increases execution time.
+        while (my $rows = $sth->fetchall_arrayref(undef, 1000)) {
+            $n += @$rows;
+        }
+        return $n;
+    }
+
+    my $results = $sth->fetch;
+    return $results ? $results->[0] : 0;
+}
+
 sub nb_rows {
     my $sql = shift or return;
 
@@ -534,6 +583,63 @@ sub strip_limit {
     }
 }
 
+#   $config_value = C4::Context->config("config_variable");
+
+sub execute_query_pg {
+    my ( $sql, $offset, $limit, $sql_params, $report_id ) = @_;
+
+    $sql_params = [] unless defined $sql_params;
+
+    # check parameters
+    unless ($sql) {
+        carp "execute_query() called without SQL argument";
+        return;
+    }
+    $offset = 0    unless $offset;
+    $limit  = 999999 unless $limit;
+    $debug and print STDERR "execute_query_pg($sql, $offset, $limit)\n";
+    if ($sql =~ /;?\W?(UPDATE|DELETE|DROP|INSERT|SHOW|CREATE)\W/i) {
+        return (undef, {  sqlerr => $1} );
+    } elsif ($sql !~ /^\s*SELECT\b\s*/i) {
+        return (undef, { queryerr => 'Missing SELECT'} );
+    }
+
+    my ($useroffset, $userlimit);
+
+    # Grab offset/limit from user supplied LIMIT and drop the LIMIT so we can control pagination
+    ($sql, $useroffset, $userlimit) = strip_limit($sql);
+    $debug and warn sprintf "User has supplied (OFFSET,) LIMIT = %s, %s",
+        $useroffset,
+        (defined($userlimit ) ? $userlimit  : 'UNDEF');
+    $offset += $useroffset;
+    if (defined($userlimit)) {
+        if ($offset + $limit > $userlimit ) {
+            $limit = $userlimit - $offset;
+        } elsif ( ! $offset && $limit < $userlimit ) {
+            $limit = $userlimit;
+        }
+    }
+    $sql .= " LIMIT ? OFFSET ?";
+
+    my $mydbh = C4::Context->dbh;
+
+    my $dbname = C4::Context->config("pg_database");
+    my $dbhost = C4::Context->config("pg_hostname");
+    my $dbport = C4::Context->config("pg_port");
+    my $dbuser = C4::Context->config("pg_user");
+    my $dbpass = C4::Context->config("pg_pass");
+    my $connstr = "dbi:Pg:dbname=$dbname;host=$dbhost;port=$dbport";
+    my $pgdbh = DBI->connect($connstr, $dbuser, $dbpass, {AutoCommit => 1});
+
+    $mydbh->do( 'UPDATE saved_sql SET last_run = NOW() WHERE id = ?', undef, $report_id ) if $report_id;
+
+    my $sth = $pgdbh->prepare($sql);
+    $sth->execute(@$sql_params, $limit, $offset);
+
+    return ( $sth, { queryerr => $sth->errstr } ) if ($sth->err);
+    return ( $sth );
+}
+
 sub execute_query {
 
     my ( $sql, $offset, $limit, $sql_params, $report_id ) = @_;
@@ -621,6 +727,7 @@ sub update_sql {
     my $group = $fields->{group};
     my $subgroup = $fields->{subgroup};
     my $cache_expiry = $fields->{cache_expiry};
+    my $type = $fields->{type};
     my $public = $fields->{public};
 
     if( $cache_expiry >= 2592000 ){
@@ -629,8 +736,8 @@ sub update_sql {
 
     my $dbh        = C4::Context->dbh();
     $sql =~ s/(\s*\;\s*)$//;    # removes trailing whitespace and /;/
-    my $query = "UPDATE saved_sql SET savedsql = ?, last_modified = now(), report_name = ?, report_group = ?, report_subgroup = ?, notes = ?, cache_expiry = ?, public = ? WHERE id = ? ";
-    $dbh->do($query, undef, $sql, $name, $group, $subgroup, $notes, $cache_expiry, $public, $id );
+    my $query = "UPDATE saved_sql SET savedsql = ?, last_modified = now(), report_name = ?, report_group = ?, report_subgroup = ?, notes = ?, cache_expiry = ?, type = ?, public = ? WHERE id = ? ";
+    $dbh->do($query, undef, $sql, $name, $group, $subgroup, $notes, $cache_expiry, $type, $public, $id );
 }
 
 sub store_results {
