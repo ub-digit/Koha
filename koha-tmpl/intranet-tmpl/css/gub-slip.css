@@ -75,4 +75,14 @@
    bottom: -0.4em;
    right: 0;
  }
+  #hold-slip .slip-info .categorycode {
+      display: none;
+  }
+  #hold-slip .slip-info .categorycode.categorycode_EX,
+  #hold-slip .slip-info .categorycode.categorycode_UX,
+  #hold-slip .slip-info .categorycode.categorycode_SR,
+  #hold-slip .slip-info .categorycode.categorycode_FX,
+  #hold-slip .slip-info .categorycode.categorycode_FR {
+      display:inline;
+  }
 }
