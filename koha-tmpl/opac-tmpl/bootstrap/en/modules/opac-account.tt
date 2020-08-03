@@ -12,11 +12,12 @@
 [% BLOCK cssinclude %]
     [% Asset.css("css/datatables.css") | $raw %]
 [% END %]
+
+
 </head>
 
 [% INCLUDE 'bodytag.inc' bodyid='opac-account' bodyclass='scrollto' %]
 [% INCLUDE 'masthead.inc' %]
-
 <div class="main">
     <ul class="breadcrumb">
         <li><a href="/cgi-bin/koha/opac-main.pl">Home</a> <span class="divider">&rsaquo;</span></li>
@@ -68,6 +69,15 @@
 
                     [% PROCESS 'account-table.inc' ACCOUNT_LINES = ACCOUNT_LINES, ENABLE_OPAC_PAYMENTS = ENABLE_OPAC_PAYMENTS, plugins = plugins %]
 
+                    [% IF  ACCOUNT_LINES.count > 0  %]
+                    <strong>Amount to pay: <span class="amount-payable"></span> SEK</strong>
+                    <p>(Debt after payment has been made: <span class="amount-debt-left-after-payment"></span> SEK)</p>
+                    <form method="post" action="https://betala.ub.gu.se/Koha/Payment?language=[%current_lang%]">
+                        <input type="submit" class="btn btn-default" value="Pay selected fines"></input>
+                        <textarea  id="ub-debug-json" type="hidden" name="payment_data" style="width:80%; min-height:400px; display:block;"></textarea>
+                    </form>
+                    [% END %]
+
                 </div> <!-- / #useraccount -->
             </div> <!-- / .span10 -->
         </div> <!-- / .row-fluid -->
@@ -84,10 +94,178 @@ $( document ).ready(function() {
     var txtActivefilter = _("Filter paid transactions");
     var txtInactivefilter = _("Show all transactions");
 
+   
+    let paydata = {};
+    let returnURL = window.location.href + "?language=" + "[% current_lang %]";
+    let callbackURL = "[% staffClientBaseURL %]" + "/cgi-bin/koha/svc/onlinepayment";  // window.location.href;
+
+    function getAmountPayable(payments) {
+        var amounts = payments.map(o => {return o['amount']});
+        if (amounts.length) {
+            return amounts.reduce((total, num) => total + num);
+        }
+        return 0;
+    }
+
+
+    function getDebtTotal() {
+        let total = 0;
+        $(".account-line-checkbox").each(function(index, item) {
+            total += parseFloat($(item).attr("data-amount").replace(/\s/g, ""));
+        });
+        return total;
+    }
+
+    function getPaymentName(type) {
+        let payment_type = {};
+        if ("[% current_lang %]" === "en-US") {
+            payment_type = { // TBD 
+                "A"             : "A MAPPED EN",
+                "LOST"          : "LOST MAPPED EN",
+                "MANUAL"        : "MANUAL MAPPED EN", 
+                "OVERDUE"       : "OVEERDUE MAPPED EN",
+                "PROCESSING"    : "PROCESSING_MAPPED EN"
+            }
+        }
+        else {
+            payment_type = { // TBD 
+                "A"             : "A MAPPED SV",
+                "LOST"          : "LOST MAPPED SV",
+                "MANUAL"        : "MANUAL MAPPED SV", 
+                "OVERDUE"       : "OVEERDUE MAPPED SV",
+                "PROCESSING"    : "PROCESSING_MAPPED SV"
+            }
+        }
+        if (!payment_type[type]) {
+            if ("[% current_lang %]" === "en-US") {
+                return 'Other Payment';
+            }
+            return 'Annan avgift';
+        }
+        return payment_type[type]
+    }
+
+    function getSimpleDebitType(type) {
+        if (type === "OVERDUE") {
+            return "fine";
+        }
+        return "media";
+    }
+
+    function getLibraryGroup(id, payment_type) {
+        let branches = {
+            "G": [44, 60, 62],
+            "Gm": [40, 43, 49, 66],
+            "Gpek": [42, 47, 48, 50]
+            
+        }
+        let librarygroup = null;
+        var found = Object.entries(branches).some((item) => {
+            return item[1].some(function(el) {
+                if (el === parseInt(id)) {
+                    librarygroup = item[0];
+                    return item[0];
+                }
+            });
+        })
+        if (found)  {
+            return librarygroup;
+        }
+        return "Gpek";
+    } 
+    
+    function getFullTitle() {
+        var title = $(this).attr('data-title') ? $(this).attr('data-title') : '';
+        var subtitle = $(this).attr('data-subtitle') ? $(this).attr('data-subtitle') : '';
+        var fullTitle = title + subtitle;
+        if (fullTitle === '' || fullTitle === ' ' || fullTitle === undefined) {
+            if ("[% current_lang %]" === "en-US") {
+                return 'Title missing'
+            }
+            return 'Okänd titel';
+        } 
+        return fullTitle;
+    }
+
+    function getBarcode() {
+        var barcode = $(this).attr('data-barcode') ? $(this).attr('data-barcode') : '';
+        if (barcode === '') {
+             if ("[% current_lang %]" === "en-US") { 
+                 return "barcode missing";
+             }
+             return "streckkod saknas";
+        }
+    }
+
+    $("#check-all-payable").bind("change", function(val) {
+        if ($("#check-all-payable").prop("checked")) {
+            $(".account-line-checkbox:not(:disabled)").prop("checked", true).trigger("change");
+            return;
+        }
+        $(".account-line-checkbox:not(:disabled)").prop("checked", false).trigger("change");
+    });
+
+    $(".account-line-checkbox").bind("change", function() {
+        paydata.uid = "[% guid %]";
+        paydata.language = "[% current_lang %]"; // MAYBE NOT NEEDED IF RETURN_URL CONTAINS LANGUAGE
+        paydata.return_url = returnURL;
+        paydata.callback_url = callbackURL;
+        let payments = [];
+        $(".account-line-checkbox:checked").each(function() {
+            let paymentRow = {
+                account_id          :       parseInt($(this).attr('data-accountLineID')),
+                amount              :       parseFloat($(this).attr('data-amount').replace(/\s/g, "")),
+                library_group       :       getLibraryGroup($(this).attr('data-library-code'),  $(this).attr('data-item-itype')),  // ITEM.ITYPES
+                debit_type          :       getSimpleDebitType($(this).attr('data-payment-type')),
+                debit_title         :       getPaymentName($(this).attr('data-payment-type')),
+                text                :       getBarcode(), 
+                title               :       getFullTitle(),
+            }
+            payments.push(paymentRow);
+        });
+        paydata.payments = payments;
+        let amountPayable = getAmountPayable(payments);
+        $(".amount-payable").text(amountPayable);
+        $(".amount-debt-left-after-payment").text(getDebtTotal() - amountPayable);
+        $("#ub-debug-json").val((JSON.stringify(paydata, undefined, 4)));
+    });
+    
+    // disable payment-rows 
+    $(".account-line-checkbox").each(function(index, item) {
+        if (parseFloat(item.dataset.amount) <= 0) {
+            return;
+        }
+        if ((item.dataset.paymentType === "LOST")) {
+            return;
+        }
+        if ((item.dataset.paymentType === "A")) {
+            return;
+        }
+        if ((item.dataset.paymentType === "OVERDUE") && (item.dataset.paymentStatus === "RETURNED"))  {
+            return;
+        }
+        if ((item.dataset.paymentType === "OVERDUE") && (item.dataset.paymentStatus === "LOST"))  {
+            return;
+        }
+        if ((item.dataset.paymentType === "OVERDUE") && (item.dataset.paymentStatus === "RENEWED"))  {
+            return;
+        }
+        item.disabled = true;
+    });
+    $("#check-all-payable").prop("checked", true);
+    $(".account-line-checkbox:not(:disabled)").prop("checked", true).trigger("change");
+
     var fines_table = $("#finestable").dataTable($.extend(true, {}, dataTablesDefaults, {
         "columnDefs": [
              { "type": "title-string", "targets" : [ "title-string" ] }
          ],
+        "columns": [
+            { "orderable": false },
+            null,
+            null,
+            null,
+            null
+        ],
          [% IF ENABLE_OPAC_PAYMENTS %]
          "order": [[ 1, "desc" ]],
          [% ELSE %]
@@ -96,7 +274,7 @@ $( document ).ready(function() {
          "dom": '<"#filter_p">',
     } ));
 
-    $("#filter_p").html('<p><a href="#" id="filter_paid"><i class="fa fa-filter"></i> '+txtActivefilter+'</a>');
+    /*$("#filter_p").html('<p><a href="#" id="filter_paid"><i class="fa fa-filter"></i> '+txtActivefilter+'</a>');
     $('#filter_paid').click(function(e) {
         e.preventDefault();
         if ($(this).hasClass('filtered')) {
@@ -108,7 +286,7 @@ $( document ).ready(function() {
         }
         fines_table.fnFilter(filteredValue, -1, true, false);
         $(this).toggleClass('filtered');
-    });
+    });*/
 
     //Start filtered
     $('#filter_paid').click();
@@ -167,4 +345,5 @@ $( document ).ready(function() {
     });
 });
 </script>
+
 [% END %]

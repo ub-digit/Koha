@@ -1,0 +1,76 @@
+#!/usr/bin/perl
+use strict;
+use warnings;
+use CGI qw ( -utf8 );
+use JSON;
+use C4::Auth qw/check_api_auth/;
+use Koha::Account::Lines;
+
+my $query = new CGI;
+binmode STDOUT, ':encoding(UTF-8)';
+
+my ($status, $cookie, $sessionID) = check_api_auth($query, {editcatalogue => 'edit_catalogue'});
+unless ($status eq "ok") {
+  print $query->header(-type => 'text/json', -status => '403 Forbidden');
+  print encode_json({status => $status});
+  exit 0;
+}
+
+my $userid = $query->param('userid');
+my $password = $query->param('password');
+my $data = $query->param('POSTDATA');
+
+my $json = eval{decode_json($data)};
+if ($@) {
+  print $query->header(-type => 'text/json', -status => '400 Bad Request');
+  print encode_json({status => "Invalid json"});
+  exit 0;
+}
+
+my $payment_proxy_id = $json->{payment_proxy_id};
+my $payment_portal_id = $json->{payment_portal_id};
+my $payments = $json->{payments};
+
+unless ($payment_proxy_id and $payment_portal_id and $payments) {
+  print $query->header(-type => 'text/json', -status => '400 Bad Request');
+  print encode_json({status => "Missing mandatory json parameter"});
+  exit 0;
+}
+
+my $payment_note = "payment_proxy_id: " . $payment_proxy_id . "; " . "payment_portal_id: " . $payment_portal_id;
+my $accountlines_id;
+my $line;
+my $borrowernumber;
+my $amount;
+my $payment_id;
+
+for my $payment(@{$payments}) {
+  $accountlines_id = $payment;
+  $line = Koha::Account::Lines->find($accountlines_id);
+  unless ($line) {
+    print $query->header(-type => 'text/json', -status => '404 Not Found');
+    print encode_json({status => "Payment not found"});
+    exit 0;
+  }
+  unless (($line->amountoutstanding > 0) or ($line->amountoutstanding < 0)) {
+    print $query->header(-type => 'text/json', -status => '400 Bad Request');
+    print encode_json({status => "Invalid balance"});
+    exit 0;
+  }
+}
+
+for my $payment(@{$payments}) {
+  $accountlines_id = $payment;
+  $line = Koha::Account::Lines->find($accountlines_id);
+  $borrowernumber = $line->borrowernumber;
+  $amount = $line->amount;
+
+  $payment_id = Koha::Account->new({patron_id => $borrowernumber})->pay({
+    lines        => [$line],
+    amount       => $amount,
+    note         => $payment_note,
+    interface    => 'opac'
+  });
+};
+
+print $query->header(-type => 'text/json', -charset => 'utf-8');

@@ -1,0 +1,78 @@
+#!/usr/bin/perl
+use strict;
+use warnings;
+use CGI qw ( -utf8 );
+use JSON;
+use C4::Auth qw/check_api_auth/;
+use Koha::Account::Lines;
+
+my $query = new CGI;
+binmode STDOUT, ':encoding(UTF-8)';
+
+my ($status, $cookie, $sessionID) = check_api_auth($query, {editcatalogue => 'edit_catalogue'});
+unless ($status eq "ok") {
+  print $query->header(-type => 'text/json', -status => '403 Forbidden');
+  print encode_json({status => $status});
+  exit 0;
+}
+
+my $borrower = Koha::Patrons->search({userid => "createaccountlines"})->next;
+unless ($borrower) {
+  print $query->header(-type => 'text/json', -status => '404 Not found');
+  print encode_json({status => 'Borrower not found'});
+  exit 0;
+}
+my $borrowernumber = $borrower->unblessed->{'borrowernumber'};
+
+my $oldaccountlines = Koha::Account::Lines->search({borrowernumber => $borrowernumber});
+$oldaccountlines->delete();
+
+my $account = Koha::Account->new({patron_id => $borrowernumber});
+
+$account->add_debit({
+    amount => "100",
+    note => "Created by create_testpayments script",
+    interface => "intranet",
+    type => "LOST",
+    item_id => 1350206,
+  });
+
+$account->add_debit({
+    amount => "150",
+    note => "Created by create_testpayments script",
+    interface => "intranet",
+    type => "LOST_INVOICED",
+    item_id => 1352903,
+  });
+
+$account->add_debit({
+    amount => "200",
+    note => "Created by create_testpayments script",
+    interface => "intranet",
+    type => "A",
+  });
+
+my $accountline;
+$accountline = $account->add_debit({
+    amount => "250",
+    note => "Created by create_testpayments script",
+    interface => "intranet",
+    type => "OVERDUE",
+    item_id => 1357852,
+  });
+$accountline->status("RETURNED");
+$accountline->store();
+
+$accountline = $account->add_debit({
+    amount => "300",
+    note => "Created by create_testpayments script",
+    interface => "intranet",
+    type => "OVERDUE",
+    item_id => 1916769,
+  });
+$accountline->status("UNRETURNED");
+$accountline->store();
+
+
+print $query->header(-type => 'text/json', -charset => 'utf-8');
+print encode_json({status => "created"});

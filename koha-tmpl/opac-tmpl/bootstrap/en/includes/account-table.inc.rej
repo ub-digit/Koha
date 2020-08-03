@@ -1,0 +1,28 @@
+--- koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc
++++ koha-tmpl/opac-tmpl/bootstrap/en/includes/account-table.inc
+@@ -40,10 +47,11 @@
+                     <td>
+                         [%- IF ACCOUNT_LINE.payment_type %][% AuthorisedValues.GetByCode('PAYMENT_TYPE', ACCOUNT_LINE.payment_type, 1) | html %][% END %]
+                         [%- IF ACCOUNT_LINE.description %][% ACCOUNT_LINE.description | html %][% END %]
+-                        [% IF ACCOUNT_LINE.itemnumber %]([% ACCOUNT_LINE.item.biblio.title | html %])[% END %]
++                        [% IF ACCOUNT_LINE.itemnumber %]([% ACCOUNT_LINE.item.biblio.title | html %] [% ACCOUNT_LINE.item.biblio.subtitle | html %])[% END %]
+                     </td>
+                     [% IF ( ACCOUNT_LINE.is_credit ) %]<td class="credit">[% ACCOUNT_LINE.amount * -1 | $Price %][% ELSE %]<td class="debit">[% ACCOUNT_LINE.amount | $Price %][% END %]</td>
+                     [% IF ( ACCOUNT_LINE.is_credit ) %]<td class="credit">[% ACCOUNT_LINE.amountoutstanding * -1 | $Price %][% ELSE %]<td class="debit">[% ACCOUNT_LINE.amountoutstanding | $Price %][% END %]</td>
++          
+                 </tr>
+             [% END %]
+         </tbody>
+@@ -53,10 +61,10 @@
+                 [%- IF ENABLE_OPAC_PAYMENTS -%]
+                     [%- SET COLSPAN = 5 -%]
+                 [%- ELSE -%]
+-                    [%- SET COLSPAN = 4 -%]
++                    [%- SET COLSPAN = 3 -%]
+                 [%- END -%]
+                 <th class="sum" colspan="[% COLSPAN | html %]">Total due</th>
+-                <td class="sum">[% total | $Price %]</td>
++                <td class="sum" colspan="2">[% total | $Price %]</td>
+             </tr>
+             [% IF outstanding_credits.total_outstanding < 0 %]
+             [% FOREACH outstanding_credit IN outstanding_credits %]

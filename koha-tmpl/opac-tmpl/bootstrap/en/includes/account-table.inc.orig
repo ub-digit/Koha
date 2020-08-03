@@ -1,29 +1,23 @@
-<h3>Charges</h3>
+<h1>Fines and charges</h1>
 
 <form method="post" action="opac-account-pay.pl" class="form-horizontal">
-[% IF ( ACCOUNT_LINES ) %]
+
+[% IF  ACCOUNT_LINES.count > 0  %]
     <table class="table table-bordered table-striped" id="finestable">
         <thead>
             <tr>
                 [% IF ENABLE_OPAC_PAYMENTS %]<th>&nbsp;</th>[% END %]
-                <th style="text-align:center"><input id="check-all-payable" type="checkbox"></input></th>
                 <th class="title-string">Date</th>
                 <th>Type</th>
                 <th>Description</th>
-                <th>Amount</th>
                 <th>Amount outstanding</th>
             </tr>
         </thead>
 
         <tbody>
             [% FOREACH ACCOUNT_LINE IN ACCOUNT_LINES %]
+                [% IF ACCOUNT_LINE.amountoutstanding > 0 %]
                 [% IF ACCOUNT_LINE.amountoutstanding > 0 || ACCOUNT_LINE.amountoutstanding < 0 %]<tr class="outstanding">[% ELSE %]<tr>[% END%]
-                    <td style="text-align:center"><input aria-label="[% ACCOUNT_LINE.item.biblio.title| html %] [% ACCOUNT_LINE.item.biblio.subtitle| html %] [% ACCOUNT_LINE.amountoutstanding | $Price %]" class="account-line-checkbox" data-accountLineID="[% ACCOUNT_LINE.accountlines_id | html %]" 
-                                data-payment-status="[% ACCOUNT_LINE.status | html %]" data-item-itype="[% ACCOUNT_LINE.item.itype %]"
-                                data-payment-type="[% ACCOUNT_LINE.debit_type_code | html %]"  data-title="[% ACCOUNT_LINE.item.biblio.title| html %]"  
-                                data-subtitle="[% ACCOUNT_LINE.item.biblio.subtitle| html %]" data-amount="[% ACCOUNT_LINE.amountoutstanding | $Price %]" 
-                                data-library-code="[% ACCOUNT_LINE.item.homebranch %]" data-misc="" data-barcode="[% ACCOUNT_LINE.item.barcode %]" type="checkbox">
-                    </td>
                     [% IF ENABLE_OPAC_PAYMENTS %]
                         <td>
                             [% IF ACCOUNT_LINE.amountoutstanding > 0 %]
@@ -42,18 +36,18 @@
                         [%- IF ACCOUNT_LINE.description %][% ACCOUNT_LINE.description | html %][% END %]
                         [% IF ACCOUNT_LINE.itemnumber %]([% ACCOUNT_LINE.item.biblio.title | html %])[% END %]
                     </td>
-                    [% IF ( ACCOUNT_LINE.is_credit ) %]<td class="credit">[% ACCOUNT_LINE.amount * -1 | $Price %][% ELSE %]<td class="debit">[% ACCOUNT_LINE.amount | $Price %][% END %]</td>
                     [% IF ( ACCOUNT_LINE.is_credit ) %]<td class="credit">[% ACCOUNT_LINE.amountoutstanding * -1 | $Price %][% ELSE %]<td class="debit">[% ACCOUNT_LINE.amountoutstanding | $Price %][% END %]</td>
                 </tr>
+                [% END %]
             [% END %]
         </tbody>
 
         <tfoot>
             <tr>
                 [%- IF ENABLE_OPAC_PAYMENTS -%]
-                    [%- SET COLSPAN = 5 -%]
+                    [%- SET COLSPAN = 3 -%]
                 [%- ELSE -%]
-                    [%- SET COLSPAN = 4 -%]
+                    [%- SET COLSPAN = 3 -%]
                 [%- END -%]
                 <th class="sum" colspan="[% COLSPAN | html %]">Total due</th>
                 <td class="sum">[% total | $Price %]</td>
@@ -86,7 +80,7 @@
 
 
 [% ELSE %]
-    <h4>You have no fines or charges</h4>
+    <h4>You have no fines or charges </h4>
 [% END %]
 
 [% FOREACH r IN relatives %]
@@ -143,7 +137,6 @@
     <fieldset class="pay-online hidden">
         <legend>Pay selected fines and charges</legend>
             <span class="help-block"><h3>Payment method</h3></span>
-
             [% IF Koha.Preference('EnablePayPalOpacPayments') %]
                 <div class="control-group">
                     <label class="radio">
