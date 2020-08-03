@@ -684,7 +684,7 @@ sub apply {
                 C4::Context->preference('MarkLostItemsAsReturned') =~
                 m|onpayment|
                 && $debit->debit_type_code
-                && $debit->debit_type_code eq 'LOST'
+                && ($debit->debit_type_code eq 'LOST' || $debit->debit_type_code eq 'LOST_INVOICED')
                 && $debit->amountoutstanding == 0
                 && $debit->itemnumber
                 && !(

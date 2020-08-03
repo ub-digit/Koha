@@ -1,0 +1,81 @@
+#!/usr/bin/perl
+use strict;
+use warnings;
+use CGI qw ( -utf8 );
+use JSON;
+use C4::Auth qw/check_api_auth/;
+use Koha::Account::Lines;
+use Koha::Patrons;
+use Koha::Items;
+
+my $query = new CGI;
+binmode STDOUT, ':encoding(UTF-8)';
+
+my ($status, $cookie, $sessionID) = check_api_auth($query, {editcatalogue => 'edit_catalogue'});
+unless ($status eq "ok") {
+  print $query->header(-type => 'text/json', -status => '403 Forbidden');
+  print encode_json({status => $status});
+  exit 0;
+}
+
+my $jsonstr;
+{
+    local $/;
+    my $file;
+    open $file, "<", "/etc/koha/gub/kofftest-conf.json";
+    $jsonstr = <$file>;
+    close $file;
+}
+my $json = decode_json($jsonstr);
+my $userid = $query->param('username');
+my $user_hash = $json->{$userid};
+
+unless ($user_hash) {
+  print $query->header(-type => 'text/json', -status => '404 Not found');
+  print encode_json({status => 'Borrower not found'});
+  exit 0;
+}
+
+my $borrower = Koha::Patrons->search({userid => $userid})->next;
+unless ($borrower) {
+  print $query->header(-type => 'text/json', -status => '404 Not found');
+  print encode_json({status => 'Borrower not found'});
+  exit 0;
+}
+
+my $borrowernumber = $borrower->unblessed->{'borrowernumber'};
+
+my $oldaccountlines = Koha::Account::Lines->search({borrowernumber => $borrowernumber});
+$oldaccountlines->delete();
+
+my $account = Koha::Account->new({patron_id => $borrowernumber});
+my $newaccountlines = $user_hash->{'accountlines'};
+
+foreach my $row (@$newaccountlines) {
+    my $barcode = $row->{'barcode'};
+    my $item = Koha::Items->search({barcode => $barcode})->next();
+    my $title = $item->biblio->title();
+    my $itemnumber = $item->itemnumber();
+    my $itemcallnumber = $item->itemcallnumber();
+    my $amount = $row->{'amount'};
+    my $debit_type = $row->{'debit_type'};
+    my $account_status = $row->{'status'};
+    my $description = $title . " " . $barcode . " " . $itemcallnumber;
+    
+    my $accountline = $account->add_debit({
+        amount => $amount,
+        note => "Created by Koff test system",
+        interface => "intranet",
+        type => $debit_type,
+        item_id => $itemnumber,
+        description => $description,
+    });
+
+    if($account_status && $account_status ne '') {
+        $accountline->status($account_status);
+        $accountline->store();
+    }
+}
+
+print $query->header(-type => 'text/json', -charset => 'utf-8');
+print encode_json({status => "created"});

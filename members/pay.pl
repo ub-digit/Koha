@@ -134,6 +134,9 @@ for (@names) {
     } elsif (/^wo_indiv_(\d+)$/) {
         my $line_no = $1;
         redirect_to_paycollect( 'writeoff_individual', $line_no );
+    } elsif (/^markinv_indiv_(\d+)$/) {
+        my $line_no = $1;
+        mark_as_invoiced( $line_no );
     }
 }
 
@@ -163,6 +166,16 @@ $template->param(
 add_accounts_to_template();
 
 output_html_with_http_headers $input, $cookie, $template->output;
+
+
+sub mark_as_invoiced {
+    my $line_no = shift;
+    my $line = Koha::Account::Lines->find($line_no);
+    my $debit_type_code = $line->debit_type_code;
+    $line->debit_type_code($debit_type_code . "_INVOICED");
+    $line->store;
+    return;
+}
 
 sub add_accounts_to_template {
 
