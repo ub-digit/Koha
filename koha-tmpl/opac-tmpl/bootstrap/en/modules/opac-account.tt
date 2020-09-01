@@ -74,7 +74,7 @@
                     <p>(Debt after payment has been made: <span class="amount-debt-left-after-payment"></span> SEK)</p>
                     <form method="post" action="https://betala.ub.gu.se/Koha/Payment?language=[%current_lang%]">
                         <input type="submit" class="btn btn-default" value="Pay selected fines"></input>
-                        <textarea  id="ub-debug-json" type="hidden" name="payment_data" style="width:80%; min-height:400px; display:block;"></textarea>
+                        <textarea  id="ub-debug-json" type="hidden" name="payment_data" style="width:80%; min-height:400px; display:none;"></textarea>
                     </form>
                     [% END %]
 
