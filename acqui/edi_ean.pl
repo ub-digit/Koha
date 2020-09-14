@@ -28,14 +28,21 @@ use C4::Output qw( output_html_with_http_headers );
 use Koha::Database;
 use CGI;
 my $schema = Koha::Database->new()->schema();
+my $query    = CGI->new(); 
+
+#GU - Get bookseller id and set search filter term
+my $bookseller_id = $query->param('booksellerid');
+my @booksellers = (" Adlib ", " Daw ", " Delb ");
+my $bookseller =  $booksellers[$bookseller_id-1];
 
 my @eans = $schema->resultset('EdifactEan')->search(
     {},
     {
+        where => { description => { 'LIKE', '%' . $bookseller . '%' }}, #GU - Filter on booksellerid
         join => 'branch',
+        order_by => { -asc => 'branchname' }, #GU - Sort alphabetically
     }
 );
-my $query    = CGI->new();
 my $basketno = $query->param('basketno');
 
 if ( @eans == 1 ) {

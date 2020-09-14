@@ -94,6 +94,7 @@ else {
         {},
         {
             join => 'branch',
+            order_by => {-asc => 'branchname'} # GU - Sort alphabetically 
         }
     );
     $template->param( display => 1 );
