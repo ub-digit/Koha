@@ -8,7 +8,6 @@ use XML::Simple;
 use C4::Auth qw/check_api_auth/;
 
 use C4::Members;
-use C4::Members::Attributes qw( SetBorrowerAttributes UpdateBorrowerAttribute GetBorrowerAttributeValue);
 use Koha::Patron::Debarments;
 
 use Data::Dumper;
@@ -26,9 +25,14 @@ my $action = $query->param('action') || 'update';
 my $borrowernumber = $query->param('borrowernumber');
 
 if ($action eq 'pnr') {
+  my $patrons = Koha::Patrons->search({borrowernumber => $borrowernumber});
+  my $borrower = $patrons->next;
   my $personalnumber = $query->param('personalnumber');
-  UpdateBorrowerAttribute($borrowernumber, {code => "PNR12", attribute => $personalnumber});
-  UpdateBorrowerAttribute($borrowernumber, {code => "PNR", attribute => substr($personalnumber, 2)});
+
+  $borrower->extended_attributes->search({code => "PNR12"})->delete;
+  $borrower->add_extended_attribute({code => "PNR12", attribute => $personalnumber});
+  $borrower->extended_attributes->search({code => "PNR"})->delete;
+  $borrower->add_extended_attribute({code => "PNR", attribute => substr($personalnumber, 2)});
 }
 elsif ($action eq 'cardinvalid') {
   my $debarments = GetDebarments({borrowernumber => $borrowernumber, type => "MANUAL", comment => "GU, GU-spärr"});
@@ -54,13 +58,25 @@ else { #$action eq 'update'
   my $email = $query->param('email');
   my $msgtype = $query->param('msgtype');
   my $last_employment_date = $query->param('last_employment_date');
-  my $existing_pnr12 = GetBorrowerAttributeValue($borrowernumber, "PNR12");
-  my $existing_pnr = GetBorrowerAttributeValue($borrowernumber, "PNR");
+
+  my $existing_pnr12_obj = $borrower->get_extended_attribute("PNR12");
+  my $existing_pnr_obj = $borrower->get_extended_attribute("PNR");
+  my $existing_pnr12 = "";
+  my $existing_pnr = "";
+  if ($existing_pnr12_obj) {
+    $existing_pnr12 = $existing_pnr12_obj->attribute;
+  }
+  if ($existing_pnr12_obj) {
+    $existing_pnr12 = $existing_pnr12_obj->attribute;
+  }
+
 
   # If new pnr is present, update in Koha
   if ($newpnr) {
-    UpdateBorrowerAttribute($borrowernumber, {code => "PNR12", attribute => $newpnr});
-    UpdateBorrowerAttribute($borrowernumber, {code => "PNR", attribute => substr($newpnr, 2)});
+    $borrower->extended_attributes->search({code => "PNR12"})->delete;
+    $borrower->add_extended_attribute({code => "PNR12", attribute => $newpnr});
+    $borrower->extended_attributes->search({code => "PNR"})->delete;
+    $borrower->add_extended_attribute({code => "PNR", attribute => substr($newpnr, 2)});
   }
 
   my %newdata;
@@ -94,7 +110,8 @@ else { #$action eq 'update'
   # Om kortnumren inte matchar (dvs nytt kort) så sparar vi det gamla numret på ny plats i posten
   # och sätter det nya kortnumret som aktivt. Alla gamla nummer ska sparas.
   if (defined($incoming_cardnumber) && defined($existing_cardnumber) && !($incoming_cardnumber eq $existing_cardnumber)) {
-    UpdateBorrowerAttribute($borrowernumber, {code => "GKNR", attribute => $existing_cardnumber});
+    $borrower->extended_attributes->search({code => "GKNR"})->delete;
+    $borrower->add_extended_attribute({code => "GKNR", attribute => $existing_cardnumber});
     $newdata{'cardnumber'} = $incoming_cardnumber;
   }
 
@@ -108,9 +125,12 @@ else { #$action eq 'update'
 
   # Spara att de accepterat biblioteksreglerna.
   # Sparar att datat kommer från GU genom att skriva GU-kort uppdat i posten.
-  UpdateBorrowerAttribute($borrowernumber, {code => "ACCEPT", attribute => "Biblioteksreglerna accepteras"});
-  UpdateBorrowerAttribute($borrowernumber, {code => "IMPORT", attribute => "gukort updat"});
-  #SetBorrowerAttributes($borrowernumber, [{code => "ACCEPT", value => "Biblioteksreglerna accepteras"}, {code => "IMPORT", value => "gukort updat"}]);
+  $borrower->extended_attributes->search({code => "ACCEPT"})->delete;
+  $borrower->add_extended_attribute({code => "ACCEPT", attribute => "Biblioteksreglerna accepteras"});
+  $borrower->extended_attributes->search({code => "IMPORT"})->delete;
+  $borrower->add_extended_attribute({code => "IMPORT", attribute => "gukort updat"});
+
+
 
   if (-e "/usr/local/etc/gucard_replace.sh") {
     system("/usr/local/etc/gucard_replace.sh $existing_cardnumber $incoming_cardnumber > /dev/null 2>&1");
@@ -118,7 +138,9 @@ else { #$action eq 'update'
 
   # Update ANSTSLUT if provided
   if (defined($last_employment_date) && $last_employment_date) {
-      UpdateBorrowerAttribute($borrowernumber, {code => "ANSTSLUT", attribute => $last_employment_date});
+      $borrower->extended_attributes->search({code => "ANSTSLUT"})->delete;
+      $borrower->add_extended_attribute({code => "ANSTSLUT", attribute => $last_employment_date);
+
   }
 
   $borrower->set(\%newdata)->store;
