@@ -8,7 +8,6 @@ use XML::Simple;
 use C4::Auth qw/check_api_auth/;
 
 use C4::Members;
-use C4::Members::Attributes qw( CheckUniqueness );
 use C4::Context;
 
 my $query = new CGI;

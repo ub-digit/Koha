@@ -7,7 +7,6 @@ use utf8;
 use CGI qw ( -utf8 );
 use C4::Auth qw/check_api_auth/;
 use C4::Members;
-use C4::Members::Attributes qw( GetBorrowerAttributeValue );
 use Koha::Patrons;
 use XML::Simple;
 
@@ -64,8 +63,16 @@ my $dateexpiry = $borrower->unblessed->{'dateexpiry'};
 my $lang = $borrower->unblessed->{'lang'};
 my $today = `date +"%Y-%m-%d"`;
 
-my $pnr12 = GetBorrowerAttributeValue($borrowernumber, "PNR12");
-my $pnr10 = GetBorrowerAttributeValue($borrowernumber, "PNR");
+my $pnr12obj = $borrower->get_extended_attribute("PNR12");
+my $pnr10obj = $borrower->get_extended_attribute("PNR");
+my $pnr12 = "";
+my $pnr10 = "";
+if ($pnr12obj) {
+  $pnr12 = $pnr12obj->attribute;
+}
+if ($pnr10obj) {
+  $pnr10 = $pnr10obj->attribute;
+}
 my $pnr12_valid = 0;
 my $pnr10_valid = 0;
 
@@ -95,7 +102,11 @@ if ($dateexpiry lt $today) {
     }
 }
 
-my $print_msg = GetBorrowerAttributeValue($borrowernumber, "PRINT");
+my $print_msg_obj = $borrower->get_extended_attribute("PRINT");
+my $print_msg = "";
+if ($print_msg_obj) {
+  $print_msg = $print_msg_obj->attribute;
+}
 my $firstname = $borrower->unblessed->{'firstname'};
 my $surname = $borrower->unblessed->{'surname'};
 

@@ -8,7 +8,6 @@ use XML::Simple;
 use C4::Auth qw/check_api_auth/;
 
 use C4::Members;
-use C4::Members::Attributes qw( SetBorrowerAttributes );
 
 use Koha::Patron;
 use Koha::Patron::Debarments;
@@ -126,10 +125,10 @@ my $patron = Koha::Patron->new({%borrower})->store;
 my $borrowernumber = $patron->borrowernumber;
 
 if ($origin and $origin eq "gukort") {
-  SetBorrowerAttributes($borrowernumber, [{code => "PNR12", value => $personalnumber}, {code => "PNR", value => substr($personalnumber, 2)}, {code => "ACCEPT", value => $accept_text}, {code => "IMPORT", value => "gukort"}]);
+  $patron->extended_attributes([{code => "PNR12", attribute => $personalnumber}, {code => "PNR", attribute => substr($personalnumber, 2)}, {code => "ACCEPT", attribute => $accept_text}, {code => "IMPORT", attribute => "gukort"}]);
 }
 else {
-  SetBorrowerAttributes($borrowernumber, [{code => "PNR12", value => $personalnumber}, {code => "PNR", value => substr($personalnumber, 2)}, {code => "ACCEPT", value => $accept_text}]);
+  $patron->extended_attributes([{code => "PNR12", attribute => $personalnumber}, {code => "PNR", attribute => substr($personalnumber, 2)}, {code => "ACCEPT", attribute => $accept_text}]);
 }
 
 foreach my $debarment (@debarments) {

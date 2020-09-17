@@ -6,7 +6,6 @@ use utf8;
 
 use CGI qw ( -utf8 );
 use JSON;
-use C4::Members::Attributes;
 use Koha::Patron;
 use Koha::Patrons;
 use Data::Dumper;
@@ -26,18 +25,22 @@ if($key ne "!kk889fr!") {
 my %patron = ();
 
 if($cnr) {
-    my $p = Koha::Patrons->search({cardnumber => $cnr})->unblessed;
-    if(@$p) {
-        my $pt = $p->[0];
+    my $p = Koha::Patrons->search({cardnumber => $cnr});
+    my $pt = $p->next;
+    if($pt) {
         my $pnr;
-        $pnr = C4::Members::Attributes::GetBorrowerAttributeValue($pt->{borrowernumber}, "PNR");
-        if(!$pnr) {
-            $pnr = C4::Members::Attributes::GetBorrowerAttributeValue($pt->{borrowernumber}, "PNR12");
+        my $pnr_obj = "";
+        $pnr_obj = $pt->get_extended_attribute("PNR");
+        if(!$pnr_obj) {
+            $pnr_obj = $pt->get_extended_attribute("PNR12");
+        }
+        if ($pnr_obj) {
+          $pnr = $pnr_obj->attribute;
         }
         $pnr = substr($pnr, -10, 10);
-        $patron{card_number} = $pt->{cardnumber};
+        $patron{card_number} = $pt->unblessed->{'cardnumber'};
         $patron{person_number} = $pnr;
-        $patron{name} = $pt->{surname}.", ".$pt->{firstname};
+        $patron{name} = $pt->unblessed->{'surname'}.", ".$pt->unblessed->{'firstname'};
     }
 } elsif($pnr) {
     my $dbh = C4::Context->dbh();
