@@ -6,7 +6,6 @@ use warnings;
 use CGI qw ( -utf8 );
 use C4::Auth qw/check_api_auth/;
 use C4::Members;
-use C4::Members::Attributes qw( GetBorrowerAttributeValue );
 use Koha::Patrons;
 use XML::Simple;
 
@@ -57,8 +56,17 @@ my $retval;
 # -------------------------------------------------- #
 # 'personnummer' might be stored as 10 or 12 digits  #
 # -------------------------------------------------- #
-my $pnr12 = GetBorrowerAttributeValue($borrowernumber, "PNR12");
-my $pnr = GetBorrowerAttributeValue($borrowernumber, "PNR");
+my $pnr12obj = $borrower->get_extended_attribute("PNR12");
+my $pnrobj = $borrower->get_extended_attribute("PNR");
+my $pnr12 = "";
+my $pnr = "";
+if ($pnr12obj) {
+  $pnr12 = $pnr12obj->attribute;
+}
+if ($pnrobj) {
+  $pnr = $pnrobj->attribute;
+}
+
 my $today = `date +"%Y-%m-%d"`;
 
 # -------------------------------------------------- #
