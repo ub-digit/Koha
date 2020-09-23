@@ -376,3 +376,24 @@
 [% END %]
 
 [% INCLUDE 'intranet-bottom.inc' %]
+<!-- GUB -->
+<script>
+ // Set permanent location automatically when selecting shelving location
+  if (location.pathname === '/cgi-bin/koha/cataloguing/additem.pl') {
+
+    setTimeout(function() {
+      // exceptions maps locations ids to other locations ids
+      var exceptions = { '50': '50' };
+      $('#subfield952c select').on('change', function(e) {
+        var val = $(this).val().substr(0, 2);
+        if (val === "") {
+          return;
+        }
+        if (exceptions[val]) {
+          val = exceptions[val];
+        }
+        $('#subfield952a select').val(val).trigger('change');
+      });
+    }, 300);
+  }
+</script>
