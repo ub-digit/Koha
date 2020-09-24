@@ -151,8 +151,19 @@ unless ($biblionumber) {
   exit 0;
 }
 
-my $itemnumber;
-($biblionumber, $biblioitemnumber, $itemnumber) = AddItem({homebranch => $branch, holdingbranch => $branch, permanent_location => $location, location => $location, itemcallnumber => "FJÄRR IN". ' ' ."$shdate", barcode => "$item", itype => "13"}, $biblionumber);
+my $itemnumber = Koha::Item->new(
+    {
+        homebranch => $branch,
+        holdingbranch => $branch,
+        permanent_location => $location,
+        location => $location,
+        itemcallnumber => "FJÄRR IN". ' ' ."$shdate",
+        barcode => "$item",
+        itype => "13",
+        biblionumber => $biblionumber
+    }
+)->store->itemnumber;
+
 unless ($itemnumber) {
   print $query->header(-type => 'text/xml', -status => '400');
   print XMLout({ status => "add item error", error_code => 'add_item_error' }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
@@ -164,7 +175,16 @@ my $reserve_status;
 if ($borrowernumber) {
   my $borrower = Koha::Patrons->find($borrowernumber);
   if ($borrower) {
-    my $reserve_id = C4::Reserves::AddReserve($pickup_location, $borrowernumber, $biblionumber, undef, 1, undef, undef, undef, $ti, $itemnumber);
+    my $reserve_id = C4::Reserves::AddReserve(
+        {
+            branchcode => $pickup_location,
+            borrowernumber => $borrowernumber,
+            biblionumber => $biblionumber,
+            priority => 1,
+            title => $ti,
+            itemnumber => $itemnumber
+        }
+    );
     if ($reserve_id) {
       $reserve_status = 'success';
     }
