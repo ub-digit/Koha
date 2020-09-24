@@ -77,7 +77,17 @@ unless ($can_reserve->{status} eq 'OK') {
 my $priority = C4::Reserves::CalculatePriority($biblionumber);
 $itemnumber ||= undef;
 
-my $reserve_id = C4::Reserves::AddReserve($branchcode, $borrowernumber, $biblionumber, undef, $priority, undef, undef, $reservenotes, $biblio->{title}, $itemnumber);
+my $reserve_id = C4::Reserves::AddReserve(
+    {
+        branchcode => $branchcode,
+        borrowernumber => $borrowernumber,
+        biblionumber => $biblionumber,
+        priority => $priority,
+        notes => $reservenotes,
+        title => $biblio->{title},
+        itemnumber => $itemnumber
+    }
+);
 
 unless ($reserve_id) {
   print $query->header(-type => 'text/xml', -status => '500');
