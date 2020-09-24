@@ -58,8 +58,8 @@ while (my $hold = $holds->next) {
   $hold->delete();
 }
 
-my $delstatus = DelItemCheck($biblionumber, $itemnumber);
-unless ($delstatus == 1) {
+my $delstatus = $itemobj->safe_delete;
+unless (ref($delstatus)) {
   print $query->header(-type => 'text/xml', -status => '400');
   print XMLout({ status => "could not delete item", error_code => 'could_not_delete_item' }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
   exit 0;
