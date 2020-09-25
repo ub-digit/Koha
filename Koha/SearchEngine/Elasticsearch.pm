@@ -41,8 +41,8 @@ use YAML::XS;
 
 use List::Util qw( sum0 );
 use MARC::File::XML;
-use MIME::Base64 qw( encode_base64 );
-use Encode qw( encode );
+use MIME::Base64 qw(encode_base64 decode_base64);
+use Encode qw(encode decode);
 use Business::ISBN;
 use Scalar::Util qw( looks_like_number );
 
@@ -541,7 +541,6 @@ sub marc_records_to_documents {
     my $control_fields_rules = $rules->{control_fields};
     my $data_fields_rules = $rules->{data_fields};
     my $marcflavour = lc C4::Context->preference('marcflavour');
-    my $use_array = C4::Context->preference('ElasticsearchMARCFormat') eq 'ARRAY';
 
     my @record_documents;
 
@@ -741,38 +740,187 @@ sub marc_records_to_documents {
                 }
             }
         }
+        my $preferred_format = C4::Context->preference('ElasticsearchMARCFormat');
 
-        # TODO: Perhaps should check if $records_document non empty, but really should never be the case
-        $record->encoding('UTF-8');
-        if ($use_array) {
-            $record_document->{'marc_data_array'} = $self->_marc_to_array($record);
-            $record_document->{'marc_format'} = 'ARRAY';
+        my ($encoded_record, $format) = $self->search_document_marc_record_encode(
+            $record,
+            $preferred_format,
+            $marcflavour
+        );
+
+        if ($preferred_format eq 'ARRAY') {
+            $record_document->{'marc_data_array'} = $encoded_record;
         } else {
-            my @warnings;
-            {
-                # Temporarily intercept all warn signals (MARC::Record carps when record length > 99999)
-                local $SIG{__WARN__} = sub {
-                    push @warnings, $_[0];
-                };
-                $record_document->{'marc_data'} = encode_base64(encode('UTF-8', $record->as_usmarc()));
-            }
-            if (@warnings) {
-                # Suppress warnings if record length exceeded
-                unless (substr($record->leader(), 0, 5) eq '99999') {
-                    foreach my $warning (@warnings) {
-                        carp $warning;
-                    }
-                }
-                $record_document->{'marc_data'} = $record->as_xml_record($marcflavour);
-                $record_document->{'marc_format'} = 'MARCXML';
-            }
-            else {
-                $record_document->{'marc_format'} = 'base64ISO2709';
-            }
+            $record_document->{'marc_data'} = $encoded_record;
         }
+        $record_document->{'marc_format'} = $format;
+
         push @record_documents, $record_document;
     }
     return \@record_documents;
+}
+
+=head2 search_document_marc_record_encode($record, $format, $marcflavour)
+    my ($encoded_record, $format) = search_document_marc_record_encode($record, $format, $marcflavour)
+
+Encode a MARC::Record to the prefered marc document record format. If record exceeds ISO2709 maximum
+size record size and C<$format> is set to 'base64ISO2709' format will fallback to 'MARCXML' instead.
+
+=over 4
+
+=item C<$record>
+
+A MARC::Record object
+
+=item C<$marcflavour>
+
+The marcflavour to use
+
+=back
+
+=cut
+
+sub search_document_marc_record_encode {
+    my ($self, $record, $format, $marcflavour) = @_;
+
+    $record->encoding('UTF-8');
+
+    if ($format eq 'ARRAY') {
+        return ($self->_marc_to_array($record), $format);
+    }
+    elsif ($format eq 'base64ISO2709' || $format eq 'ISO2709') {
+        my @warnings;
+        my $marc_data;
+        {
+            # Temporarily intercept all warn signals (MARC::Record carps when record length > 99999)
+            local $SIG{__WARN__} = sub {
+                push @warnings, $_[0];
+            };
+            $marc_data = $record->as_usmarc();
+        }
+        if (@warnings) {
+            # Suppress warnings if record length exceeded
+            unless (substr($record->leader(), 0, 5) eq '99999') {
+                foreach my $warning (@warnings) {
+                    carp $warning;
+                }
+            }
+            return (MARC::File::XML::record($record, $marcflavour), 'MARCXML');
+        }
+        else {
+            if ($format eq 'base64ISO2709') {
+                $marc_data = encode_base64(encode('UTF-8', $marc_data));
+            }
+            return ($marc_data, $format);
+        }
+    }
+    elsif ($format eq 'MARCXML') {
+        return (MARC::File::XML::record($record, $marcflavour), $format);
+    }
+    else {
+        # This should be unlikely to happen
+        croak "Invalid marc record serialization format: $format";
+    }
+}
+
+=head2 search_document_marc_record_decode
+    my $marc_record = $self->search_document_marc_record_decode(@result);
+
+Extract marc data from Elasticsearch result and decode to MARC::Record object
+
+=cut
+
+sub search_document_marc_record_decode {
+    # Result is passed in as array, will get flattened
+    # and first element will be $result
+    my ($self, $result) = @_;
+    if ($result->{marc_format} eq 'base64ISO2709') {
+        return MARC::Record->new_from_usmarc(decode_base64($result->{marc_data}));
+    }
+    elsif ($result->{marc_format} eq 'MARCXML') {
+        return MARC::Record->new_from_xml($result->{marc_data}, 'UTF-8', uc C4::Context->preference('marcflavour'));
+    }
+    elsif ($result->{marc_format} eq 'ARRAY') {
+        return $self->_array_to_marc($result->{marc_data_array});
+    }
+    else {
+        Koha::Exceptions::Elasticsearch->throw("Missing marc_format field in Elasticsearch result");
+    }
+}
+
+=head2 search_document_marc_records_encode_from_docs($docs, $preferred_format)
+
+    $records_data = $self->search_document_marc_records_encode_from_docs($docs, $preferred_format)
+
+Return marc encoded records from ElasticSearch search result documents. The return value
+C<$marc_records> is a hashref with encoded records keyed by MARC format.
+
+=over 4
+
+=item C<$docs>
+
+An arrayref of Elasticsearch search documents
+
+=item C<$preferred_format>
+
+The preferred marc format: 'MARCXML' or 'ISO2709'. Records exceeding maximum
+length supported by ISO2709 will be exported as 'MARCXML' even if C<$preferred_format>
+is set to 'ISO2709'.
+
+=back
+
+=cut
+
+sub search_document_marc_records_encode_from_docs {
+
+    my ($self, $docs, $preferred_format) = @_;
+
+    my %encoded_records = (
+        'ISO2709' => [],
+        'MARCXML' => []
+    );
+
+    unless (exists $encoded_records{$preferred_format}) {
+       croak "Invalid preferred format: $preferred_format";
+    }
+
+    for my $es_record (@{$docs}) {
+        # Special optimized cases
+        my $marc_data;
+        my $resulting_format = $preferred_format;
+        if ($preferred_format eq 'MARCXML' && $es_record->{_source}{marc_format} eq 'MARCXML') {
+            $marc_data = $es_record->{_source}{marc_data};
+        }
+        elsif ($preferred_format eq 'ISO2709' && $es_record->{_source}->{marc_format} eq 'base64ISO2709') {
+            # Stored as UTF-8 encoded binary in index, so needs to be decoded
+            $marc_data = decode('UTF-8', decode_base64($es_record->{_source}->{marc_data}));
+        }
+        else {
+            my $record = $self->search_document_marc_record_decode($es_record->{'_source'});
+            my $marcflavour = lc C4::Context->preference('marcflavour');
+            ($marc_data, $resulting_format) = $self->search_document_marc_record_encode($record, $preferred_format, $marcflavour);
+        }
+        push @{$encoded_records{$resulting_format}}, $marc_data;
+    }
+    if (@{$encoded_records{'ISO2709'}}) {
+        $encoded_records{'ISO2709'} = join("", @{$encoded_records{'ISO2709'}});
+    }
+    else {
+        delete $encoded_records{'ISO2709'};
+    }
+
+    if (@{$encoded_records{'MARCXML'}}) {
+        $encoded_records{'MARCXML'} = join("\n",
+            MARC::File::XML::header(),
+            join("\n", @{$encoded_records{'MARCXML'}}),
+            MARC::File::XML::footer()
+        );
+    }
+    else {
+        delete $encoded_records{'MARCXML'};
+    }
+
+    return \%encoded_records;
 }
 
 =head2 _marc_to_array($record)
@@ -846,18 +994,18 @@ sub _array_to_marc {
     $record->leader($data->{leader});
     for my $field (@{$data->{fields}}) {
         my $tag = (keys %{$field})[0];
-        $field = $field->{$tag};
+        my $field_data = $field->{$tag};
         my $marc_field;
-        if (ref($field) eq 'HASH') {
+        if (ref($field_data) eq 'HASH') {
             my @subfields;
-            foreach my $subfield (@{$field->{subfields}}) {
+            foreach my $subfield (@{$field_data->{subfields}}) {
                 my $code = (keys %{$subfield})[0];
                 push @subfields, $code;
                 push @subfields, $subfield->{$code};
             }
-            $marc_field = MARC::Field->new($tag, $field->{ind1}, $field->{ind2}, @subfields);
+            $marc_field = MARC::Field->new($tag, $field_data->{ind1}, $field_data->{ind2}, @subfields);
         } else {
-            $marc_field = MARC::Field->new($tag, $field)
+            $marc_field = MARC::Field->new($tag, $field_data)
         }
         $record->append_fields($marc_field);
     }

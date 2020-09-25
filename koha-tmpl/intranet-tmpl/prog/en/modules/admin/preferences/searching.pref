@@ -131,6 +131,53 @@ Searching:
                   1: use
                   0: "don't use"
             - 'the operator "phr" in the callnumber and standard number staff interface searches.'
+        -
+            - pref: EnableSearchResultMARCExport
+              type: boolean
+              default: yes
+              choices:
+                  yes: Enable
+                  no: Disable
+            - "MARC export of search results. The export will be sent to to the logged in user's email address. Records exceeding the ISO2709 record size will be send at separate MARC XML attachment regardless of chosen export format (ElasticSearch only)."
+        -
+            - pref: SearchResultMARCExportCustomFormats
+              type: textarea
+              syntax: text/x-yaml
+              class: code
+            - "Define custom export formats as a YAML list of associative arrays."
+            - "A format have the required properties \"<strong>name</strong>\", \"<strong>fields</strong>\" and an optional \"<strong>multiple</strong>\".<br />"
+            - "<p><strong>name</strong>: the human readable name of the format exposed in the staff interface.</p>"
+            - "<p><strong>fields</strong>: a list of Elasticsearch fields to be included in the export.</p>"
+            - "If <strong>fields</strong> contain a only single field the export result will contain one value per row, for multiple fields a CSV-file will be produced.<br />"
+            - "<p><strong>multiple</strong>: <i>ignore</i>|<i>join</i>|<i>newline</i><br />The behavior when handling fields with multiple values.</p>"
+            - "<p><i>ignore</i> is the default option, only the first value will be included, the rest ignored.</p>"
+            - "<p><i>join</i>, multiple values will be contatenated with tab as a separator.</p>"
+            - "<p><i>newline</i>, a newline will be inserted for each value. This option does not allow \"<strong>fields</strong>\" to contain multiple fields.</p>"
+            - "Example:</br>"
+            - "- name: Biblionumbers<br />"
+            - "&nbsp;&nbsp;fields: [local-number]<br />"
+            - "&nbsp;&nbsp;&nbsp;&nbsp;multiple: ignore<br />"
+            - "- name: Title and author<br />"
+            - "&nbsp;&nbsp;fields: [title, author]<br />"
+            - "&nbsp;&nbsp;&nbsp;&nbsp;multiple: join<br />"
+        -
+            - "Limit exported MARC records from search results to a maximum of"
+            - pref: SearchResultMARCExportLimit
+              class: integer
+            - "records."
+        -
+            - "Send an email with the export results to the current user"
+            - pref: SearchResultMARCExportEmail
+              type: boolean
+              default: no
+              choices:
+                  1: Yes
+                  0: No
+        -
+            - "Use the from-address"
+            - pref: SearchResultMARCExportFromAddress
+              class: short
+            - "when mailing search results exports."
     Results display:
         -
             - pref: numSearchResultsDropdown
