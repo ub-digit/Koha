@@ -329,6 +329,21 @@
                                 </div> <!-- /.btn-group -->
                             [% END %]
 
+                            [% IF export_enabled %]
+                                <div class="btn-group">
+                                    <button type="button" class="btn btn-default btn-xs dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                        Export all results<span class="caret"></span>
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li><a href="/cgi-bin/koha/catalogue/search.pl?count=[% results_per_page | uri %]&export=1&export_format=ISO2709[% PROCESS sort_search_query %]">MARC (UTF-8)</a></li>
+                                        <li><a href="/cgi-bin/koha/catalogue/search.pl?count=[% results_per_page | uri %]&export=1&export_format=MARCXML[% PROCESS sort_search_query %]">MARC XML</a></li>
+                                        [% FOREACH id IN custom_export_formats.keys %]
+                                            <li><a href="/cgi-bin/koha/catalogue/search.pl?count=[% results_per_page | uri %]&export=1&export_format=[% id | uri %][% PROCESS sort_search_query %]">[% custom_export_formats.$id.name | html %]</a></li>
+                                        [% END %]
+                                   </ul>
+                                </div> <!-- /.btn-group -->
+                            [% END %]
+
                         </div> <!-- /#selection_ops -->
                     </div> <!-- /#searchheader -->
 
@@ -360,6 +375,15 @@
 
                 [% IF ( query_error ) %]
                     <div class="dialog alert"><p><strong>Error:</strong> [% query_error | html %]</p></div>
+                [% END %]
+
+                [% IF export_job_id %]
+                    <div class="dialog message">
+                      <p>Exporting records, the export will be processed as soon as possible.</p>
+                       [% INCLUDE "job_progress.inc" job_id=export_job_id %]
+                      <p><a class="job_details" href="/cgi-bin/koha/admin/background_jobs.pl?op=view&id=[% export_job_id | uri %]" title="View detail of the enqueued job">View detail of the enqueued job</a>
+                      <div id="job_callback"></div>
+                    </div>
                 [% END %]
 
                 <!-- Search Results Table -->
@@ -781,7 +805,34 @@
     [% Asset.css("css/humanmsg.css") | $raw %]
     [% Asset.js("lib/jquery/plugins/humanmsg.js") | $raw %]
     [% INCLUDE 'select2.inc' %]
+    [% INCLUDE 'str/job_progess.inc' %]
+    [% Asset.js("js/job_progess.js") | $raw %]
     <script>
+        [% IF export_job_id %]
+            updateProgress([% export_job_id | html %], function() {
+                $.getJSON('/api/v1/jobs/[% export_job_id | html %]', function(job) {
+                    if (job.data.report.errors.length) {
+                        humanMsg.displayMsg(
+                            _("Export failed with the following errors: ") + "<br>" + job.data.report.errors.join('<br>'),
+                            { className: 'humanError' }
+                        );
+                    }
+                    else {
+                        let export_links = Object.entries(job.data.report.export_links);
+                        let export_links_html = export_links.map(([format, href]) =>
+                            `<p>${format}: <a href=${href}>${href}</a></p>`
+                        ).join('');
+                        if (export_links.length > 1) {
+                            export_links_html =
+                                `<p>${_("Some records exceeded the maximum size supported by ISO2709 and was exported as MARCXML instead")}</p>${export_links_html}`;
+                        }
+                        $(`<p>${_("Export finished successfully:")}</p>${export_links_html}`)
+                            .appendTo("#job_callback");
+                    }
+                });
+            });
+        [% END %]
+
         var PREF_AmazonCoverImages = parseInt( "[% Koha.Preference('AmazonCoverImages') | html %]", 10);
         var q_array = new Array();  // will hold search terms, if present
         var PREF_LocalCoverImages = parseInt( "[% Koha.Preference('LocalCoverImages') | html %]", 10);

@@ -233,6 +233,10 @@
                 '_id': 'marc_import_revert_batch',
                 '_str': _("Revert import MARC records")
             },
+            {
+                '_id': 'search_result_marc_export',
+                '_str': _("Search result MARC export")
+            },
         ];
 
         function get_job_type (job_type) {
