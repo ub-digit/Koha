@@ -158,6 +158,15 @@ use Koha::Virtualshelves;
 use Koha::SearchFields;
 
 use URI::Escape;
+use File::Spec;
+use File::Path qw(mkpath);
+use Koha::Email;
+use Koha::UploadedFiles;
+use POSIX qw(strftime);
+use Digest::MD5 qw(md5_hex);
+use Encode qw(encode);
+use YAML::XS;
+use Carp qw(croak);
 
 my $DisplayMultiPlaceHold = C4::Context->preference("DisplayMultiPlaceHold");
 # create a new CGI object
@@ -496,6 +505,224 @@ $template->param ( LIMIT_INPUTS => \@limit_inputs );
 my $total = 0; # the total results for the whole set
 my $facets; # this object stores the faceted results that display on the left-hand of the results page
 my $results_hashref;
+
+my $patron = Koha::Patrons->find( $borrowernumber );
+
+my $export_enabled =
+    C4::Context->preference('EnableSearchResultMARCExport') &&
+    C4::Context->preference('SearchEngine') eq 'Elasticsearch' &&
+    $patron && $patron->has_permission({ tools => 'export_catalog' });
+
+$template->param(export_enabled => $export_enabled) if $template_name eq 'catalogue/results.tt';
+
+if ($export_enabled) {
+
+    my $export = $cgi->param('export');
+    my $preferred_format = $cgi->param('export_format');
+
+    my $export_custom_formats_pref = Load(C4::Context->preference('SearchResultMARCExportCustomFormats'));
+
+    my $custom_export_formats = {};
+    if (ref $export_custom_formats_pref eq 'ARRAY') {
+        for (my $i = 0; $i < @{$export_custom_formats_pref}; ++$i) {
+            # TODO: Validate on save or trow error here instead of just ignoreing
+            my $format = $export_custom_formats_pref->[$i];
+            if (
+                ref $format->{fields} eq 'ARRAY' &&
+                @{$format->{fields}} &&
+                $format->{name}
+            ) {
+                $format->{multiple} = 'ignore' unless exists $format->{multiple};
+                $custom_export_formats->{"custom_$i"} = $format;
+            }
+        }
+    }
+    $template->param(custom_export_formats => $custom_export_formats);
+
+    if ($export && $preferred_format) {
+        my $elasticsearch = $searcher->get_elasticsearch();
+
+        my $size_limit = C4::Context->preference('SearchResultMARCExportLimit') || 0;
+        my %export_query = $size_limit ? (%{$query}, (size => $size_limit)) : %{$query};
+        my $error;
+
+        my $results = eval {
+            $elasticsearch->search(
+                index => $searcher->index_name,
+                scroll => '1m', #TODO: Syspref for scroll time limit?
+                size => 1000,  #TODO: Syspref for batch size?
+                body => \%export_query
+            );
+        };
+        if ($@) {
+            $error = $@;
+            $searcher->process_error($error);
+        }
+
+        my @docs;
+        for my $doc (@{$results->{hits}->{hits}}) {
+            push @docs, $doc;
+        }
+
+        my $scroll_id = $results->{_scroll_id};
+
+        while (@{$results->{hits}->{hits}}) {
+            $results = $elasticsearch->scroll(
+                scroll => '1m',
+                scroll_id => $scroll_id
+            );
+            for my $doc (@{$results->{hits}->{hits}}) {
+                push @docs, $doc;
+            }
+        }
+
+        my $message;
+        my $export_links_html;
+
+        if (!$error) {
+            my $encoded_results = {};
+
+            if ($preferred_format eq 'ISO2709' || $preferred_format eq 'MARCXML') {
+                $encoded_results = $searcher->search_document_marc_records_encode_from_docs(\@docs, $preferred_format);
+            }
+            elsif(exists $custom_export_formats->{$preferred_format}) {
+                my $format = $custom_export_formats->{$preferred_format};
+                my $result;
+
+                my $doc_get_fields = sub {
+                    my ($doc, $fields) = @_;
+                    my @row;
+                    foreach my $field (@{$fields}) {
+                        my $values = $doc->{_source}->{$field};
+                        push @row, ref $values eq 'ARRAY' ? $values : [''];
+                    }
+                    return \@row;
+                };
+
+                my @rows = map { $doc_get_fields->($_, $format->{fields}) } @docs;
+
+                if($format->{multiple} eq 'ignore') {
+                    for (my $i = 0; $i < @rows; ++$i) {
+                        $rows[$i] = [map { $_->[0] } @{$rows[$i]}];
+                    }
+                }
+                elsif($format->{multiple} eq 'newline') {
+                    if (@{$format->{fields}} == 1) {
+                        @rows = map { [join("\n", @{$_->[0]})] } @rows;
+                    }
+                    else {
+                        croak "'newline' is only valid for single field export formats";
+                    }
+                }
+                elsif($format->{multiple} eq 'join') {
+                    for (my $i = 0; $i < @rows; ++$i) {
+                        $rows[$i] = [map { join("\t", @{$_}) } @{$rows[$i]}];
+                    }
+                }
+                else {
+                    croak "Invalid 'multiple' option: " . $format->{multiple};
+                }
+
+                if (@{$format->{fields}} == 1) {
+                    @rows = grep { $_ ne '' } map { $_->[0] } @rows;
+                }
+                else {
+                    # Encode CSV
+                    for (my $i = 0; $i < @rows; ++$i) {
+                        $rows[$i] = join(',', map { $_ =~ s/"/""/; "\"$_\"" } @{$rows[$i]});
+                    }
+                }
+                $encoded_results->{$format->{name}} = join("\n", @rows);
+            }
+            else {
+                croak "Invalid export format: $preferred_format";
+            }
+
+            my %format_extensions = (
+                'ISO2709' => '.mrc',
+                'MARCXML' => '.xml',
+            );
+
+            my $upload_dir = Koha::UploadedFile->permanent_directory;
+            my $base_url = C4::Context->preference("staffClientBaseURL") . "/cgi-bin/koha";
+            my %export_links;
+
+            while (my ($format, $data) = each %{$encoded_results}) {
+                $data = encode('UTF-8', $data);
+                my $hash = md5_hex($data);
+                my $category = "search_marc_export";
+                my $time = strftime "%Y%m%d_%H%M", localtime time;
+                my $ext = exists $format_extensions{$format} ? $format_extensions{$format} : '.txt';
+                my $filename = $category . '_' . $time . $ext;
+                my $file_dir = File::Spec->catfile($upload_dir, $category);
+                if ( !-d $file_dir) {
+                    mkpath $file_dir or die "Failed to create $file_dir";
+                }
+                my $filepath = File::Spec->catfile($file_dir, "${hash}_${filename}");
+
+                my $fh = IO::File->new($filepath, "w");
+
+                if ($fh) {
+                    $fh->binmode;
+                    print $fh $data;
+                    $fh->close;
+
+                    my $size = -s $filepath;
+                    my $file = Koha::UploadedFile->new({
+                            hashvalue => $hash,
+                            filename  => $filename,
+                            dir       => $category,
+                            filesize  => $size,
+                            owner     => $borrowernumber,
+                            uploadcategorycode => 'search_marc_export',
+                            public    => 0,
+                            permanent => 1,
+                        })->store;
+                    my $id = $file->_result()->get_column('id');
+                    $export_links{$format} = "$base_url/tools/upload.pl?op=download&id=$id";
+                }
+                else {
+                    croak "Failed to write \"$filepath\"";
+                }
+            }
+
+            while (my ($format, $link) = each %export_links) {
+                $export_links_html .= "$format: <a href=\"$link\">$link</a>\n";
+            }
+            my $query_string = $query->{query}->{query_string}->{query};
+            my $links_count = keys %export_links;
+
+            $export_links_html = $links_count > 1 ?
+            "<p>Some records exceeded the maximum size supported by ISO2709 and was exported as MARCXML instead.</p>" . $export_links_html : $export_links_html;
+
+            my $send_email = C4::Context->preference('SearchResultMARCExportEmail');
+            if ($send_email) {
+                if ($patron->email) {
+                    my $export_from_address = C4::Context->preference('SearchResultMARCExportEmailFromAddress');
+                    my $export_user_email = $patron->email;
+                    my $mail = Koha::Email->create({
+                            to => $export_user_email,
+                            from => $export_from_address,
+                            subject => "Marc export for query: $query_string",
+                            html_body => $export_links_html,
+                        });
+                    $mail->send_or_die({ transport => $patron->library->smtp_server->transport });
+                    $export_links_html .= "<p>An email has been sent to: $export_user_email</p>";
+
+                }
+                else {
+                    $export_links_html .= "<p>Unable to send mail, the current user has no email address set</p>";
+                }
+            }
+            $message = "<p>The export finished successfully:</p>" . $export_links_html;
+            $template->param(export_message => $message);
+        }
+        else {
+            $message = "An error occurred during marc export: $error",
+            $template->param(export_error => $message);
+        }
+    }
+}
 
 eval {
     my $itemtypes = { map { $_->{itemtype} => $_ } @{ Koha::ItemTypes->search_with_localization->unblessed } };

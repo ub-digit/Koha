@@ -310,6 +310,21 @@
                                 </div> <!-- /.btn-group -->
                             [% END %]
 
+                            [% IF export_enabled %]
+                                <div class="btn-group">
+                                    <button type="button" class="btn btn-default btn-xs dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                        Export all results<span class="caret"></span>
+                                    </button>
+                                    <ul class="dropdown-menu">
+                                        <li><a href="/cgi-bin/koha/catalogue/search.pl?count=[% results_per_page | uri %]&export=1&export_format=ISO2709[% PROCESS sort_search_query %]">MARC (UTF-8)</a></li>
+                                        <li><a href="/cgi-bin/koha/catalogue/search.pl?count=[% results_per_page | uri %]&export=1&export_format=MARCXML[% PROCESS sort_search_query %]">MARC XML</a></li>
+                                        [% FOREACH id IN custom_export_formats.keys %]
+                                            <li><a href="/cgi-bin/koha/catalogue/search.pl?count=[% results_per_page | uri %]&export=1&export_format=[% id %][% PROCESS sort_search_query %]">[% custom_export_formats.$id.name | html %]</a></li>
+                                        [% END %]
+                                   </ul>
+                                </div> <!-- /.btn-group -->
+                            [% END %]
+
                         </div> <!-- /#selection_ops -->
                     </div> <!-- /#searchheader -->
 
@@ -335,6 +350,13 @@
 
                 [% IF ( query_error ) %]
                     <div class="dialog alert"><p><strong>Error:</strong> [% query_error | html %]</p></div>
+                [% END %]
+
+                [% IF ( export_message ) %]
+                    <div class="dialog message">[% export_message %]</div>
+                [% END %]
+                [% IF ( export_error ) %]
+                    <div class="dialog error">[% export_error %]</div>
                 [% END %]
 
                 <!-- Search Results Table -->

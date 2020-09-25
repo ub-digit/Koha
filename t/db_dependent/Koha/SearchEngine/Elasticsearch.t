@@ -140,10 +140,10 @@ subtest 'get_elasticsearch_mappings() tests' => sub {
 
 subtest 'Koha::SearchEngine::Elasticsearch::marc_records_to_documents () tests' => sub {
 
-    plan tests => 63;
+    plan tests => 72;
 
     t::lib::Mocks::mock_preference('marcflavour', 'MARC21');
-    t::lib::Mocks::mock_preference('ElasticsearchMARCFormat', 'ISO2709');
+    t::lib::Mocks::mock_preference('ElasticsearchMARCFormat', 'base64ISO2709');
 
     my @mappings = (
         {
@@ -489,7 +489,7 @@ subtest 'Koha::SearchEngine::Elasticsearch::marc_records_to_documents () tests' 
     ok(defined $docs->[0]->{marc_format}, 'First document marc_format field should be set');
     is($docs->[0]->{marc_format}, 'base64ISO2709', 'First document marc_format should be set correctly');
 
-    my $decoded_marc_record = $see->decode_record_from_result($docs->[0]);
+    my $decoded_marc_record = $see->search_document_marc_record_decode($docs->[0]);
 
     ok($decoded_marc_record->isa('MARC::Record'), "base64ISO2709 record successfully decoded from result");
     is($decoded_marc_record->as_usmarc(), $marc_record_1->as_usmarc(), "Decoded base64ISO2709 record has same data as original record");
@@ -610,10 +610,62 @@ subtest 'Koha::SearchEngine::Elasticsearch::marc_records_to_documents () tests' 
 
     is($docs->[0]->{marc_format}, 'MARCXML', 'For record exceeding max record size marc_format should be set correctly');
 
-    $decoded_marc_record = $see->decode_record_from_result($docs->[0]);
+    $decoded_marc_record = $see->search_document_marc_record_decode($docs->[0]);
 
     ok($decoded_marc_record->isa('MARC::Record'), "MARCXML record successfully decoded from result");
     is($decoded_marc_record->as_xml_record(), $large_marc_record->as_xml_record(), "Decoded MARCXML record has same data as original record");
+
+    # Search export functionality
+    # Koha::SearchEngine::Elasticsearch::search_document_marc_records_encode_from_docs()
+    my @source_docs = ($marc_record_1, $marc_record_2, $large_marc_record);
+
+    for my $es_marc_format ('MARCXML', 'ARRAY', 'base64ISO2709') {
+
+        t::lib::Mocks::mock_preference('ElasticsearchMARCFormat', $es_marc_format);
+
+        $docs = $see->marc_records_to_documents(\@source_docs);
+
+        # Emulate Elasticsearch response docs structure
+        my @es_response_docs = map { { _source => $_ } } @{$docs};
+
+        my $records_data = $see->search_document_marc_records_encode_from_docs(\@es_response_docs, 'ISO2709');
+
+        # $large_marc_record should not have been encoded as ISO2709
+        # since exceeds maximum size, see above
+        my @tmp = ($marc_record_1, $marc_record_2);
+        is(
+            $records_data->{ISO2709},
+            join('', map { $_->as_usmarc() } @tmp),
+            "ISO2709 encoded records from ElasticSearch result are identical with source records using index format \"$es_marc_format\""
+        );
+
+        my $expected_marc_xml = join("\n",
+            MARC::File::XML::header(),
+            MARC::File::XML::record($large_marc_record, 'MARC21'),
+            MARC::File::XML::footer()
+        );
+
+        is(
+            $records_data->{MARCXML},
+            $expected_marc_xml,
+            "Record from search result encoded as MARCXML since exceeding ISO2709 maximum size is indentical with source record using index format \"$es_marc_format\""
+        );
+
+        $records_data = $see->search_document_marc_records_encode_from_docs(\@es_response_docs, 'MARCXML');
+
+        $expected_marc_xml = join("\n",
+            MARC::File::XML::header(),
+            join("\n", map { MARC::File::XML::record($_, 'MARC21') } @source_docs),
+            MARC::File::XML::footer()
+        );
+
+        is(
+            $records_data->{MARCXML},
+            $expected_marc_xml,
+            "MARCXML encoded records from ElasticSearch result are indentical with source records using index format \"$es_marc_format\""
+        );
+
+    }
 
     push @mappings, {
         name => 'title',
@@ -747,7 +799,7 @@ subtest 'Koha::SearchEngine::Elasticsearch::marc_records_to_documents_array () t
 
     is($docs->[0]->{marc_format}, 'ARRAY', 'First document marc_format should be set correctly');
 
-    my $decoded_marc_record = $see->decode_record_from_result($docs->[0]);
+    my $decoded_marc_record = $see->search_document_marc_record_decode($docs->[0]);
 
     ok($decoded_marc_record->isa('MARC::Record'), "ARRAY record successfully decoded from result");
     is($decoded_marc_record->as_usmarc(), $marc_record_1->as_usmarc(), "Decoded ARRAY record has same data as original record");
@@ -758,7 +810,7 @@ subtest 'Koha::SearchEngine::Elasticsearch::marc_records_to_documents () authori
     plan tests => 5;
 
     t::lib::Mocks::mock_preference('marcflavour', 'MARC21');
-    t::lib::Mocks::mock_preference('ElasticsearchMARCFormat', 'ISO2709');
+    t::lib::Mocks::mock_preference('ElasticsearchMARCFormat', 'base64ISO2709');
 
     my $builder = t::lib::TestBuilder->new;
     my $auth_type = $builder->build_object({ class => 'Koha::Authority::Types', value =>{
