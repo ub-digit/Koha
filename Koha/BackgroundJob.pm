@@ -426,6 +426,7 @@ sub core_types_to_classes {
         stage_marc_for_import               => 'Koha::BackgroundJob::StageMARCForImport',
         marc_import_commit_batch            => 'Koha::BackgroundJob::MARCImportCommitBatch',
         marc_import_revert_batch            => 'Koha::BackgroundJob::MARCImportRevertBatch',
+        search_result_marc_export           => 'Koha::BackgroundJob::SearchResultMARCExport',
     };
 }
 
