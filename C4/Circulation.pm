@@ -211,7 +211,7 @@ sub barcodedecode {
                 my $barcode9 = substr($barcode, -9);
                 my $item = Koha::Items->find({barcode => $barcode9});
                 if ($item) {
-                  C4::Items::ModItem({barcode => $barcode}, $item->biblionumber, $item->itemnumber);
+                    $item->barcode($barcode)->store;
                 }
             }
         }
