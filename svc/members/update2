@@ -139,7 +139,7 @@ else { #$action eq 'update'
   # Update ANSTSLUT if provided
   if (defined($last_employment_date) && $last_employment_date) {
       $borrower->extended_attributes->search({code => "ANSTSLUT"})->delete;
-      $borrower->add_extended_attribute({code => "ANSTSLUT", attribute => $last_employment_date);
+      $borrower->add_extended_attribute({code => "ANSTSLUT", attribute => $last_employment_date});
 
   }
 
