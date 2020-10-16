@@ -77,7 +77,7 @@ sub chargelostitem {
     my $processfee = $itype->processfee;
     my $usedefaultreplacementcost = C4::Context->preference("useDefaultReplacementCost");
     my $processingfeenote = C4::Context->preference("ProcessingFeeNote");
-    if ($usedefaultreplacementcost && $replacementprice == 0 && $defaultreplacecost){
+    if ($usedefaultreplacementcost){
         $replacementprice = $defaultreplacecost;
     }
     my $checkout = Koha::Checkouts->find({ itemnumber => $itemnumber });
