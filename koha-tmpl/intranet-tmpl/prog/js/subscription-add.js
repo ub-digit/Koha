@@ -54,7 +54,7 @@ function Check_page1() {
         }
     } else {
         var bookseller_ids = BOOKSELLER_IDS;
-        if ( $.inArray(Number(bookseller_id), bookseller_ids) == -1 ) {
+        if ( ($.inArray(Number(bookseller_id), bookseller_ids) == -1 ) && (Number(bookseller_id) != 0) ) {
             alert ( __("The vendor does not exist") );
             return false;
         }
