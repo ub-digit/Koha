@@ -15,7 +15,7 @@ unless ($newlostvalue) {
   die "ERROR: No -tovalue defined";
 }
 
-my $query = "SELECT itemnumber FROM items WHERE itemlost=2 AND itemnumber NOT IN (SELECT itemnumber FROM issues)";
+my $query = "SELECT itemnumber FROM items WHERE itemlost IN (2,3) AND itemnumber NOT IN (SELECT itemnumber FROM issues)";
 my $sth = C4::Context->dbh->prepare($query);
 $sth->execute();
 while (my $itemnumber = $sth->fetchrow_array) {
