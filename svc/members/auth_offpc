@@ -7,6 +7,7 @@ use CGI qw ( -utf8 );
 use C4::Auth qw/check_api_auth/;
 use C4::Members;
 use Koha::Patrons;
+use Koha::Patron::Debarments;
 use XML::Simple;
 
 my $query = new CGI;
@@ -70,6 +71,24 @@ if ($pnrobj) {
 my $today = `date +"%Y-%m-%d"`;
 
 # -------------------------------------------------- #
+# Check if user is debarred with either GU or AV and #
+# that the debarment has not expired                 #
+# -------------------------------------------------- #
+my $debarments = GetDebarments({borrowernumber => $borrowernumber});
+my $is_debarred = 0;
+foreach my $debarment (@{$debarments}) {
+    my $debar_expire = $debarment->{'expiration'};
+    my $debar_comment = $debarment->{'comment'};
+    
+    if ( $debar_expire && $debar_expire lt $today ) {
+        next;
+    }
+    
+    if ($debar_comment =~ /GU,/) { $is_debarred = 1; }
+    if ($debar_comment =~ /AV,/) { $is_debarred = 1; }
+}
+
+# -------------------------------------------------- #
 # personalnumber must correspond to either variant   #
 # -------------------------------------------------- #
 if (!(
@@ -80,7 +99,7 @@ elsif ($dateexpiry lt $today)                              { $retval = 0; } # ca
 elsif ($cardnumber eq $personalnumber )                    { $retval = 0; } # card is temporary, not allowing offpc login
 elsif ($categorycode !~ m/(EX)|(SR)|(FR)|(UX)|(FX)|(NX)/ ) { $retval = 0; } # only listed categories may log in with cardnumber
 elsif ($lost==1)                                           { $retval = 0; } # card reported lost
-elsif ($debarredcomment =~ m/(GU,)|(AV,)/)                 { $retval = 0; } # these debarment codes prohibits login
+elsif ($is_debarred)                                       { $retval = 0; } # debarred
 else                                                       { $retval = 1; } # you're good to go!
 print $retval . "\r\n";                                                     # return value contains "\r\n" since this script mimics auth_only_extern.cgi (sunda...)
 
