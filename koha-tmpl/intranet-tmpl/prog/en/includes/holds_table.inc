@@ -4,7 +4,7 @@
 <table class="holds_table">
     <tr>
         <th><input type="checkbox" class="select_hold_all"/></th>
-        <th>Priority</th>
+        <th style="display:none">Priority</th>
         [% IF ( CAN_user_reserveforothers_modify_holds_priority ) %]
             <th>&nbsp;</th>
         [% END %]
@@ -51,7 +51,7 @@
     [%- END -%]
         <tr>
             <th><input type="checkbox" class="select_hold" data-id="[% hold.reserve_id | html %]"/></th>
-            <td>
+            <td style="display:none">
                 <input type="hidden" name="reserve_id" value="[% hold.reserve_id | html %]" />
                 <input type="hidden" name="borrowernumber" value="[% hold.borrowernumber | html %]" />
                 <input type="hidden" name="biblionumber" value="[% hold.biblionumber | html %]" />
