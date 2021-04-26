@@ -146,7 +146,6 @@ recommends 'Devel::Cover', '0.89';
 recommends 'File::Copy', '2.08';
 recommends 'File::Path', '2.07';
 recommends 'File::Temp', '0.22';
-recommends 'Graphics::Magick', 'v1.3.5';
 recommends 'Gravatar::URL', '1.03';
 recommends 'HTTPD::Bench::ApacheBench', '0.73';
 recommends 'Lingua::Ispell', '0.07';
