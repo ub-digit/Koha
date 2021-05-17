@@ -114,13 +114,16 @@ foreach my $st (@$staff){
 	foreach my $t(@temp) {
 		foreach my $temp_group (keys %sub_perms) {
 			if ($t eq $temp_group){
-				$sth = $dbh->prepare("INSERT INTO user_permissions (borrowernumber, module_bit, code)
+				$sth = $dbh->prepare("
+                        INSERT INTO user_permissions (borrowernumber, module_bit, code)
                         SELECT ?, bit, ?
-                        FROM userflags
-                        WHERE flag = ?");
+                        FROM userflags uf
+                        WHERE flag = ?
+                        AND NOT EXISTS (SELECT * from user_permissions up where up.borrowernumber = ?
+                                        AND up.module_bit = uf.bit AND up.code = ?)");
 				foreach my $module(%{$sub_perms{$temp_group}} ) {
 					foreach my $sub_perm(@{$sub_perms{$temp_group}{$module}} ) {
-						$sth->execute($bnr, $sub_perm, $module);
+						$sth->execute($bnr, $sub_perm, $module, $bnr, $sub_perm);
 					}
 				}
 			}		
