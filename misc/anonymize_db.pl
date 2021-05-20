@@ -1,12 +1,9 @@
 #!/usr/bin/perl
 use Modern::Perl;
-#use utf8;
 use C4::Context;
 use Koha::Database;
 use Koha::Patrons;
 use Koha::Patron::Messages;
-use Data::Dumper;
-use List::Util qw(shuffle);
 
 my $dbh = C4::Context->dbh;
 my $rows;
