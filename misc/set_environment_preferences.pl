@@ -1,10 +1,19 @@
 #!/usr/bin/perl
 use Modern::Perl;
 use C4::Context;
+use Getopt::Long;
 
 my $dbh = C4::Context->dbh;
 
-my $environment = $ARGV[0];
+my $environment;
+my $get_print_data_api_key;
+my $adjustlibris_home;
+
+GetOptions(
+    'environment=s' => \$environment,
+    'get_print_data_api_key=s' => \$get_print_data_api_key,
+    'adjustlibris_home=s' => \$adjustlibris_home
+);
 
 my $preferences = {
     lab => {
@@ -19,15 +28,25 @@ my $preferences = {
     }
 };
 
+my $marc_command = qq(bash -c 'source "$adjustlibris_home/.rvm/scripts/rvm" && cd "$adjustlibris_home/adjustlibris" && LANG=en_US.UTF-8 ./main.rb "{marc_file}" "{marc_file}.out" 2>>"/tmp/libris_import.err" && cat "{marc_file}.out" && rm "{marc_file}" "{marc_file}.out"');
+
 my $plugin_preferences = {
     lab => {
         'Koha::Plugin::Se::Gu::Ub::GetPrintData' => {
-            api_url => 'https://bestall-lab.ub.gu.se/api/print'
+            api_url => 'https://bestall-lab.ub.gu.se/api/print',
+            api_key => $get_print_data_api_key,
         },
+        'Koha::Plugin::Se::Ub::Gu::MarcImport' => {
+            run_marc_command_command => $marc_command,
+        }
     },
     staging => {
         'Koha::Plugin::Se::Gu::Ub::GetPrintData' => {
-            api_url => 'https://bestall-staging.ub.gu.se/api/print'
+            api_url => 'https://bestall-staging.ub.gu.se/api/print',
+            api_key => $get_print_data_api_key,
+        },
+        'Koha::Plugin::Se::Ub::Gu::MarcImport' => {
+            run_marc_command_command => $marc_command,
         },
     }
 };
