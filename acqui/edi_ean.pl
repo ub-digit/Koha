@@ -32,7 +32,7 @@ my $query    = CGI->new();
 
 #GU - Get bookseller id and set search filter term
 my $bookseller_id = $query->param('booksellerid');
-my @booksellers = (" Adlib ", " Daw ", " Delb ");
+my @booksellers = (" Adlib ", " Daw ", " Delb ", "", " Bokus ", " Ebsco ", " Jure ");
 my $bookseller =  $booksellers[$bookseller_id-1];
 
 my @eans = $schema->resultset('EdifactEan')->search(
