@@ -652,8 +652,6 @@ if ($template_name eq 'catalogue/results.tt' && $export && $preferred_format && 
                 message => "An error occured during marc export: $error",
             });
     }
-    $Mail::Sendmail::mailcfg{smtp} = ['smtp.gu.se'];
-    $Mail::Sendmail::mailcfg{port} = 25;
     sendmail(%mail) || print "Error: $Mail::Sendmail::error\n";
 
     $template->param(export_user_email => $export_user_email);
