@@ -515,22 +515,19 @@ my $export_user_email = undef;
 
 if ($template_name eq 'catalogue/results.tt' && $export && $preferred_format && C4::Context->preference('SearchEngine') eq 'Elasticsearch') {
 
-    my $uid;
-    my $userenv = C4::Context->userenv;
-    if ($userenv) {
-        $uid = $userenv->{number};
-        if ($userenv->{emailaddress}) {
-            $export_user_email = $userenv->{emailaddress};
+    my $patron = Koha::Patrons->find( $borrowernumber );
+
+    if ($patron) {
+        if ($patron->email) {
+            $export_user_email = $patron->email;
         }
         else {
             die "Unable to fetch user email";
         }
     }
     else {
-        die "Unable to fetch userenv";
+        die "Unable to fetch user";
     }
-
-    my $patron = Koha::Patrons->find( $borrowernumber );
 
     if (!($patron && $patron->has_permission({ tools => 'export_catalog' }))) {
         die "Missing permission \"export_catalog\" required for exporting search results";
@@ -612,7 +609,7 @@ if ($template_name eq 'catalogue/results.tt' && $export && $preferred_format && 
                         filename  => $filename,
                         dir       => $category,
                         filesize  => $size,
-                        owner     => $uid,
+                        owner     => $borrowernumber,
                         uploadcategorycode => 'search_marc_export',
                         public    => 0,
                         permanent => 1,
