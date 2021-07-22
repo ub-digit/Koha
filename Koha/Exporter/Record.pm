@@ -6,7 +6,7 @@ use MARC::File::USMARC;
 
 use C4::AuthoritiesMarc;
 use C4::Biblio qw( GetMarcFromKohaField );
-use C4::Charset;
+use C4::Charset qw( StripNonXmlChars );
 use C4::Record;
 use Koha::Biblios;
 use Koha::CsvProfiles;
