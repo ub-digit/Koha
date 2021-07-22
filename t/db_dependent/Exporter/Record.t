@@ -28,7 +28,7 @@ use MARC::Batch;
 use File::Slurp;
 use Encode;
 
-use C4::Biblio qw( AddBiblio );
+use C4::Biblio qw( AddBiblio DelBiblio );
 use C4::Context;
 use Koha::Database;
 use Koha::Biblio;
@@ -192,8 +192,10 @@ subtest 'export xml' => sub {
     is( $title, $biblio_2_title, 'Export XML: The title is correctly encoded' );
 
     my $deleted_record = $records[2];
-    # Leader has the expected value (and record status "d")
-    is( $deleted_record->leader, '00136dam a22000617a 4500', 'Deleted record has the correct leader value' );
+
+    # Leader has the expected value (and record status "d", length may have
+    # changed)
+    ok( $deleted_record->leader =~ '\d{5}dam a22000617a 4500', 'Deleted record has the expected leader value' );
 };
 
 subtest 'export iso2709' => sub {
@@ -224,8 +226,9 @@ subtest 'export iso2709' => sub {
     is( $title, $biblio_2_title, 'Export ISO2709: The title is correctly encoded' );
 
     my $deleted_record = $records[2];
-    # Leader has the expected value (and record status "d")
-    is( $deleted_record->leader, '00136dam a22000617a 4500', 'Deleted record has the correct leader value' );
+    # Leader has the expected value (and record status "d", length may have
+    # changed)
+    ok( $deleted_record->leader =~ '\d{5}dam a22000617a 4500', 'Deleted record has the expected leader value' );
 };
 
 subtest 'export without record_type' => sub {
