@@ -17,12 +17,12 @@ GetOptions(
 
 my $preferences = {
     lab => {
-        OPACBaseURL => 'https://minalan-lab.ub.gu.se',
-        patronselfregistrationlinkaddress => 'https://bibliotekskort.ub.gu.se/',
+        OPACBaseURL => 'https://koha-lab.ub.gu.se',
+        patronselfregistrationlinkaddress => 'https://bibliotekskort-lab.ub.gu.se/',
         staffClientBaseURL => 'https://koha-lab-intra.ub.gu.se'
     },
     staging => {
-        OPACBaseURL => 'https://minalan-staging.ub.gu.se',
+        OPACBaseURL => 'https://koha-staging.ub.gu.se',
         patronselfregistrationlinkaddress => 'https://bibliotekskort-staging.ub.gu.se/',
         staffClientBaseURL => 'https://koha-staging-intra.ub.gu.se'
     }
