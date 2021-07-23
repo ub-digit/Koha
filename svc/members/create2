@@ -133,7 +133,7 @@ if ($origin and $origin eq "gukort") {
         {code => "IMPORT", attribute => "gukort"}
         ];
     if(defined($last_employment_date) && $last_employment_date) {
-        push($attributes, {code => "ANSTSLUT", attribute => $last_employment_date});
+        push(@{$attributes}, {code => "ANSTSLUT", attribute => $last_employment_date});
     }
     $patron->extended_attributes($attributes);
 } else {
