@@ -174,7 +174,7 @@ Cataloging:
         -
             - Apply the MARC modification template with name
             - pref: SaveBiblioMarcModificationTemplate
-              class: short
+              class: modification-templates
             - on records saved using the staff client simple MARC editor, advanced editor or HTTP API.
     Display:
         -
