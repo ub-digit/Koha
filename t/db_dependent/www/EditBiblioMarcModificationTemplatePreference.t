@@ -23,7 +23,7 @@ require HTTP::Request;
 use MARC::Record;
 use XML::Simple;
 use C4::MarcModificationTemplates;
-use C4::Biblio;
+use C4::Biblio qw(AddBiblio ModBiblioMarc GetMarcBiblio);
 
 eval{
     use C4::Context;
@@ -82,7 +82,7 @@ subtest 'Templates applied using simple and advanced MARC Editor' => sub {
     );
     my ($biblionumber) = AddBiblio($record, '');
 
-    my $saved_record = GetMarcBiblio({ biblio => $biblionumber, embed_items => 0 });
+    my $saved_record = GetMarcBiblio({ biblionumber => $biblionumber, embed_items => 0 });
     my $saved_record_250_field = $saved_record->field('250');
     isa_ok($saved_record_250_field, 'MARC::Field', 'Field with tag 250 has been saved');
     is($saved_record_250_field->subfield('a'), '250 bottles of beer on the wall', 'Field 250a has the same value passed to AddBiblio');
@@ -109,7 +109,7 @@ subtest 'Templates applied using simple and advanced MARC Editor' => sub {
         'Save bibliographic record using simple MARC editor'
     );
 
-    $saved_record = GetMarcBiblio({ biblio => $biblionumber, embed_items => 0 });
+    $saved_record = GetMarcBiblio({ biblionumber => $biblionumber, embed_items => 0 });
     $saved_record_250_field = $saved_record->field('250');
     is($saved_record_250_field->subfield('a'), '251 bottles of beer on the wall', 'Field with tag 250 has been modified by MARC modification template');
 
