@@ -23,6 +23,7 @@ require HTTP::Request;
 use MARC::Record;
 use XML::Simple;
 use C4::MarcModificationTemplates;
+use Koha::MarcModificationTemplates;
 use C4::Biblio qw(AddBiblio ModBiblioMarc GetMarcBiblio);
 
 eval{
@@ -47,10 +48,12 @@ subtest 'Templates applied using simple and advanced MARC Editor' => sub {
     plan tests => 13;
 
     # Create "Test" MARC modification template
-    my $template_id = AddModificationTemplate('TEST');
-    ok($template_id, 'MARC modification template successfully created');
+    #my $template_id = AddModificationTemplate('TEST');
+    my $template = Koha::MarcModificationTemplate->new({ name => 'TEST' })->store;
+
+    ok($template, 'MARC modification template successfully created');
     my $add_template_action_result = AddModificationTemplateAction(
-        $template_id,
+        $template->id,
         'update_field', # Action
         0,
         250, # Field
@@ -88,7 +91,7 @@ subtest 'Templates applied using simple and advanced MARC Editor' => sub {
     is($saved_record_250_field->subfield('a'), '250 bottles of beer on the wall', 'Field 250a has the same value passed to AddBiblio');
 
     my $old_template_preference = C4::Context->preference('SaveBiblioMarcModificationTemplate');
-    C4::Context->set_preference('SaveBiblioMarcModificationTemplate', 'TEST');
+    C4::Context->set_preference('SaveBiblioMarcModificationTemplate', $template->id);
 
     my $agent = Test::WWW::Mechanize->new(autocheck => 1);
 
@@ -149,6 +152,6 @@ EOF
 
     # Clean up
     DelBiblio($biblionumber);
-    DelModificationTemplate($template_id);
+    $template->delete;
     C4::Context->set_preference('SaveBiblioMarcModificationTemplate', $old_template_preference);
 };
