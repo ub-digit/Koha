@@ -339,6 +339,10 @@
                 'aaSorting': [[0, 'desc']],
                 "sDom": 'C<"top pager"ilpfB><"#filter_c">tr<"bottom pager"ip>',
             }, columns_settings);
+            /* Hide filters for librarians (GUB) */
+            [% UNLESS ( CAN_user_tools_view_system_logs ) %]
+                $("#filter_c").hide();
+            [% END %]
             $("#filter_c").html('<p><a href="#" id="filter_transacs"><i class="fa fa-filter"></i> '+txtActivefilter+'</a>');
             $('#filter_transacs').click(function(e) {
                 e.preventDefault();
