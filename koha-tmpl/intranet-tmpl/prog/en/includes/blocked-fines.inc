@@ -9,7 +9,9 @@
         [% END %]
         [% IF CAN_user_updatecharges_remaining_permissions %]
             <a href="/cgi-bin/koha/members/pay.pl?borrowernumber=[% patron.borrowernumber | uri %]" class="btn btn-default btn-xs" >Make payment</a>
-            <a href="/cgi-bin/koha/members/paycollect.pl?borrowernumber=[% patron.borrowernumber | uri %]" class="btn btn-default btn-xs" >Pay all charges</a>
+            [% IF ( CAN_user_tools_view_system_logs ) %]
+                <a href="/cgi-bin/koha/members/paycollect.pl?borrowernumber=[% patron.borrowernumber | uri %]" class="btn btn-default btn-xs" >Pay all charges</a>
+            [% END %]
         [% END %]
     </li>
 [% END %]
