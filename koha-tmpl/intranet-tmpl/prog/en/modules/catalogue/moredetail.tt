@@ -401,14 +401,24 @@
                                             [% IF (ITEM_DAT.datelastborrowed ) %][% ITEM_DAT.datelastborrowed | $KohaDates %][% END %]
                                         </li>
                                         [% IF Koha.Preference('StoreLastBorrower') && ITEM_DAT.object.last_returned_by %]
-                                            <li>
+                                            <!-- hide Last returned by unless user has correct rights (GUB) -->
+                                            [% UNLESS ( CAN_user_tools_view_system_logs ) %]
+                                                <li class="hidden">
+                                            [% ELSE %]
+                                                <li>
+                                            [% END %]
                                                 <span class="label">Last returned by:</span>
                                                 <a href="/cgi-bin/koha/circ/circulation.pl?borrowernumber=[% ITEM_DAT.object.last_returned_by.borrowernumber | uri %]">[% ITEM_DAT.object.last_returned_by.cardnumber | html %]</a>
                                             </li>
                                         [% END %]
                                         [% FOR i IN ITEM_DAT.old_issues %]
                                             [% SET b = i.patron %]
-                                            <li>
+                                            <!-- hide Last borrower and Previous borrower unless user has correct rights (GUB) -->
+                                            [% UNLESS ( CAN_user_tools_view_system_logs ) %]
+                                                <li class="hidden">
+                                            [% ELSE %]
+                                                <li>
+                                            [% END %]
                                                 [% IF loop.first %]
                                                     <span class="label">Last borrower:</span>
                                                 [% ELSE %]
@@ -418,7 +428,12 @@
                                             </li>
                                         [% END %]
                                         [% IF ( ITEM_DAT.paidfor ) %]
-                                            <li>
+                                            <!-- hide Paid for unless user has correct rights (GUB) -->
+                                            [% UNLESS ( CAN_user_tools_view_system_logs ) %]
+                                                <li class="hidden">
+                                            [% ELSE %]
+                                                <li>
+                                            [% END %]
                                                 <span class="label">Paid for?:</span>
                                                 [% INCLUDE 'patron-title.inc' patron=ITEM_DAT.paidfor.patron hide_patron_infos_if_needed=1 %] on [% ITEM_DAT.paidfor.created_on | $KohaDates %]
                                             </li>
