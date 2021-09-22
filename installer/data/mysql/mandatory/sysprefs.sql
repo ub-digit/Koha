@@ -633,7 +633,7 @@ INSERT INTO systempreferences ( `variable`, `value`, `options`, `explanation`, `
 ('RoutingListNote','To change this note edit <a href=\"/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=RoutingListNote#jumped\">RoutingListNote</a> system preference.','70|10','Define a note to be shown on all routing lists','Textarea'),
 ('RoutingSerials','1',NULL,'If ON, serials routing is enabled','YesNo'),
 ('SavedSearchFilters', '0', NULL, 'Allow staff with permission to create/edit custom search filters', 'YesNo'),
-('SaveBiblioMarcModificationTemplate', '', NULL, 'MARC modification template applied when saving bibliographic record in staff client or HTTP API', 'modification-templates'),
+('SaveBiblioMarcModificationTemplate', '', NULL, 'MARC modification template applied when saving bibliographic record in staff client or HTTP API', 'marcModTemplates'),
 ('SCOAllowCheckin','0','','If enabled, patrons may return items through the Web-based Self Checkout','YesNo'),
 ('SCOMainUserBlock','','70|10','Add a block of HTML that will display on the self checkout screen','Textarea'),
 ('SCOUserCSS','',NULL,'Add CSS to be included in the SCO module in an embedded <style> tag.','free'),
