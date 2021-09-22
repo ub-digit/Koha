@@ -102,7 +102,7 @@ sub _get_chunk {
             } elsif ( $options{choices} eq 'patron-categories' ) {
                 $options{choices} = { map { $_->categorycode => $_->description } Koha::Patron::Categories->search->as_list };
                 $add_blank = 1;
-            } elsif ( $options{choices} eq 'modification-templates' ) {
+            } elsif ( $options{choices} eq 'marcModTemplates' ) {
                 $options{choices} = { map { $_->template_id => $_->name } Koha::MarcModificationTemplates->search };
                 $add_blank = 1;
             } else {
