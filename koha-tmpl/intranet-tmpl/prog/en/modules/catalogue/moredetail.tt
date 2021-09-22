@@ -401,25 +401,45 @@
                                             [% IF (ITEM_DAT.datelastborrowed ) %][% ITEM_DAT.datelastborrowed | $KohaDates %][% END %]
                                         </li>
                                         [% IF Koha.Preference('StoreLastBorrower') && ITEM_DAT.object.last_returned_by %]
-                                            <li>
+                                            <!-- hide Last borrowed unless user has correct rights (GUB) -->
+                                            [% UNLESS ( CAN_user_tools_view_system_logs ) %]
+                                                <li class="hidden">
+                                            [% ELSE %]
+                                                <li>
+                                            [% END %]
                                                 <span class="label">Last returned by:</span>
                                                 <a href="/cgi-bin/koha/circ/circulation.pl?borrowernumber=[% ITEM_DAT.object.last_returned_by.borrowernumber | uri %]">[% ITEM_DAT.object.last_returned_by.cardnumber | html %]</a>
                                             </li>
                                         [% END %]
                                         [% IF ( ITEM_DAT.card0 ) %]
-                                            <li>
+                                            <!-- hide Last borrower unless user has correct rights (GUB) -->
+                                            [% UNLESS ( CAN_user_tools_view_system_logs ) %]
+                                                <li class="hidden">
+                                            [% ELSE %]
+                                                <li>
+                                            [% END %]
                                                 <span class="label">Last borrower:</span>
                                                 <a href="/cgi-bin/koha/circ/circulation.pl?borrowernumber=[% ITEM_DAT.borrower0 | uri %]">[% ITEM_DAT.card0 | html %]</a>&nbsp;
                                             </li>
                                         [% END %]
                                         [% IF ( ITEM_DAT.card1 ) %]
-                                            <li>
+                                            <!-- hide Previous borrower unless user has correct rights (GUB) -->
+                                            [% UNLESS ( CAN_user_tools_view_system_logs ) %]
+                                                <li class="hidden">
+                                            [% ELSE %]
+                                                <li>
+                                            [% END %]
                                                 <span class="label">Previous borrower:</span>
                                                 <a href="/cgi-bin/koha/circ/circulation.pl?borrowernumber=[% ITEM_DAT.borrower1 | uri %]">[% ITEM_DAT.card1 | html %]</a>&nbsp;
                                             </li>
                                         [% END %]
                                         [% IF ( ITEM_DAT.card2 ) %]
-                                            <li>
+                                            <!-- hide Previous borrower unless user has correct rights (GUB) -->
+                                            [% UNLESS ( CAN_user_tools_view_system_logs ) %]
+                                                <li class="hidden">
+                                            [% ELSE %]
+                                                <li>
+                                            [% END %]
                                                 <span class="label">Previous borrower:</span>
                                                 <a href="/cgi-bin/koha/circ/circulation.pl?borrowernumber=[% ITEM_DAT.borrower2 | uri %]">[% ITEM_DAT.card2 | html %]</a>&nbsp;
                                             </li>
