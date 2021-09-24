@@ -1438,27 +1438,72 @@ legend:hover {
                                                         <fieldset id="aai_[% pa_loo.class | html %]">
                                                         <legend id="[% pa_loo.class | html %]_lgd">[% pa_loo.lib | html %]</legend>
                                                     [% END %]
-                                                    [% FOREACH patron_attribute IN pa_loo.items %]
-                                                        <li data-category_code="[% patron_attribute.category_code | html %]">
+                                                                                                        [% FOREACH patron_attribute IN pa_loo.items %]
+                                                         <!-- Hides additional attributes if user has no rights to view them (GUB) -->
+
+                                                        [% UNLESS ( CAN_user_tools_view_system_logs ) %]
+                                                           [% IF patron_attribute.code == 'INVCNT' || patron_attribute.code == 'ANSTSLUT' || patron_attribute.code == 'TILLH_KOD' %]
+                                                            <li data-category_code="[% patron_attribute.category_code | html %]" class="hidden">
+                                                            [% ELSE %]
+                                                                [% IF patron_attribute.code == 'ROLL' %]
+                                                                    [% IF categorycode == 'GU' || categorycode == 'F' || categorycode == 'PE'%]
+                                                                        <li data-category_code="[% patron_attribute.category_code | html %]" style="pointer-events:none; opacity:0.6;">
+                                                                    [% ELSE %]
+                                                                        <li data-category_code="[% patron_attribute.category_code | html %]" class="hidden">
+                                                                    [% END%]
+                                                                [% ELSIF patron_attribute.code == 'TILLH' %]
+                                                                        <li data-category_code="[% patron_attribute.category_code | html %]" style="pointer-events:none; opacity:0.6;">
+                                                                [% ELSE %]
+                                                                    <li data-category_code="[% patron_attribute.category_code | html %]">
+                                                                [% END %]
+                                                           [% END %]
+                                                        [% ELSE %]
+                                                            [% IF patron_attribute.code == 'TILLH_KOD' %]
+                                                                <li data-category_code="[% patron_attribute.category_code | html %]" class="hidden">
+                                                            [% ELSIF patron_attribute.code == 'ROLL' %]
+                                                                    [% IF categorycode == 'GU' || categorycode == 'F' || categorycode == 'PE'%]
+                                                                        <li data-category_code="[% patron_attribute.category_code | html %]" style="pointer-events:none; opacity:0.6;">
+                                                                    [% ELSE %]
+                                                                        <li data-category_code="[% patron_attribute.category_code | html %]" class="hidden">
+                                                                    [% END%]
+                                                            [% ELSIF patron_attribute.code == 'TILLH' %]
+                                                                <li data-category_code="[% patron_attribute.category_code | html %]" style="pointer-events:none; opacity:0.6;">
+                                                            [% ELSE %]
+                                                                <li data-category_code="[% patron_attribute.category_code | html %]">
+                                                            [% END %]
+                                                        [% END %]
                                                             [% IF patron_attribute.mandatory %]
                                                                 <label for="[% patron_attribute.form_id | html %]" class="required" required="required">[% patron_attribute.description | html %]: </label>
                                                             [% ELSE %]
                                                                 <label for="[% patron_attribute.form_id | html %]">[% patron_attribute.description | html %]: </label>
                                                             [% END %]
+                                                            <!-- Gub koha-1624 disable change of permission settings for non autorized users -->
                                                             [% IF ( patron_attribute.use_dropdown ) %]
-                                                                [% IF patron_attribute.mandatory %]
-                                                                    <select id="[% patron_attribute.form_id | html %]" name="[% patron_attribute.form_id | html %]" required="required">
+                                                            [% UNLESS ( CAN_user_tools_view_system_logs ) %]
+                                                                [% USE String(patron_attribute.code) %]
+                                                                [% IF ( String.truncate(5) == 'PERM_' ) %]
+                                                                    [% gub_disabled = 'disabled=true' %]
+                                                                    [% gub_hidden = ' hidden' %]
+                                                                    [% gub_style_opacity ='style="opacity:0.6"'%]
                                                                 [% ELSE %]
-                                                                    <select id="[% patron_attribute.form_id | html %]" name="[% patron_attribute.form_id | html %]">
+                                                                    [% gub_disabled = '' %]
+                                                                    [% gub_hidden = '' %]
+                                                                    [% gub_style_opacity = '' %]
+                                                                [% END %]
+                                                            [% END %]
+                                                                [% IF patron_attribute.mandatory %]
+                                                                    <select id="[% patron_attribute.form_id | html %]" name="[% patron_attribute.form_id | html %]" required="required" [% gub_disabled %] [% gub_style_opacity %]>
+                                                                [% ELSE %]
+                                                                    <select id="[% patron_attribute.form_id | html %]" name="[% patron_attribute.form_id | html %]" [% gub_disabled %] [% gub_style_opacity %]>
                                                                 [% END %]
                                                                     <option value=""></option>
                                                                     [% FOREACH auth_val_loo IN patron_attribute.auth_val_loop %]
                                                                         [% IF auth_val_loo.authorised_value == patron_attribute.value %]
-                                                                            <option value="[% auth_val_loo.authorised_value | html %]" selected="selected">
+                                                                            <option value="[% auth_val_loo.authorised_value | html %]" selected="selected" [% gub_disabled %] [% gub_style_opacity %]>
                                                                                 [% auth_val_loo.lib | html %]
                                                                             </option>
                                                                         [% ELSE %]
-                                                                            <option value="[% auth_val_loo.authorised_value | html %]" >
+                                                                            <option value="[% auth_val_loo.authorised_value | html %]" [% gub_disabled %] [% gub_style_opacity %]>
                                                                                 [% auth_val_loo.lib | html %]
                                                                             </option>
                                                                         [% END %]
@@ -1472,7 +1517,7 @@ legend:hover {
                                                                 [% END %]
                                                             [% END # /IF ( patron_attribute.use_dropdown ) %]
                                                             <input type="hidden" id="[% patron_attribute.form_id | html %]_code" name="[% patron_attribute.form_id | html %]_code" value="[% patron_attribute.code | html %]" />
-                                                            <a href="#" class="clear_attribute"><i class="fa fa-fw fa-trash"></i> Clear</a>
+                                                            <a href="#" class="clear_attribute [% gub_hidden %]"><i class="fa fa-fw fa-trash"></i> Clear</a>
                                                             [% IF ( patron_attribute.repeatable ) %]
                                                                 <a href="#" class="clone_attribute"><i class="fa fa-fw fa-plus"></i> New</a>
                                                             [% END %]
