@@ -1438,7 +1438,7 @@ legend:hover {
                                                         <fieldset id="aai_[% pa_loo.class | html %]">
                                                         <legend id="[% pa_loo.class | html %]_lgd">[% pa_loo.lib | html %]</legend>
                                                     [% END %]
-                                                                                                        [% FOREACH patron_attribute IN pa_loo.items %]
+                                                    [% FOREACH patron_attribute IN pa_loo.items %]
                                                          <!-- Hides additional attributes if user has no rights to view them (GUB) -->
 
                                                         [% UNLESS ( CAN_user_tools_view_system_logs ) %]
