@@ -27,7 +27,6 @@ my $sql = "select borrowernumber, cardnumber, flags
 		   
 my $res = $dbh->selectall_arrayref($sql, { Slice => {} });
 
-
 ### Personalposter
 
 my $sql2;
@@ -38,17 +37,19 @@ if($specific_borrowernumber) {
 		   from borrowers b
 		   JOIN borrower_attributes ba 
 		   ON (b.borrowernumber = ba.borrowernumber AND ba.code LIKE 'PERM_%')
-		   where (b.flags != 1 OR b.flags is null)
+		   where (b.userid != 'admin' OR b.flags is null)
                    AND b.borrowernumber = ?
 		   group by 1
 		   ;";
   $staff = $dbh->selectall_arrayref($sql2, { Slice => {} }, $specific_borrowernumber);
+
+
 } else {
   $sql2 = "select b.borrowernumber, GROUP_CONCAT(ba.code SEPARATOR ', ') AS bor_attributes
 		   from borrowers b
 		   JOIN borrower_attributes ba 
 		   ON (b.borrowernumber = ba.borrowernumber AND ba.code LIKE 'PERM_%')
-		   where (b.flags != 1 OR b.flags is null)
+		   where (b.userid != 'admin' OR b.flags is null)
 		   group by 1
 		   ;";
   $staff = $dbh->selectall_arrayref($sql2, { Slice => {} });
@@ -65,7 +66,12 @@ foreach my $st(@$staff){
 	my $bnr = $st->{borrowernumber};
 	$new_flags = 0;
 	my @temp = split(/, /, $st->{bor_attributes});
-	foreach my $t(@temp) {
+	### check if borrower_attribute PERM_SUP exists
+	if ( grep( /PERM_SUP/, @temp ) ) {
+		### Super librarian - set flags to 1
+		$new_flags = 1;
+	}else{
+		foreach my $t(@temp) {
 			foreach my $p (@$res){
 				if ($t eq $p->{cardnumber}){
 					$new_flags |= $p->{flags};
@@ -73,6 +79,7 @@ foreach my $st(@$staff){
 									
 			}
 		}
+	}
 	$sth->execute($new_flags, $bnr);
 }
 
@@ -111,23 +118,25 @@ foreach my $st (@$staff){
 	$sth = $dbh->prepare("DELETE FROM user_permissions WHERE borrowernumber = ?");
     $sth->execute($bnr); 
 	my @temp = split(/, /, $st->{bor_attributes});
-	foreach my $t(@temp) {
-		foreach my $temp_group (keys %sub_perms) {
-			if ($t eq $temp_group){
-				$sth = $dbh->prepare("
-                        INSERT INTO user_permissions (borrowernumber, module_bit, code)
-                        SELECT ?, bit, ?
-                        FROM userflags uf
-                        WHERE flag = ?
-                        AND NOT EXISTS (SELECT * from user_permissions up where up.borrowernumber = ?
-                                        AND up.module_bit = uf.bit AND up.code = ?)");
-				foreach my $module(%{$sub_perms{$temp_group}} ) {
-					foreach my $sub_perm(@{$sub_perms{$temp_group}{$module}} ) {
-						$sth->execute($bnr, $sub_perm, $module, $bnr, $sub_perm);
+	### check if borrower_attribute PERM_SUP exists and if so, omit setting user permissions 
+	if (!grep( /PERM_SUP/, @temp ) ) {
+		foreach my $t(@temp) {
+			foreach my $temp_group (keys %sub_perms) {
+				if ($t eq $temp_group){
+					$sth = $dbh->prepare("
+	                        INSERT INTO user_permissions (borrowernumber, module_bit, code)
+	                        SELECT ?, bit, ?
+	                        FROM userflags uf
+	                        WHERE flag = ?
+	                        AND NOT EXISTS (SELECT * from user_permissions up where up.borrowernumber = ?
+	                                        AND up.module_bit = uf.bit AND up.code = ?)");
+					foreach my $module(%{$sub_perms{$temp_group}} ) {
+						foreach my $sub_perm(@{$sub_perms{$temp_group}{$module}} ) {
+							$sth->execute($bnr, $sub_perm, $module, $bnr, $sub_perm);
+						}
 					}
 				}
-			}		
+			}
 		}
 	}	
 }
-
