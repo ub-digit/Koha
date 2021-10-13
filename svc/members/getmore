@@ -1,0 +1,233 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+use CGI qw ( -utf8 );
+use C4::Auth qw/check_api_auth/;
+use C4::Members;
+use C4::Koha qw(GetNormalizedISBN GetNormalizedUPC);
+use C4::Reserves qw(GetReserveStatus);
+use C4::Biblio qw(GetMarcBiblio);
+use Koha::DateUtils qw( dt_from_string output_pref );
+use Koha::Patron::Debarments qw(GetDebarments);
+use Koha::Patrons;
+use C4::Circulation qw(CanBookBeRenewed GetRenewCount GetIssuingCharges);
+use XML::Simple;
+use JSON qw( to_json );
+
+my $query = new CGI;
+binmode STDOUT, ':encoding(UTF-8)';
+
+my ($status, $cookie, $sessionID) = check_api_auth($query, { editcatalogue => 'edit_catalogue'} );
+unless ($status eq "ok") {
+  print $query->header(-type => 'text/xml', -status => '403 Forbidden');
+  print XMLout({ status => $status }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+  exit 0;
+}
+my $userid= $query->url_param('borrower');
+my $patrons = Koha::Patrons->search({userid => $userid});
+my $borrower = $patrons->next;
+
+unless ($borrower) {
+  $patrons = Koha::Patrons->search({cardnumber => $userid});
+  $borrower = $patrons->next;
+}
+
+#unless ($borrower) {
+#  print $query->header(-type => 'text/xml', -status => '404 Not found');
+#  print XMLout({ status => 'Borrower not found', error_code => 'borrowerNotFound' }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+#  exit 0;
+#}
+
+unless ($borrower) {
+  print $query->header(-type => 'application/json', -status => '404 Not found');
+  print to_json({ status => 'Borrower not found', error_code => 'borrowerNotFound' });
+  exit 0;
+}
+
+my $flags = C4::Members::patronflags($borrower->unblessed);
+my $borrowernumber = $borrower->unblessed->{'borrowernumber'};
+my $attributes = $borrower->extended_attributes;
+my $debarments = GetDebarments({borrowernumber => $borrowernumber});
+#my $issues = C4::Members::GetAllIssues($borrowernumber);
+my @reserves = $borrower->holds->unblessed;
+my $holds = holds($borrower);
+my $full_issues = issues($borrower);
+my $issues = $full_issues->[0];
+my $overdues = $full_issues->[1];
+my $message_prefs = C4::Members::Messaging::GetMessagingPreferences({borrowernumber => $borrowernumber, message_name => 'Advance_Notice'});
+my @message_preferences = (keys %{$message_prefs->{transports}});
+
+print $query->header(-type => 'application/json',-charset => 'utf-8');
+
+print to_json({
+flags => $flags,
+issues => $issues,
+overdues => $overdues,
+debarments => $debarments,
+borrower => $borrower->unblessed,
+attributes => $attributes->unblessed,
+message_preference => \@message_preferences,
+#prev_issues => $issues,
+holds => $holds });
+
+#print XMLout({
+#flags => $flags,
+#issues => \@full_issues,
+#debarments => $debarments,
+#borrower => $borrower->unblessed,
+#attributes => $attributes->unblessed,
+#prev_issues => $issues,
+#reserves => \@reserves }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+
+exit 0;
+
+sub issues {
+    use C4::Circulation;
+    use C4::Koha;
+    use C4::Biblio;
+    my ($patron) = @_;
+
+    my $count = 0;
+    my $borr = $patron->unblessed;
+    # unblessed is a hash vs. object/undef. Hence the use of curly braces here.
+    my $borcat = $borr ? $borr->{categorycode} : q{};
+    my %renewed;
+    my @overdues;
+    my $overdues_count;
+    my $has_at_least_one_issue_auto_renewal = 0;
+    my $itemtypes = { map { $_->{itemtype} => $_ } @{ Koha::ItemTypes->search_with_localization->unblessed } };
+    my @issuedat;
+    my $pending_checkouts = $patron->pending_checkouts->search({}, { order_by => [ { -desc => 'date_due' }, { -asc => 'issue_id' } ] });
+    if ( $pending_checkouts->count ) { # Useless test
+	while ( my $c = $pending_checkouts->next ) {
+	    my $issue = $c->unblessed_all_relateds;
+
+	    if ($issue->{'auto_renew'}) {
+		$has_at_least_one_issue_auto_renewal = 1;
+	    }
+
+	    # check for reserves
+	    my $restype = GetReserveStatus( $issue->{'itemnumber'} );
+	    if ( $restype ) {
+		$issue->{'reserved'} = 1;
+	    }
+
+	    # Must be moved in a module if reused
+	    my $charges = Koha::Account::Lines->search(
+		{
+		    borrowernumber    => $patron->borrowernumber,
+		    amountoutstanding => { '>' => 0 },
+		    debit_type_code   => [ 'OVERDUE', 'LOST' ],
+		    itemnumber        => $issue->{itemnumber}
+		},
+		);
+	    $issue->{charges} = $charges->total_outstanding;
+
+	    my $rental_fines = Koha::Account::Lines->search(
+		{
+		    borrowernumber    => $patron->borrowernumber,
+		    amountoutstanding => { '>' => 0 },
+		    debit_type_code   => { 'LIKE' => 'RENT_%' },
+		    itemnumber        => $issue->{itemnumber}
+		}
+		);
+	    $issue->{rentalfines} = $rental_fines->total_outstanding;
+
+	    # check if item is renewable
+	    my ($status,$renewerror) = CanBookBeRenewed( $patron->borrowernumber, $issue->{'itemnumber'} );
+	    ($issue->{'renewcount'},$issue->{'renewsallowed'},$issue->{'renewsleft'}) = GetRenewCount($patron->borrowernumber, $issue->{'itemnumber'});
+	    ( $issue->{'renewalfee'}, $issue->{'renewalitemtype'} ) = GetIssuingCharges( $issue->{'itemnumber'}, $patron->borrowernumber );
+	    my $itemtype_object = Koha::ItemTypes->find( Koha::Items->find( $issue->{itemnumber} )->effective_itemtype );
+	    $issue->{itemtype_data} = $itemtype_object->unblessed;
+	    if($status && C4::Context->preference("OpacRenewalAllowed")){
+		$issue->{'status'} = $status;
+	    }
+
+	    $issue->{'renewed'} = $renewed{ $issue->{'itemnumber'} };
+
+	    if ($renewerror) {
+		$issue->{'too_many'}       = 1 if $renewerror eq 'too_many';
+		$issue->{'on_reserve'}     = 1 if $renewerror eq 'on_reserve';
+		$issue->{'norenew_overdue'} = 1 if $renewerror eq 'overdue';
+		$issue->{'auto_renew'}     = 1 if $renewerror eq 'auto_renew';
+		$issue->{'auto_too_soon'}  = 1 if $renewerror eq 'auto_too_soon';
+		$issue->{'auto_too_late'}  = 1 if $renewerror eq 'auto_too_late';
+		$issue->{'auto_too_much_oweing'}  = 1 if $renewerror eq 'auto_too_much_oweing';
+		$issue->{'item_denied_renewal'}  = 1 if $renewerror eq 'item_denied_renewal';
+
+		if ( $renewerror eq 'too_soon' ) {
+		    $issue->{'too_soon'}         = 1;
+		    $issue->{'soonestrenewdate'} = output_pref(
+			C4::Circulation::GetSoonestRenewDate(
+			    $issue->{borrowernumber},
+			    $issue->{itemnumber}
+			)
+			);
+		}
+	    }
+
+	    if ( $c->is_overdue ) {
+		push @overdues, $issue;
+		$overdues_count++;
+		$issue->{'overdue'} = 1;
+	    }
+	    else {
+		$issue->{'issued'} = 1;
+	    }
+	    # imageurl:
+	    my $itemtype = $issue->{'itemtype'};
+	    if ( $itemtype ) {
+		$issue->{'imageurl'}    = getitemtypeimagelocation( 'opac', $itemtypes->{$itemtype}->{'imageurl'} );
+		$issue->{'description'} = $itemtypes->{$itemtype}->{'description'};
+	    }
+
+	    my $biblio_object = Koha::Biblios->find($issue->{biblionumber});
+	    $issue->{biblio_data} = $biblio_object->unblessed;
+#	    $issue->{biblio_object} = Koha::Biblios->find($issue->{biblionumber});
+	    push @issuedat, $issue;
+	    $count++;
+
+	    my $isbn = GetNormalizedISBN($issue->{'isbn'});
+	    $issue->{normalized_isbn} = $isbn;
+	    my $marcrecord = GetMarcBiblio({
+		biblionumber => $issue->{'biblionumber'},
+		embed_items  => 1,
+		opac         => 1,
+		borcat       => $borcat });
+	    $issue->{normalized_upc} = GetNormalizedUPC( $marcrecord, C4::Context->preference('marcflavour') );
+
+	    # My Summary HTML
+	    if (my $my_summary_html = C4::Context->preference('OPACMySummaryHTML')){
+		$issue->{author} ? $my_summary_html =~ s/{AUTHOR}/$issue->{author}/g : $my_summary_html =~ s/{AUTHOR}//g;
+		$issue->{title} =~ s/\/+$//; # remove trailing slash
+		$issue->{title} =~ s/\s+$//; # remove trailing space
+		$issue->{title} ? $my_summary_html =~ s/{TITLE}/$issue->{title}/g : $my_summary_html =~ s/{TITLE}//g;
+		$issue->{isbn} ? $my_summary_html =~ s/{ISBN}/$isbn/g : $my_summary_html =~ s/{ISBN}//g;
+		$issue->{biblionumber} ? $my_summary_html =~ s/{BIBLIONUMBER}/$issue->{biblionumber}/g : $my_summary_html =~ s/{BIBLIONUMBER}//g;
+		$issue->{MySummaryHTML} = $my_summary_html;
+	    }
+	}
+    }
+
+    return [\@issuedat, \@overdues];
+}
+
+sub holds {
+    my ($patron) = @_;
+
+    my $reserves = $patron->holds();
+    my @holds = ();
+
+    while(my $reserve = $reserves->next()) {
+	my $hold = $reserve->unblessed;
+	$hold->{biblio_data} = $reserve->biblio->unblessed;
+	if($hold->{itemnumber}) {
+	    $hold->{item_data} = $reserve->item->unblessed;
+	}
+	push @holds, $hold;
+    }
+
+    return \@holds;
+}
