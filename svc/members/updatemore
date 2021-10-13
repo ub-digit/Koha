@@ -1,0 +1,91 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+use CGI qw ( -utf8 );
+use XML::Simple;
+use C4::Auth qw/check_api_auth/;
+use C4::Context;
+use C4::Members;
+use Koha::Patron::Debarments;
+use JSON qw( to_json );
+
+use Data::Dumper;
+
+my $query = new CGI;
+binmode STDOUT, ':encoding(UTF-8)';
+
+my ($status, $cookie, $sessionID) = check_api_auth($query, { editcatalogue => 'edit_catalogue'} );
+unless ($status eq "ok") {
+  print $query->header(-type => 'text/xml', -status => '403 Forbidden');
+  print XMLout({ status => $status }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+  exit 0;
+}
+
+my $cardnumber = $query->param('id');
+my $message_preference = $query->param('message_preference');
+my $borrowernumber = $query->param('borrowernumber');
+
+my $patrons = Koha::Patrons->search({cardnumber => $cardnumber});
+my $borrower = $patrons->next;
+
+my %newdata;
+$newdata{'borrowernumber'} = $borrower->borrowernumber;
+
+add(\%newdata, $query, 'phone');
+add(\%newdata, $query, 'smsalertnumber');
+add(\%newdata, $query, 'email');
+add(\%newdata, $query, 'address');
+add(\%newdata, $query, 'address2');
+add(\%newdata, $query, 'zipcode');
+add(\%newdata, $query, 'city');
+add(\%newdata, $query, 'B_address');
+add(\%newdata, $query, 'B_address2');
+add(\%newdata, $query, 'B_zipcode');
+add(\%newdata, $query, 'B_city');
+
+$borrower->set(\%newdata)->store;
+
+my %tickActions = map { $_ => 1 } (split(/\|/, C4::Context->preference('whichActionsToTickUsingSimpleOpacMessaging')));
+my $messaging_options = C4::Members::Messaging::GetMessagingOptions();
+
+my $params = {
+    'message_attribute_id' => 1,
+    'borrowernumber' => '123456',
+    'message_transport_types' => ['email']
+};
+
+my $transports;
+if($message_preference eq "email") {
+    $transports = ['email'];
+} elsif($message_preference eq "sms") {
+    $transports = ['sms'];
+} elsif($message_preference eq "email_sms") {
+    $transports = ['email', 'sms'];
+}
+
+foreach my $option (@$messaging_options) {
+    if ($tickActions{$option->{'message_name'}}) {
+	my $param = {
+	    'message_attribute_id' => $option->{'message_attribute_id'},
+	    'message_transport_types' => $transports,
+	    'borrowernumber' => $borrower->borrowernumber
+	};
+	if($option->{'takes_days'}) {
+	    $param->{'days_in_advance'} = '2';
+	}
+	C4::Members::Messaging::SetMessagingPreference( $param );
+    }
+}
+
+print $query->header(-type => 'application/json',-charset => 'utf-8');
+print to_json({ status => "ok" });
+
+sub add {
+    my ($hash, $query, $field) = @_;
+
+#    if ($query->param($field)) {
+    $hash->{$field} = $query->param($field);
+#    }
+}
