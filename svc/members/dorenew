@@ -1,0 +1,103 @@
+#!/usr/bin/perl
+
+#written 18/1/2000 by chris@katipo.co.nz
+# adapted for use in the hlt opac by finlay@katipo.co.nz 29/11/2002
+# script to renew items from the web
+# Parts Copyright 2010,2011 Catalyst IT
+
+# This file is part of Koha.
+#
+# Koha is free software; you can redistribute it and/or modify it
+# under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 3 of the License, or
+# (at your option) any later version.
+#
+# Koha is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Koha; if not, see <http://www.gnu.org/licenses>.
+
+
+use Modern::Perl;
+
+use CGI qw ( -utf8 );
+use C4::Circulation;
+use C4::Auth qw/check_api_auth/;
+use C4::Context;
+use C4::Items;
+use C4::Members;
+use C4::Circulation qw(CanBookBeRenewed AddRenewal);
+use Koha::Items;
+use Koha::Patrons;
+use Date::Calc qw( Today Date_to_Days );
+use JSON qw( to_json );
+
+my $query = new CGI;
+
+binmode STDOUT, ':encoding(UTF-8)';
+
+my ($status, $cookie, $sessionID) = check_api_auth($query, { editcatalogue => 'edit_catalogue'} );
+unless ($status eq "ok") {
+  print $query->header(-type => 'text/xml', -status => '403 Forbidden');
+  print XMLout({ status => $status }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+  exit 0;
+}
+my $userid= $query->param('borrower');
+my $patrons = Koha::Patrons->search({userid => $userid});
+my $borrower = $patrons->next;
+
+unless ($borrower) {
+  $patrons = Koha::Patrons->search({cardnumber => $userid});
+  $borrower = $patrons->next;
+}
+
+#unless ($borrower) {
+#  print $query->header(-type => 'text/xml', -status => '404 Not found');
+#  print XMLout({ status => 'Borrower not found', error_code => 'borrowerNotFound' }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+#  exit 0;
+#}
+
+unless ($borrower) {
+  print $query->header(-type => 'application/json', -status => '404 Not found');
+  print to_json({ status => 'Borrower not found', error_code => 'borrowerNotFound' });
+  exit 0;
+}
+
+my @items = split(/:/, $query->param('itemnumbers'));
+
+my $opacrenew = C4::Context->preference("OpacRenewalAllowed");
+
+my $errorstring = q{};
+my $patron_error = "";
+my $renewed     = q{};
+
+if ($borrower->category->effective_BlockExpiredPatronOpacActions
+    && $borrower->is_expired ) {
+    $patron_error = 'card_expired';
+
+    print $query->header(-type => 'application/json',-charset => 'utf-8');
+
+    print to_json({ patron_error => 'card_expired' });
+} else {
+    my %renewed_status = ();
+    my $borrowernumber = $borrower->borrowernumber;
+    for my $itemnumber (@items) {
+	my ( $status, $error ) =
+	    CanBookBeRenewed( $borrowernumber, $itemnumber );
+	if ( $status == 1 && $opacrenew == 1 ) {
+	    AddRenewal( $borrowernumber, $itemnumber, undef, undef, undef );
+	    $renewed_status{$itemnumber} = {itemnumber => $itemnumber, status => "ok"};
+	}
+	else {
+	    $renewed_status{$itemnumber} = {itemnumber => $itemnumber, status => "error", error => $error};
+	}
+    
+    }
+
+    print $query->header(-type => 'application/json',-charset => 'utf-8');
+    print to_json({ statuses => \%renewed_status });
+}
+
