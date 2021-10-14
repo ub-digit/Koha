@@ -4,8 +4,8 @@ use warnings;
 use utf8;
 
 use C4::Auth qw/check_api_auth/;
-use C4::Biblio;
-use C4::Items;
+use C4::Biblio qw( AddBiblio );
+use C4::Reserves qw ( AddReserve );
 use MARC::Record;
 use XML::Simple;
 use POSIX qw(strftime);
@@ -175,7 +175,7 @@ my $reserve_status;
 if ($borrowernumber) {
   my $borrower = Koha::Patrons->find($borrowernumber);
   if ($borrower) {
-    my $reserve_id = C4::Reserves::AddReserve(
+    my $reserve_id =AddReserve(
         {
             branchcode => $pickup_location,
             borrowernumber => $borrowernumber,
