@@ -118,7 +118,7 @@ sub update_bib {
         }
 
         my $template_id = C4::Context->preference("SaveBiblioMarcModificationTemplate");
-        if ($id) {
+        if ($template_id) {
             my $template = Koha::MarcModificationTemplates->find($template_id);
             if ($template) {
                 ModifyRecordWithTemplate($template_id, $record);
