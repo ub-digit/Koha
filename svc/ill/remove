@@ -3,7 +3,7 @@ use strict;
 use warnings;
 
 use C4::Auth qw/check_api_auth/;
-use C4::Biblio;
+use C4::Biblio qw( DelBiblio );
 use C4::Items;
 use XML::Simple;
 use CGI;
