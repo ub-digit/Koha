@@ -68,7 +68,7 @@ BEGIN {
     @EXPORT_OK = qw(
       checkauth check_api_auth get_session check_cookie_auth checkpw checkpw_internal checkpw_hash
       get_all_subpermissions get_user_subpermissions track_login_daily in_iprange
-      get_template_and_user haspermission
+      get_template_and_user haspermission checkattributepw
     );
 
     $ldap      = C4::Context->config('useldapserver') || 0;
@@ -1923,6 +1923,27 @@ sub checkpw_internal {
 
             C4::Context->set_userenv( $borrowernumber, $userid, $cardnumber,
                 $firstname, $surname, $branchcode, $branchname, $flags ) unless $no_set_userenv;
+            return 1, $cardnumber, $userid;
+        }
+    }
+    return 0;
+}
+
+sub checkattributepw {
+    my ( $dbh, $userid, $password, $attribute ) = @_;
+
+    $password = Encode::encode( 'UTF-8', $password )
+      if Encode::is_utf8($password);
+
+    my $sth =
+      $dbh->prepare(
+        "select ba.attribute,b.cardnumber from borrowers b join borrower_attributes ba on b.borrowernumber = ba.borrowernumber where ba.code = ? and b.userid = ?"
+      );
+    $sth->execute($attribute, $userid);
+    if ( $sth->rows ) {
+        my ( $attribute_value, $cardnumber ) = $sth->fetchrow;
+
+        if ( $password eq $attribute_value ) {
             return 1, $cardnumber, $userid;
         }
     }
