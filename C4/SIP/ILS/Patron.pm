@@ -21,7 +21,7 @@ use C4::Context;
 use C4::Koha;
 use C4::Members;
 use C4::Reserves;
-use C4::Auth qw(checkpw);
+use C4::Auth qw(checkpw checkattributepw);
 
 use Koha::Items;
 use Koha::Libraries;
@@ -282,7 +282,12 @@ sub check_password {
     return $pwd eq q{} unless $self->{password};
 
     my $ret = 0;
-    ($ret) = checkpw( $self->{userid}, $pwd, undef, undef, 1 ); # userid, query, type, no_set_userenv
+    if ( C4::Context->preference('SIPPasswordFromAttribute') &&
+         C4::Context->preference('SIPPasswordAttribute')) {
+        ($ret) = checkattributepw( $self->{userid}, $pwd, C4::Context->preference('SIPPasswordAttribute')); # userid, attribute
+    } else {
+        ($ret) = checkpw( $self->{userid}, $pwd, undef, undef, 1 ); # userid, query, type, no_set_userenv
+    }
     return $ret;
 }
 
