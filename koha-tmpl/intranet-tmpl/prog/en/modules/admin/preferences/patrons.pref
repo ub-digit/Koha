@@ -16,6 +16,17 @@ Patrons:
          - "days ago."
          - "Requires <a href='/cgi-bin/koha/admin/preferences.pl?op=search&searchfield=CheckPrevCheckout'>CheckPrevCheckout</a> to be enabled. There is no time limit if 0 or empty."
      -
+         - "Use "
+         - pref: SIPPasswordFromAttribute
+           default: 0
+           choices:
+               0: "password field"
+               1: "patron attribute"
+         - " as password field in SIP transactions."
+         - "If attribute is selected, use attribute "
+         - pref: SIPPasswordAttribute
+         - " as password"
+     -
          - pref: ExtendedPatronAttributes
            choices:
                1: Enable
