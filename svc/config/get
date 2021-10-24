@@ -1,0 +1,55 @@
+#!/usr/bin/perl                                                                                                                                                
+
+# Copyright 2009 Jesse Weaver                                                                                                                                  
+#                                                                                                                                                              
+# This file is part of Koha.                                                                                                                                   
+#                                                                                                                                                              
+# Koha is free software; you can redistribute it and/or modify it                                                                                              
+# under the terms of the GNU General Public License as published by                                                                                            
+# the Free Software Foundation; either version 3 of the License, or                                                                                            
+# (at your option) any later version.                                                                                                                          
+#                                                                                                                                                              
+# Koha is distributed in the hope that it will be useful, but                                                                                                  
+# WITHOUT ANY WARRANTY; without even the implied warranty of                                                                                                   
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the                                                                                                 
+# GNU General Public License for more details.                                                                                                                 
+#                                                                                                                                                              
+# You should have received a copy of the GNU General Public License                                                                                            
+# along with Koha; if not, see <http://www.gnu.org/licenses>.                                                                                                  
+#                                                                                                                                                              
+
+use Modern::Perl;
+
+use C4::Auth qw/check_api_auth/;
+use C4::Context;
+use C4::Service;
+use C4::Log;
+use JSON qw( to_json );
+
+my $query = new CGI;
+binmode STDOUT, ':encoding(UTF-8)';
+
+my ($status, $cookie, $sessionID) = check_api_auth($query, { parameters => 'manage_sysprefs'} );
+unless ($status eq "ok") {
+  print $query->header(-type => 'text/xml', -status => '403 Forbidden');
+  print XMLout({ status => $status }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+  exit 0;
+}
+
+my $preference = $query->url_param('pref');
+my $value = C4::Context->preference($preference);
+
+unless ($value) {
+  print $query->header(-type => 'application/json', -status => '404 Not found');
+  print to_json({ status => 'Unknown system preference', error_code => 'unknownSystemPreference' });
+  exit 0;
+}
+
+print $query->header(-type => 'application/json',-charset => 'utf-8');
+
+print to_json({
+    preference => $preference,
+    value => $value
+});
+
+exit 0;
