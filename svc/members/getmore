@@ -59,6 +59,22 @@ my $overdues = $full_issues->[1];
 my $message_prefs = C4::Members::Messaging::GetMessagingPreferences({borrowernumber => $borrowernumber, message_name => 'Advance_Notice'});
 my @message_preferences = (keys %{$message_prefs->{transports}});
 
+my $opacnorenewal_auto_renewal_blocked = C4::Context->preference("OPACFineNoRenewalsBlockAutoRenew");
+my $opacnorenewal_amount = C4::Context->preference("OPACFineNoRenewals");
+my $norenewals = 0;
+my $noautorenewals = 0;
+
+if($flags->{CHARGES}) {
+    if($flags->{CHARGES}->{amount} > $opacnorenewal_amount) {
+        $norenewals = 1;
+	if($norenewals && $opacnorenewal_auto_renewal_blocked == "1") {
+            $noautorenewals = 1;
+        }
+    }
+    $flags->{CHARGES}->{norenewals} = $norenewals;
+    $flags->{CHARGES}->{noautorenewals} = $noautorenewals;
+}
+
 print $query->header(-type => 'application/json',-charset => 'utf-8');
 
 print to_json({
