@@ -187,9 +187,6 @@ The C<$options> argument is a hashref with additional parameters:
 
 =over 4
 
-=item B<defer_marc_save>
-Used when ModBiblioMarc is handled by the caller
-
 =item B<skip_record_index>
 Used when the indexing scheduling will be handled by the caller
 
@@ -210,7 +207,6 @@ sub AddBiblio {
     my $mod_biblio_marc_options = {
         skip_record_index => $options->{'skip_record_index'} // 0
     };
-    my $defer_marc_save = $options->{defer_marc_save} // 0;
     my $disable_autolink = $options->{disable_autolink} // 0;
 
     if (!$record) {
@@ -297,7 +293,7 @@ sub AddBiblio {
             }
 
             # now add the record
-            ModBiblioMarc( $record, $biblionumber, $mod_biblio_marc_options ) unless $defer_marc_save;
+            ModBiblioMarc( $record, $biblionumber, $mod_biblio_marc_options );
 
             # update OAI-PMH sets
             if(C4::Context->preference("OAI-PMH:AutoUpdateSets")) {
