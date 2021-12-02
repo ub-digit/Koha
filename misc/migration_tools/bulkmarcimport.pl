@@ -40,6 +40,7 @@ use Koha::Logger;
 use Koha::Biblios;
 use Koha::SearchEngine;
 use Koha::SearchEngine::Search;
+use Koha::Plugins::Handler;
 
 use open qw( :std :encoding(UTF-8) );
 binmode(STDOUT, ":encoding(UTF-8)");
@@ -74,6 +75,7 @@ my $framework = '';
 my $localcust;
 my $marc_mod_template = '';
 my $marc_mod_template_id = -1;
+my $to_marc_plugin;
 $| = 1;
 
 GetOptions(
@@ -110,6 +112,7 @@ GetOptions(
     'framework=s' => \$framework,
     'custom:s' => \$localcust,
     'marcmodtemplate:s' => \$marc_mod_template,
+    'tomarcplugin:s' => \$to_marc_plugin,
 );
 
 $biblios ||= !$authorities;
@@ -249,26 +252,47 @@ my $searcher = Koha::SearchEngine::Search->new(
 print "Characteristic MARC flavour: $marc_flavour\n" if $verbose;
 my $starttime = gettimeofday;
 
-my $fh = IO::File->new($input_marc_file); # don't let MARC::Batch open the file, as it applies the ':utf8' IO layer
-if (defined $format && $format =~ /XML/i) {
-    # ugly hack follows -- MARC::File::XML, when used by MARC::Batch,
-    # appears to try to convert incoming XML records from MARC-8
-    # to UTF-8.  Setting the BinaryEncoding key turns that off
-    # TODO: see what happens to ISO-8859-1 XML files.
-    # TODO: determine if MARC::Batch can be fixed to handle
-    #       XML records properly -- it probably should be
-    #       be using a proper push or pull XML parser to
-    #       extract the records, not using regexes to look
-    #       for <record>.*</record>.
-    $MARC::File::XML::_load_args{BinaryEncoding} = 'utf-8';
-    my $recordformat = ($marc_flavour eq "MARC21" ? "USMARC" : uc($marc_flavour));
-    #UNIMARC Authorities have a different way to manage encoding than UNIMARC biblios.
-    $recordformat = $recordformat . "AUTH" if ($authorities and $marc_flavour ne "MARC21");
-    $MARC::File::XML::_load_args{RecordFormat} = $recordformat;
-    $batch = MARC::Batch->new('XML', $fh);
-}
-else {
+if ($to_marc_plugin) {
+    my $marc_records_blob = undef;
+    {
+        local $/ = undef;
+        open FILE, $input_marc_file;
+        binmode FILE, ':raw';
+        $marc_records_blob = <FILE>;
+        close FILE;
+    }
+    $marc_records_blob = Koha::Plugins::Handler->run(
+        {
+            class  => $to_marc_plugin,
+            method => 'to_marc',
+            params => { data => $marc_records_blob }
+        }
+    );
+    open(my $fh, '<', \$marc_records_blob);
+    binmode $fh, ':raw';
     $batch = MARC::Batch->new('USMARC', $fh);
+} else {
+    my $fh = IO::File->new($input_marc_file); # don't let MARC::Batch open the file, as it applies the ':utf8' IO layer
+    if (defined $format && $format =~ /XML/i) {
+        # ugly hack follows -- MARC::File::XML, when used by MARC::Batch,
+        # appears to try to convert incoming XML records from MARC-8
+        # to UTF-8.  Setting the BinaryEncoding key turns that off
+        # TODO: see what happens to ISO-8859-1 XML files.
+        # TODO: determine if MARC::Batch can be fixed to handle
+        #       XML records properly -- it probably should be
+        #       be using a proper push or pull XML parser to
+        #       extract the records, not using regexes to look
+        #       for <record>.*</record>.
+        $MARC::File::XML::_load_args{BinaryEncoding} = 'utf-8';
+        my $recordformat = ($marc_flavour eq "MARC21" ? "USMARC" : uc($marc_flavour));
+        #UNIMARC Authorities have a different way to manage encoding than UNIMARC biblios.
+        $recordformat = $recordformat . "AUTH" if ($authorities and $marc_flavour ne "MARC21");
+        $MARC::File::XML::_load_args{RecordFormat} = $recordformat;
+        $batch = MARC::Batch->new('XML', $fh);
+    }
+    else {
+        $batch = MARC::Batch->new('USMARC', $fh);
+    }
 }
 
 $batch->warnings_off();
@@ -952,6 +976,10 @@ This parameter allows you to specify the name of an existing MARC
 modification template to apply as the MARC records are imported (these
 templates are created in the "MARC modification templates" tool in Koha).
 If not specified, no MARC modification templates are used (default).
+
+=item B<-tomarcplugin>=I<PLUGIN>
+
+Fully qualified class name of plugin with to_marc method for processing raw MARC data.
 
 =back
 
