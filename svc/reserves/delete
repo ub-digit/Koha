@@ -33,4 +33,5 @@ if($reserve_id) {
 }
 
 print $query->header(-type => 'text/xml',-charset => 'utf-8', -status => '200');
+print XMLout({ status => "ok" }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
 exit 0;
