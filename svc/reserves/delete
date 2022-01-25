@@ -20,7 +20,7 @@ unless ($status eq "ok") {
 }
 
 my $reserve_id = $query->param('reserve_id');
-my $reserve = Koha::Holds->find($reserve_id)->unblessed;
+my $reserve = Koha::Holds->find($reserve_id);
 
 unless ($reserve) {
   print $query->header(-type => 'text/xml', -status => '404');
@@ -28,7 +28,9 @@ unless ($reserve) {
   exit 0;
 }
 
-C4::Reserves::CancelReserve({ reserve_id => $reserve_id });
+if($reserve_id) {
+  $reserve->cancel;
+}
 
 print $query->header(-type => 'text/xml',-charset => 'utf-8', -status => '200');
 exit 0;
