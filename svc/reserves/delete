@@ -20,9 +20,11 @@ unless ($status eq "ok") {
 }
 
 my $reserve_id = $query->param('reserve_id');
+my $cardnumber = $query->param('cardnumber');
 my $reserve = Koha::Holds->find($reserve_id);
+my $patron = Koha::Patrons->find({cardnumber => $cardnumber});
 
-unless ($reserve) {
+if (!$reserve || !$patron || $reserve->borrowernumber() != $patron->borrowernumber()) {
   print $query->header(-type => 'text/xml', -status => '404');
   print XMLout({ status => "Reserve not found", error_code => "reserveNotFound"  }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
   exit 0;
