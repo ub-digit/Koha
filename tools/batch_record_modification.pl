@@ -53,6 +53,39 @@ my ( $template, $loggedinuser, $cookie ) = get_template_and_user({
         flagsrequired => { tools => 'records_batchmod' },
 });
 
+my $enqueue_job = sub {
+    my ($record_ids, $recordtype) = @_;
+    try {
+        my $patron = Koha::Patrons->find( $loggedinuser );
+        my $params = {
+            mmtid           => $mmtid,
+            record_ids      => $record_ids,
+            overlay_context => {
+                source       => 'batchmod',
+                categorycode => $patron->categorycode,
+                userid       => $patron->userid
+            }
+        };
+
+        my $job_id =
+          $recordtype eq 'biblio'
+          ? Koha::BackgroundJob::BatchUpdateBiblio->new->enqueue($params)
+          : Koha::BackgroundJob::BatchUpdateAuthority->new->enqueue($params);
+
+        $template->param(
+            view => 'enqueued',
+            job_id => $job_id,
+        );
+    } catch {
+        push @messages, {
+            type => 'error',
+            code => 'cannot_enqueue_job',
+            error => $_,
+        };
+        $template->param( view => 'errors' );
+    };
+};
+
 my $sessionID = $input->cookie("CGISESSID");
 
 my @templates = GetModificationTemplates( $mmtid );
@@ -89,7 +122,7 @@ if ( $op eq 'form' ) {
             ]
         )
     );
-} elsif ( $op eq 'list' ) {
+} elsif ( $op eq 'list' || $op eq 'modify_all') {
     # List all records to process
     my ( @records, @record_ids );
     if ( my $bib_list = $input->param('bib_list') ) {
@@ -116,75 +149,51 @@ if ( $op eq 'form' ) {
         push @record_ids, split( /\s\n/, scalar $input->param('recordnumber_list') );
     }
 
-    for my $record_id ( uniq @record_ids ) {
-        if ( $recordtype eq 'biblio' ) {
-            # Retrieve biblio information
-            my $biblio = Koha::Biblios->find( $record_id );
-            unless ( $biblio ) {
-                push @messages, {
-                    type => 'warning',
-                    code => 'biblio_not_exists',
-                    biblionumber => $record_id,
-                };
-                next;
-            }
-            push @records, $biblio;
-        } else {
-            # Retrieve authority information
-            my $authority = Koha::MetadataRecord::Authority->get_from_authid( $record_id );
-            unless ( $authority ) {
-                push @messages, {
-                    type => 'warning',
-                    code => 'authority_not_exists',
-                    authid => $record_id,
-                };
-                next;
-            }
-
-            push @records, {
-                authid => $record_id,
-                summary => C4::AuthoritiesMarc::BuildSummary( $authority->record, $record_id ),
-            };
-        }
+    if ( $op eq 'modify_all' ) {
+        $enqueue_job->(\@record_ids, $recordtype);
     }
-    $template->param(
-        records => \@records,
-        mmtid => $mmtid,
-        view => 'list',
-    );
+    else {
+        for my $record_id ( uniq @record_ids ) {
+            if ( $recordtype eq 'biblio' ) {
+                # Retrieve biblio information
+                my $biblio = Koha::Biblios->find( $record_id );
+                unless ( $biblio ) {
+                    push @messages, {
+                        type => 'warning',
+                        code => 'biblio_not_exists',
+                        biblionumber => $record_id,
+                    };
+                    next;
+                }
+                push @records, $biblio;
+            } else {
+                # Retrieve authority information
+                my $authority = Koha::MetadataRecord::Authority->get_from_authid( $record_id );
+                unless ( $authority ) {
+                    push @messages, {
+                        type => 'warning',
+                        code => 'authority_not_exists',
+                        authid => $record_id,
+                    };
+                    next;
+                }
+
+                push @records, {
+                    authid => $record_id,
+                    summary => C4::AuthoritiesMarc::BuildSummary( $authority->record, $record_id ),
+                };
+            }
+        }
+        $template->param(
+            records => \@records,
+            mmtid => $mmtid,
+            view => 'list',
+        );
+    }
 } elsif ( $op eq 'modify' ) {
     # We want to modify selected records!
     my @record_ids = $input->multi_param('record_id');
-
-    try {
-        my $patron = Koha::Patrons->find( $loggedinuser );
-        my $params = {
-            mmtid           => $mmtid,
-            record_ids      => \@record_ids,
-            overlay_context => {
-                source       => 'batchmod',
-                categorycode => $patron->categorycode,
-                userid       => $patron->userid
-            }
-        };
-
-        my $job_id =
-          $recordtype eq 'biblio'
-          ? Koha::BackgroundJob::BatchUpdateBiblio->new->enqueue($params)
-          : Koha::BackgroundJob::BatchUpdateAuthority->new->enqueue($params);
-
-        $template->param(
-            view => 'enqueued',
-            job_id => $job_id,
-        );
-    } catch {
-        push @messages, {
-            type => 'error',
-            code => 'cannot_enqueue_job',
-            error => $_,
-        };
-        $template->param( view => 'errors' );
-    };
+    $enqueue_job->(\@record_ids, $recordtype);
 }
 
 $template->param(

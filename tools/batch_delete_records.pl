@@ -50,6 +50,34 @@ my ($template, $loggedinuser, $cookie) = get_template_and_user({
 
 my @records;
 my @messages;
+
+my $enqueue_job = sub {
+    my ($record_ids, $recordtype) = @_;
+
+    try {
+        my $params = {
+            record_ids  => $record_ids,
+        };
+
+        my $job_id =
+          $recordtype eq 'biblio'
+          ? Koha::BackgroundJob::BatchDeleteBiblio->new->enqueue($params)
+          : Koha::BackgroundJob::BatchDeleteAuthority->new->enqueue($params);
+
+        $template->param(
+            op => 'enqueued',
+            job_id => $job_id,
+        );
+    } catch {
+        push @messages, {
+            type => 'error',
+            code => 'cannot_enqueue_job',
+            error => $_,
+        };
+        $template->param( view => 'errors' );
+    };
+};
+
 if ( $op eq 'form' ) {
     # Display the form
     $template->param(
@@ -61,7 +89,7 @@ if ( $op eq 'form' ) {
             ]
         )
     );
-} elsif ( $op eq 'list' ) {
+} elsif ( $op eq 'list' || $op eq 'delete_all' ) {
     # List all records to process
     my @record_ids;
     if ( my $bib_list = $input->param('bib_list') ) {
@@ -88,75 +116,58 @@ if ( $op eq 'form' ) {
         push @record_ids, split( /\s\n/, scalar $input->param('recordnumber_list') );
     }
 
-    for my $record_id ( uniq @record_ids ) {
-        if ( $recordtype eq 'biblio' ) {
-            # Retrieve biblio information
-            my $biblio_object = Koha::Biblios->find( $record_id );
-            unless ( $biblio_object ) {
-                push @messages, {
-                    type => 'warning',
-                    code => 'biblio_not_exists',
-                    biblionumber => $record_id,
-                };
-                next;
-            }
-            my $biblio = $biblio_object->unblessed;
-            my $record = $biblio_object->metadata->record;
-            $biblio->{itemnumbers} = [Koha::Items->search({ biblionumber => $record_id })->get_column('itemnumber')];
-            $biblio->{holds_count} = $biblio_object->holds->count;
-            $biblio->{issues_count} = C4::Biblio::CountItemsIssued( $record_id );
-            $biblio->{subscriptions_count} = $biblio_object->subscriptions->count;
-            push @records, $biblio;
-        } else {
-            # Retrieve authority information
-            my $authority = C4::AuthoritiesMarc::GetAuthority( $record_id );
-            unless ( $authority ) {
-                push @messages, {
-                    type => 'warning',
-                    code => 'authority_not_exists',
-                    authid => $record_id,
-                };
-                next;
-            }
-
-            $authority = {
-                authid => $record_id,
-                summary => C4::AuthoritiesMarc::BuildSummary( $authority, $record_id ),
-                count_usage => Koha::Authorities->get_usage_count({ authid => $record_id }),
-            };
-            push @records, $authority;
-        }
+    if ( $op eq 'delete_all' ) {
+        $enqueue_job->(\@record_ids, $recordtype);
     }
-    $template->param(
-        records => \@records,
-        op => 'list',
-    );
+    else {
+        for my $record_id ( uniq @record_ids ) {
+            if ( $recordtype eq 'biblio' ) {
+                # Retrieve biblio information
+                my $biblio_object = Koha::Biblios->find( $record_id );
+                unless ( $biblio_object ) {
+                    push @messages, {
+                        type => 'warning',
+                        code => 'biblio_not_exists',
+                        biblionumber => $record_id,
+                    };
+                    next;
+                }
+                my $biblio = $biblio_object->unblessed;
+                my $record = $biblio_object->metadata->record;
+                $biblio->{itemnumbers} = [Koha::Items->search({ biblionumber => $record_id })->get_column('itemnumber')];
+                $biblio->{holds_count} = $biblio_object->holds->count;
+                $biblio->{issues_count} = C4::Biblio::CountItemsIssued( $record_id );
+                $biblio->{subscriptions_count} = $biblio_object->subscriptions->count;
+                push @records, $biblio;
+            } else {
+                # Retrieve authority information
+                my $authority = C4::AuthoritiesMarc::GetAuthority( $record_id );
+                unless ( $authority ) {
+                    push @messages, {
+                        type => 'warning',
+                        code => 'authority_not_exists',
+                        authid => $record_id,
+                    };
+                    next;
+                }
+
+                $authority = {
+                    authid => $record_id,
+                    summary => C4::AuthoritiesMarc::BuildSummary( $authority, $record_id ),
+                    count_usage => Koha::Authorities->get_usage_count({ authid => $record_id }),
+                };
+                push @records, $authority;
+            }
+        }
+        $template->param(
+            records => \@records,
+            op => 'list',
+        );
+    }
 } elsif ( $op eq 'delete' ) {
     # We want to delete selected records!
     my @record_ids = $input->multi_param('record_id');
-
-    try {
-        my $params = {
-            record_ids  => \@record_ids,
-        };
-
-        my $job_id =
-          $recordtype eq 'biblio'
-          ? Koha::BackgroundJob::BatchDeleteBiblio->new->enqueue($params)
-          : Koha::BackgroundJob::BatchDeleteAuthority->new->enqueue($params);
-
-        $template->param(
-            op => 'enqueued',
-            job_id => $job_id,
-        );
-    } catch {
-        push @messages, {
-            type => 'error',
-            code => 'cannot_enqueue_job',
-            error => $_,
-        };
-        $template->param( view => 'errors' );
-    };
+    $enqueue_job->(\@record_ids, $recordtype);
 }
 
 $template->param(
