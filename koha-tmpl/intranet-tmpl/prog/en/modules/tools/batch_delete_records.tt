@@ -117,6 +117,13 @@
           &nbsp;
         </div>
 
+        <fieldset class="rows">
+            <legend>Next step</legend>
+            <ol>
+                <li><label for="op_list">Select records to delete: </label><input type="radio" name="op" value="list" id="op_list" checked="checked" /></li>
+                <li><label for="op_delete_all">Delete all: </label><input type="radio" name="op" value="delete_all" id="op_delete_all" /></li>
+            </ol>
+        </fieldset>
       </div>
 
       <fieldset class="action">
