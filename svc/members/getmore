@@ -195,7 +195,6 @@ sub issues {
 	    # imageurl:
 	    my $itemtype = $issue->{'itemtype'};
 	    if ( $itemtype ) {
-		$issue->{'imageurl'}    = getitemtypeimagelocation( 'opac', $itemtypes->{$itemtype}->{'imageurl'} );
 		$issue->{'description'} = $itemtypes->{$itemtype}->{'description'};
 	    }
 
