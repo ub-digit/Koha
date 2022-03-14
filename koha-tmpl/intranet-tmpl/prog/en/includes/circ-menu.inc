@@ -3,7 +3,7 @@
 [% USE ViewLog %]
 [% PROCESS 'member-display-address-style.inc' %]
 [% IF ( patron.borrowernumber ) %]
-[% ViewLog.log_patron_view(patron.borrowernumber) %]
+[% CALL ViewLog.log_patron_view(patron.borrowernumber) %]
 [% SET patron_is_staff = patron.has_permission({ 'catalogue' => 1 }) %]
 [% SET patron_is_superlibrarian = patron.is_superlibrarian %]
 [% SET patron_type_class = 'is-not-staff' %]
