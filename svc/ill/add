@@ -181,8 +181,7 @@ if ($borrowernumber) {
             borrowernumber => $borrowernumber,
             biblionumber => $biblionumber,
             priority => 1,
-            title => $ti,
-            itemnumber => $itemnumber
+            title => $ti
         }
     );
     if ($reserve_id) {
