@@ -10,7 +10,7 @@ use C4::Auth qw/check_api_auth/;
 use C4::Members;
 
 use Koha::Patron;
-use Koha::Patron::Debarments;
+use Koha::Patron::Debarments qw/AddDebarment/;
 use C4::Members::Messaging;
 
 use Data::Dumper;
