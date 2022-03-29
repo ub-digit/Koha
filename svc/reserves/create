@@ -49,8 +49,9 @@ unless ($branchcode) {
   exit 0;
 }
 
+my $item;
 if ($itemnumber) {
-  my $item = Koha::Items->find($itemnumber);
+  $item = Koha::Items->find($itemnumber);
   my $item_biblionumber = $item->biblio->biblionumber;
   if ($biblionumber and $biblionumber != $item_biblionumber) {
     print $query->header(-type => 'text/xml', -status => '400');
@@ -64,7 +65,7 @@ my $biblio = Koha::Biblios->find($biblionumber)->unblessed;
 
 my $can_reserve =
   $itemnumber
-  ? CanItemBeReserved( $borrowernumber, $itemnumber )
+  ? CanItemBeReserved( $borrower, $item )
   : CanBookBeReserved( $borrowernumber, $biblionumber );
 
 unless ($can_reserve->{status} eq 'OK') {
