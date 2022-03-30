@@ -414,7 +414,7 @@
             </li>
             <li>
                 <!-- GU hide uncertain price -->
-                <input type="hidden" name="uncertainprice" id="uncertainprice" value="1" />
+                <input type="hidden" name="uncertainprice" id="uncertainprice" value="0" />
             </li>
             <!-- GU hide tax rate -->
             [% IF ( gst_values ) %]
