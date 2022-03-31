@@ -4,7 +4,6 @@ use Modern::Perl;
 
 use CGI qw ( -utf8 );
 use C4::Output;
-use C4::Auth qw(:DEFAULT :EditPermissions);
 use C4::Context;
 use C4::Members;
 use Koha::Patron::Categories;
