@@ -117,6 +117,7 @@
         <table id="pending_orders" class="table table-bordered table-striped">
             <thead>
                 <tr>
+                    <th>Basket number</th>
                     <th>Basket</th>
                     <th>Basket group</th>
                     <th>Order line</th>
@@ -354,11 +355,12 @@
                 var receivedt = $("#receivedt").dataTable($.extend(true, {}, dataTablesDefaults, {
                     "bStateSave": true,
                     "iDisplayLength": 10,
-                    "aLengthMenu": [[5, 10, 20, 50, 100, -1], [5, 10, 20, 50, 100, _("All")]],
+                    "aLengthMenu": [[5, 5, 10, 20, 50, 100, -1], [5, 5, 10, 20, 50, 100, _("All")]],
                     "aoColumnDefs": [
                         { "aTargets": [ 5, -1 ], "bSortable": false, "bSearchable": false },
                     ],
                     "aoColumns": [
+                        { "sType": "html" },
                         { "sType": "html" },
                         { "sType": "html" },
                         { "sType": "html" },
@@ -404,6 +406,14 @@
                     });
                 },
                 "columns": [
+                    { "data": "basket.basket_id",
+                    "searchable": true,
+                      "orderable": true,
+                      "render": function(data, type, row, meta) {
+                        if (type != 'display') return escape_str(data);
+                        return "<a href=\"/cgi-bin/koha/acqui/basket.pl?basketno=" + encodeURIComponent(row.basket.basket_id) + "\">" + escape_str(data) + "</a>";
+                      }
+                    },
                     { "data": "basket.name",
                     "searchable": true,
                       "orderable": true,
