@@ -8,7 +8,6 @@ use XML::Simple;
 use C4::Auth qw/check_api_auth/;
 use C4::Context;
 use C4::Members;
-use Koha::Patron::Debarments;
 use JSON qw( to_json );
 
 use Data::Dumper;
