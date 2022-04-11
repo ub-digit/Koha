@@ -7,7 +7,7 @@ use CGI qw ( -utf8 );
 use C4::Auth qw/check_api_auth/;
 use C4::Members;
 use Koha::Patrons;
-use Koha::Patron::Debarments;
+use Koha::Patron::Debarments qw(GetDebarments);
 use XML::Simple;
 
 my $query = new CGI;
