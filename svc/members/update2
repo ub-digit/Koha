@@ -8,7 +8,7 @@ use XML::Simple;
 use C4::Auth qw/check_api_auth/;
 
 use C4::Members;
-use Koha::Patron::Debarments qw(GetDebarments);
+use Koha::Patron::Debarments qw(GetDebarments AddDebarment DelDebarment);
 
 use Data::Dumper;
 
