@@ -96,7 +96,9 @@ sub store {
         $self->itype($self->biblio->biblioitem->itemtype);
     }
 
-    $self->barcode( C4::Circulation::barcodedecode( $self->barcode ) );
+    if ( !$params->{do_not_decode} ) {
+        $self->barcode( C4::Circulation::barcodedecode( $self->barcode ) );
+    }
 
     my $today  = dt_from_string;
     my $action = 'create';
