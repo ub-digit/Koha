@@ -89,7 +89,7 @@ foreach my $vendor (@vendors) {
 
     my $vendor_path = catfile($vendors_path, $vendor_dirname);
     make_path($vendor_path, {
-        errors => $errors,
+        error => $errors,
     });
     log_exit("Can't create ${vendor_path}: $errors") if ($errors);
 
