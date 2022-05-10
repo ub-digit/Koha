@@ -37,7 +37,7 @@ my $sql;
 my $in_transit_items;
 
 if ($itemnumbers) {
-  $sql = "SELECT itemnumber FROM branchtransfers WHERE datearrived IS NULL AND itemnumber IN (" . $itemnumbers .")";
+  $sql = "SELECT itemnumber FROM branchtransfers WHERE datearrived IS NULL AND datecancelled IS NULL AND itemnumber IN (" . $itemnumbers .")";
   $in_transit_items = $dbh->selectcol_arrayref($sql, undef);
 }
 else {
