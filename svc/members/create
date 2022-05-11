@@ -144,9 +144,9 @@ foreach my $debarment (@debarments) {
 # Set messaging format if parameter is set
 if ($messaging_format) {
   my $messaging_options = C4::Members::Messaging::GetMessagingOptions();
-  my %whichActionsToTickUsingSimpleOpacMessaging = map { $_ => 1 } (split /\|/, C4::Context->preference('whichActionsToTickUsingSimpleOpacMessaging')); # split the string to array and then convert to hash to use keys for easy checking
+  my %whichActionsToTickUsingSimpleMessaging = map { $_ => 1 } (split /\|/, C4::Context->preference('whichActionsToTickUsingSimpleMessaging')); # split the string to array and then convert to hash to use keys for easy checking
   foreach my $messaging_option (@{$messaging_options}) {
-    if ($whichActionsToTickUsingSimpleOpacMessaging{$messaging_option->{'message_name'}}) {
+    if ($whichActionsToTickUsingSimpleMessaging{$messaging_option->{'message_name'}}) {
       my $message_attribute_id = $messaging_option->{'message_attribute_id'};
       my $message_transport_types = $messaging_format eq 'sms_email' ? ["sms", "email"] : [$messaging_format];
       my $days_in_advance = $message_attribute_id eq 2 ? 2 : undef;
