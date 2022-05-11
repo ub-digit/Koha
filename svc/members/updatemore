@@ -46,7 +46,7 @@ add(\%newdata, $query, 'B_city');
 
 $borrower->set(\%newdata)->store;
 
-my %tickActions = map { $_ => 1 } (split(/\|/, C4::Context->preference('whichActionsToTickUsingSimpleOpacMessaging')));
+my %tickActions = map { $_ => 1 } (split(/\|/, C4::Context->preference('whichActionsToTickUsingSimpleMessaging')));
 my $messaging_options = C4::Members::Messaging::GetMessagingOptions();
 
 my $params = {
