@@ -704,7 +704,7 @@ END_SQL
                     my $patronpref = C4::Members::Messaging::GetMessagingPreferences(
                         { borrowernumber => $borrowernumber, message_name => "Overdue$i"});
                     if($patronpref && $patronpref->{'transports'}) {
-                        @message_transport_types = keys($patronpref->{'transports'});
+                        @message_transport_types = keys(%{$patronpref->{'transports'}});
                     }
                     if(!@message_transport_types || (grep {/^print$/} @message_transport_types)) {
                         @message_transport_types = uniq( 'print', @message_transport_types )
