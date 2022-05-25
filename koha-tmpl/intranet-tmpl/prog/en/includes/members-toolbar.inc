@@ -3,6 +3,7 @@
 [% USE Branches %]
 [% USE Categories %]
 [% USE AuthorisedValues %]
+[% USE UBExtgen %]
 [% USE scalar %]
 <div id="toolbar" class="btn-toolbar">
     [% IF CAN_user_borrowers_edit_borrowers %]
@@ -37,6 +38,16 @@
     [% END %]
 
     <a id="addnewmessageLabel" href="#add_message_form" data-toggle="modal" class="btn btn-default"><i class="fa fa-comment-o"></i> Add message</a>
+    [% IF patron.borrowernumber && UBExtgen.GenPWAllowed(patron.borrowernumber) %]
+      <a id="ubExtgenLabel" class="btn btn-default"
+        href="/cgi-bin/koha/members/gen_pw.pl?borrowernumber=[% patron.borrowernumber | html %]">
+          <i class="fa fa-key"></i> Sätt lösenord för Publika datorer</a>
+    [% ELSE %]
+        <div id="ubExtgenLabel" class="btn btn-default disabled"
+        title="[% UBExtgen.DeniedReason(patron) %]"
+        href="#">
+          <i class="fa fa-key"></i> Sätt lösenord för Publika datorer</div>
+    [% END %]
 
          <div class="btn-group">
         <button class="btn btn-default dropdown-toggle" data-toggle="dropdown">More <span class="caret"></span></button>
