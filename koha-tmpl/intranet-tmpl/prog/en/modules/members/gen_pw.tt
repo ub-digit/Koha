@@ -1,0 +1,74 @@
+[% USE raw %]
+[% USE Asset %]
+[% USE KohaDates %]
+[% USE Branches %]
+[% USE AuthorisedValues %]
+[% SET footerjs = 1 %]
+[% INCLUDE 'doc-head-open.inc' %]
+<title>Lösenordsbyte för [% INCLUDE 'patron-title.inc' no_html = 1 %]</title>
+[% INCLUDE 'doc-head-close.inc' %]
+</head>
+
+<body id="pat_files" class="pat">
+[% INCLUDE 'header.inc' %]
+[% INCLUDE 'patron-search.inc' %]
+
+<nav id="breadcrumbs" aria-label="Breadcrumb" class="breadcrumb">
+    <ol>
+        <li>
+            <a href="/cgi-bin/koha/mainpage.pl">Home</a>
+        </li>
+        <li>
+            <a href="/cgi-bin/koha/members/members-home.pl">Patrons</a>
+        </li>
+        <li>
+            <a href="#" aria-current="page">
+                Files for [% INCLUDE 'patron-title.inc' %]
+            </a>
+        </li>
+    </ol>
+</nav>
+
+<div class="main container-fluid">
+    <div class="row">
+        <div class="col-sm-10 col-sm-push-2">
+            <main>
+
+                [% INCLUDE 'members-toolbar.inc' %]
+
+                [% IF errors %]
+                    <div class="dialog alert">
+                    <p><br/>
+                        <strong>Något gick fel när lösenord skulle skapas. Kontakta [% contact_address %].</strong><br/><br/>
+                        <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% patron.borrowernumber %]" class="btn btn-default">Avbryt</a>
+                        <br/>
+                        </p>                        
+                    </div>
+                [% END %]
+
+                [% IF success %]
+                    <div class="dialog message">
+                    <p><br/>
+                        <strong>Lösenord har skapats för [% patron.firstname %] [% patron.surname %] och skrivits ut.</strong><br/><br/>
+                        <a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% patron.borrowernumber %]" class="btn btn-default">OK</a>
+                        <br/>
+                        </p>
+                    </div>
+                [% END %]
+
+            </main>
+        </div> <!-- /.col-sm-10.col-sm-push-2 -->
+
+        <div class="col-sm-2 col-sm-pull-10">
+            <aside>
+                [% INCLUDE 'circ-menu.inc' %]
+            </aside>
+        </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+     </div> <!-- /.row -->
+
+[% MACRO jsinclude BLOCK %]
+    [% INCLUDE 'str/members-menu.inc' %]
+    [% Asset.js("js/members-menu.js") | $raw %]
+[% END %]
+
+[% INCLUDE 'intranet-bottom.inc' %]
