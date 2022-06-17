@@ -41,12 +41,12 @@
     [% IF patron.borrowernumber && UBExtgen.GenPWAllowed(patron.borrowernumber) %]
       <a id="ubExtgenLabel" class="btn btn-default"
         href="/cgi-bin/koha/members/gen_pw.pl?borrowernumber=[% patron.borrowernumber | html %]">
-          <i class="fa fa-key"></i> Sätt lösenord för Publika datorer</a>
+          <i class="fa fa-key"></i> Skapa lösenord för publika datorer</a>
     [% ELSE %]
         <div id="ubExtgenLabel" class="btn btn-default disabled"
         title="[% UBExtgen.DeniedReason(patron) %]"
         href="#">
-          <i class="fa fa-key"></i> Sätt lösenord för Publika datorer</div>
+          <i class="fa fa-key"></i> Skapa lösenord för publika datorer</div>
     [% END %]
 
          <div class="btn-group">
