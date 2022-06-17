@@ -17,7 +17,7 @@ sub GenPWAllowed {
 
 sub DeniedReason {
   my ($self, $patron) = @_;
-  if(!isEx($patron->categorycode())) { return "Endast för Allmänheten"; }
+  if(!isEx($patron->categorycode())) { return "Endast för Allmänheten. Den här låntagaren har annan låntagarkategori"; }
   if(isBlocked($patron)) { return "Låntagaren är spärrad"; }
   if(isExpired($patron)) { return "Giltighetstiden har gått ut"; }
   if(invalidCardnumber($patron)) { return "Lånekortsnumret inte giltigt"; }
