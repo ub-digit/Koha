@@ -301,7 +301,7 @@ sub get_effective_rule_value {
       $categorycode // q{}, $branchcode // q{}, $itemtype // q{};
 
     my $cached       = $memory_cache->get_from_cache($cache_key);
-    return $cached if $cached;
+    return $cached if defined($cached);
 
     my $rule = $self->get_effective_rule($params);
 

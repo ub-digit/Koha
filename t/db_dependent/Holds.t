@@ -1501,7 +1501,7 @@ subtest 'non priority holds' => sub {
         }
     );
 
-    Koha::Checkout->new(
+    my $issue = Koha::Checkout->new(
         {
             borrowernumber => $patron1->borrowernumber,
             itemnumber     => $item->itemnumber,
@@ -1520,7 +1520,7 @@ subtest 'non priority holds' => sub {
     );
 
     my ( $ok, $err ) =
-      CanBookBeRenewed( $patron1->borrowernumber, $item->itemnumber );
+      CanBookBeRenewed( $patron1, $issue );
 
     ok( !$ok, 'Cannot renew' );
     is( $err, 'on_reserve', 'Item is on hold' );
@@ -1529,7 +1529,7 @@ subtest 'non priority holds' => sub {
     $hold->non_priority(1)->store;
 
     ( $ok, $err ) =
-      CanBookBeRenewed( $patron1->borrowernumber, $item->itemnumber );
+      CanBookBeRenewed( $patron1, $issue );
 
     ok( $ok, 'Can renew' );
     is( $err, undef, 'Item is on non priority hold' );
@@ -1553,7 +1553,7 @@ subtest 'non priority holds' => sub {
     );
 
     ( $ok, $err ) =
-      CanBookBeRenewed( $patron1->borrowernumber, $item->itemnumber );
+      CanBookBeRenewed( $patron1, $issue );
 
     ok( !$ok, 'Cannot renew' );
     is( $err, 'on_reserve', 'Item is on hold' );
