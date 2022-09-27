@@ -8,7 +8,6 @@ use C4::Auth qw/check_api_auth/;
 use C4::Members;
 use C4::Koha qw(GetNormalizedISBN GetNormalizedUPC);
 use C4::Reserves qw(GetReserveStatus);
-use C4::Biblio qw(GetMarcBiblio);
 use Koha::DateUtils qw( dt_from_string output_pref );
 use Koha::Patron::Debarments qw(GetDebarments);
 use Koha::Patrons;
@@ -203,26 +202,6 @@ sub issues {
 #	    $issue->{biblio_object} = Koha::Biblios->find($issue->{biblionumber});
 	    push @issuedat, $issue;
 	    $count++;
-
-	    my $isbn = GetNormalizedISBN($issue->{'isbn'});
-	    $issue->{normalized_isbn} = $isbn;
-	    my $marcrecord = GetMarcBiblio({
-		biblionumber => $issue->{'biblionumber'},
-		embed_items  => 1,
-		opac         => 1,
-		borcat       => $borcat });
-	    $issue->{normalized_upc} = GetNormalizedUPC( $marcrecord, C4::Context->preference('marcflavour') );
-
-	    # My Summary HTML
-	    if (my $my_summary_html = C4::Context->preference('OPACMySummaryHTML')){
-		$issue->{author} ? $my_summary_html =~ s/{AUTHOR}/$issue->{author}/g : $my_summary_html =~ s/{AUTHOR}//g;
-		$issue->{title} =~ s/\/+$//; # remove trailing slash
-		$issue->{title} =~ s/\s+$//; # remove trailing space
-		$issue->{title} ? $my_summary_html =~ s/{TITLE}/$issue->{title}/g : $my_summary_html =~ s/{TITLE}//g;
-		$issue->{isbn} ? $my_summary_html =~ s/{ISBN}/$isbn/g : $my_summary_html =~ s/{ISBN}//g;
-		$issue->{biblionumber} ? $my_summary_html =~ s/{BIBLIONUMBER}/$issue->{biblionumber}/g : $my_summary_html =~ s/{BIBLIONUMBER}//g;
-		$issue->{MySummaryHTML} = $my_summary_html;
-	    }
 	}
     }
 
