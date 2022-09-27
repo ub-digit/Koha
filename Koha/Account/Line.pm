@@ -21,6 +21,7 @@ use Data::Dumper qw( Dumper );
 
 use C4::Log qw( logaction );
 use C4::Overdues qw( UpdateFine );
+use C4::Circulation qw( CanBookBeRenewed AddRenewal ReturnLostItem );
 
 use Koha::Account::CreditType;
 use Koha::Account::DebitType;
@@ -693,8 +694,7 @@ sub apply {
                 )
               )
             {
-                C4::Circulation::ReturnLostItem( $self->borrowernumber,
-                    $debit->itemnumber );
+                ReturnLostItem( $self->borrowernumber, $debit->itemnumber );
             }
 
             last if $available_credit == 0;
@@ -1023,13 +1023,10 @@ sub renew_item {
     }
 
     my $itemnumber = $self->item->itemnumber;
-    my $borrowernumber = $self->patron->borrowernumber;
-    my ( $can_renew, $error ) = C4::Circulation::CanBookBeRenewed(
-        $borrowernumber,
-        $itemnumber
-    );
+    my ( $can_renew, $error ) = CanBookBeRenewed( $self->patron, $self->item->checkout );
     if ( $can_renew ) {
-        my $due_date = C4::Circulation::AddRenewal(
+        my $borrowernumber = $self->patron->borrowernumber;
+        my $due_date = AddRenewal(
             $borrowernumber,
             $itemnumber,
             $self->{branchcode},
