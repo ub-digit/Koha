@@ -103,11 +103,11 @@ sub issues {
     my $has_at_least_one_issue_auto_renewal = 0;
     my $itemtypes = { map { $_->{itemtype} => $_ } @{ Koha::ItemTypes->search_with_localization->unblessed } };
     my @issuedat;
-    my $pending_checkouts = $patron->pending_checkouts->search({}, { order_by => [ { -desc => 'date_due' }, { -asc => 'issue_id' } ] });
+    my $pending_checkouts = $patron->pending_checkouts->search({}, { prefetch => 'item', order_by => [ { -desc => 'date_due' }, { -asc => 'issue_id' } ] });
     if ( $pending_checkouts->count ) { # Useless test
 	while ( my $c = $pending_checkouts->next ) {
 	    my $issue = $c->unblessed_all_relateds;
-	    my $item =  Koha::Items->find($issue->{itemnumber});
+	    my $item =  $c->item;
 
 	    if ($issue->{'auto_renew'}) {
 		$has_at_least_one_issue_auto_renewal = 1;
@@ -133,7 +133,7 @@ sub issues {
 	    # check if item is renewable
 	    my ($status,$renewerror) = CanBookBeRenewed( $patron, $item );
 	    ($issue->{'renewcount'},$issue->{'renewsallowed'},$issue->{'renewsleft'}) = GetRenewCount($patron, $item);
-	    my $itemtype_object = Koha::ItemTypes->find( Koha::Items->find( $issue->{itemnumber} )->effective_itemtype );
+	    my $itemtype_object = Koha::ItemTypes->find( $item->effective_itemtype );
 	    $issue->{itemtype_data} = $itemtype_object->unblessed;
 	    if($status && C4::Context->preference("OpacRenewalAllowed")){
 		$issue->{'status'} = $status;
