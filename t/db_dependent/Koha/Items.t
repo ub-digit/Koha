@@ -298,7 +298,7 @@ subtest 'store' => sub {
                 }
             );
 
-            C4::Circulation::AddIssue( $patron->unblessed, $item->barcode );
+            C4::Circulation::AddIssue( $patron, $item->barcode );
 
             # Simulate item marked as lost
             $item->itemlost(3)->store;
@@ -382,7 +382,7 @@ subtest 'store' => sub {
             );
 
             my $issue =
-              C4::Circulation::AddIssue( $patron->unblessed, $item->barcode );
+              C4::Circulation::AddIssue( $patron, $item->barcode );
 
             # Simulate item marked as lost
             $item->itemlost(1)->store;
@@ -485,7 +485,7 @@ subtest 'store' => sub {
             );
 
             my $issue =
-              C4::Circulation::AddIssue( $patron->unblessed, $item->barcode );
+              C4::Circulation::AddIssue( $patron, $item->barcode );
 
             # Simulate item marked as lost
             $item->itemlost(3)->store;
@@ -576,7 +576,7 @@ subtest 'store' => sub {
             );
 
             my $issue =
-              C4::Circulation::AddIssue( $patron->unblessed, $item->barcode );
+              C4::Circulation::AddIssue( $patron, $item->barcode );
 
             # Simulate item marked as lost
             $item->itemlost(1)->store;
@@ -783,7 +783,7 @@ subtest 'store' => sub {
             )->store;
 
             my $issue =
-              C4::Circulation::AddIssue( $patron->unblessed, $barcode );
+              C4::Circulation::AddIssue( $patron, $barcode );
 
             # Simulate item marked as lost
             $item->itemlost(1)->store;
@@ -907,7 +907,7 @@ subtest 'store' => sub {
             )->store;
 
             my $issue =
-              C4::Circulation::AddIssue( $patron->unblessed, $barcode );
+              C4::Circulation::AddIssue( $patron, $barcode );
 
             # Simulate item marked as lost
             $item->itemlost(1)->store;
@@ -957,7 +957,7 @@ subtest 'store' => sub {
             );
 
             my $issue =
-              C4::Circulation::AddIssue( $patron->unblessed, $item->barcode );
+              C4::Circulation::AddIssue( $patron, $item->barcode );
 
             # Simulate item marked as lost
             $item->itemlost(1)->store;
@@ -1048,7 +1048,7 @@ subtest 'store' => sub {
             );
 
             my $issue =
-              C4::Circulation::AddIssue( $patron->unblessed, $item->barcode );
+              C4::Circulation::AddIssue( $patron, $item->barcode );
 
             # Simulate item marked as lost
             $item->itemlost(1)->store;
@@ -1158,7 +1158,7 @@ subtest 'store' => sub {
             );
 
             my $issue =
-              C4::Circulation::AddIssue( $patron->unblessed, $item->barcode );
+              C4::Circulation::AddIssue( $patron, $item->barcode );
 
             # Simulate item marked as lost
             $item->itemlost(1)->store;
@@ -1282,7 +1282,7 @@ subtest 'store' => sub {
             );
 
             my $issue =
-              C4::Circulation::AddIssue( $patron->unblessed, $barcode );
+              C4::Circulation::AddIssue( $patron, $barcode );
 
             # Simulate item marked as lost
             $item->itemlost(1)->store;

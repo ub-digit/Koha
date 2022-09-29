@@ -39,7 +39,7 @@ our $dbh = C4::Context->dbh;
 $dbh->do(q|DELETE FROM issues|);
 $dbh->do(q|DELETE FROM items|);
 $dbh->do(q|DELETE FROM borrowers|);
-$dbh->do(q|DELETE FROM branches|);
+#$dbh->do(q|DELETE FROM branches|);
 $dbh->do(q|DELETE FROM categories|);
 $dbh->do(q|DELETE FROM accountlines|);
 $dbh->do(q|DELETE FROM itemtypes|);
@@ -56,8 +56,8 @@ my $category = $builder->build({
     source => 'Category',
 });
 
-my $patron = $builder->build({
-    source => 'Borrower',
+my $patron = $builder->build_object({
+    class => 'Koha::Patrons',
     value => {
         categorycode => $category->{categorycode},
         branchcode => $branch->{branchcode},
@@ -71,8 +71,7 @@ my $item = $builder->build_sample_item({
     holdingbranch => $branch->{branchcode},
 });
 
-my $patron_object = Koha::Patrons->find( $patron->{borrowernumber} );
-t::lib::Mocks::mock_userenv( { patron => $patron_object });
+t::lib::Mocks::mock_userenv( { patron => $patron });
 
 # TooMany return ($current_loan_count, $max_loans_allowed) or undef
 # CO = Checkout
@@ -482,8 +481,8 @@ subtest 'General vs specific rules limit quantity correctly' => sub {
             notforloan => 0,
         }
     });
-    my $patron = $builder->build({
-        source => 'Borrower',
+    my $patron = $builder->build_object({
+        class => 'Koha::Patrons',
         value => {
             categorycode => $category->{categorycode},
             branchcode => $branch->{branchcode},
@@ -772,9 +771,9 @@ subtest 'itemtype group tests' => sub {
 
     my $branch   = $builder->build( { source => 'Branch', } );
     my $category = $builder->build( { source => 'Category', } );
-    my $patron   = $builder->build(
+    my $patron   = $builder->build_object(
         {
-            source => 'Borrower',
+            class => 'Koha::Patrons',
             value  => {
                 categorycode => $category->{categorycode},
                 branchcode   => $branch->{branchcode},
