@@ -1320,8 +1320,6 @@ sub check_out {
         }
 
         # We can allegedly check out, so make it so
-        # For some reason, AddIssue requires an unblessed Patron
-        $issue_args[0] = $patron->unblessed;
         my $issue = C4::Circulation::AddIssue(@issue_args);
 
         if ($issue) {

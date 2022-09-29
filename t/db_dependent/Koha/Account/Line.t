@@ -511,12 +511,14 @@ subtest 'Renewal related tests' => sub {
             class => 'Koha::Checkouts',
             value => {
                 itemnumber      => $item->itemnumber,
+                borrowernumber  => $patron->borrowernumber,
                 onsite_checkout => 0,
                 renewals_count  => 99,
                 auto_renew      => 0
             }
         }
     );
+
     my $line = Koha::Account::Line->new(
     {
         borrowernumber    => $patron->borrowernumber,
@@ -701,7 +703,7 @@ subtest 'checkout() tests' => sub {
     my $account = $patron->account;
 
     t::lib::Mocks::mock_userenv({ branchcode => $library->branchcode });
-    my $checkout = AddIssue( $patron->unblessed, $item->barcode );
+    my $checkout = AddIssue( $patron, $item->barcode );
 
     my $line = $account->add_debit({
         amount    => 10,
@@ -814,14 +816,21 @@ subtest "void() tests" => sub {
     my $categorycode = $builder->build({ source => 'Category' })->{ categorycode };
     my $branchcode   = $builder->build({ source => 'Branch' })->{ branchcode };
 
-    my $borrower = Koha::Patron->new( {
-        cardnumber => 'dariahall',
-        surname => 'Hall',
-        firstname => 'Daria',
-    } );
-    $borrower->categorycode( $categorycode );
-    $borrower->branchcode( $branchcode );
-    $borrower->store;
+    my $staff = $builder->build_object({ class => 'Koha::Patrons' });
+    t::lib::Mocks::mock_userenv({ patron => $staff });
+
+    my $borrower = $builder->build_object(
+        {
+            class => 'Koha::Patrons',
+            value => {
+                cardnumber => 'dariahall',
+                surname => 'Hall',
+                firstname => 'Daria',
+                categorycode => $categorycode,
+                branchcode => $branchcode,
+            }
+        }
+    );
 
     my $account = Koha::Account->new({ patron_id => $borrower->id });
 
