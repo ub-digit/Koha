@@ -770,11 +770,19 @@ Returns 1 if the patron is expired or 0;
 =cut
 
 sub is_expired {
-    my ($self) = @_;
-    return 0 unless $self->dateexpiry;
-    return 0 if $self->dateexpiry =~ '^9999';
-    return 1 if dt_from_string( $self->dateexpiry ) < dt_from_string->truncate( to => 'day' );
-    return 0;
+    my ($self, $params) = @_;
+    $params //= {};
+    if ($params->{cache} && defined $self->{is_expired_cache}) {
+        return $self->{is_expired_cache};
+    }
+    my $is_expired =
+        $self->dateexpiry &&
+        $self->dateexpiry !~ '^9999' &&
+        dt_from_string( $self->dateexpiry ) < dt_from_string->truncate( to => 'day' );
+    if ($params->{cache}) {
+        $self->{is_expired_cache} = $is_expired;
+    }
+    return $is_expired;
 }
 
 =head3 password_expired
@@ -945,9 +953,18 @@ Returns the number of patron's overdues
 =cut
 
 sub has_overdues {
-    my ($self) = @_;
+    my ($self, $params) = @_;
+    $params //= {};
+
+    if ($params->{cache} && defined $self->{has_overdues_cache}) {
+        return $self->{has_overdues_cache};
+    }
     my $dtf = Koha::Database->new->schema->storage->datetime_parser;
-    return $self->_result->issues->search({ date_due => { '<' => $dtf->format_datetime( dt_from_string() ) } })->count;
+    my $has_overdues = $self->_result->issues->search({ date_due => { '<' => $dtf->format_datetime( dt_from_string() ) } })->count;
+    if ($params->{cache}) {
+        $self->{has_overdues_cache} = $has_overdues;
+    }
+    return $has_overdues;
 }
 
 =head3 track_login
