@@ -88,6 +88,93 @@ sub new {
 
 }
 
+=head3 Koha::Object->_instance_cache_key();
+
+my $instance_cache_key = Koha::Object->_instance_cache_key($key);
+
+=cut
+
+sub _instance_cache_key {
+    my ($self, $key) = @_;
+    warn "_instance_cache_key must not be called on object that has not been stored" unless $self->id;
+    return $self->_type . ':' . $self->id  . ':' . $key;
+}
+
+=head3 Koha::Object->_instance_cache_get();
+
+my $value = Koha::Object->_instance_cache_get($cache_key);
+
+=cut
+
+sub _instance_cache_get {
+    my ($self, $key) = @_;
+    return unless $self->id;
+    return Koha::Cache::Memory::Lite->get_instance->get_from_cache(
+        $self->_instance_cache_key($key)
+    );
+}
+
+=head3 Koha::Object->_instance_cache_set();
+
+Koha::Object->_instance_cache_set($cache_key, $value);
+
+=cut
+
+sub _instance_cache_set {
+    my ($self, $key, $value) = @_;
+    return unless $self->id;
+    $self->{_cache}->{$key} = $value;
+    return Koha::Cache::Memory::Lite->get_instance->set_in_cache(
+        $self->_instance_cache_key($key),
+        $value
+    );
+}
+
+=head3 Koha::Object->_instance_cache_clear($cache_key);
+
+Koha::Object->_instance_cache_clear($cache_key);
+Koha::Object->_instance_cache_clear();
+
+=cut
+
+sub _instance_cache_clear {
+    my ($self, $key) = @_;
+    return unless $self->id;
+    Koha::Cache::Memory::Lite->get_instance->clear_from_cache(
+        $self->_instance_cache_key($key)
+    )
+}
+
+=head3 Koha::Object->_accessor_cache($method_name);
+
+my $value = Koha::Object->_accessor_cache($method_name);
+
+=cut
+
+sub _accessor_cache {
+    my ($self, $method_name) = @_;
+
+    my $value = $self->_instance_cache_get($method_name);
+
+    return $value if defined $value;
+
+    $value = $self->$method_name();
+    $self->_instance_cache_set($method_name, $value);
+
+    return $value;
+}
+
+=head3 Koha::Object->accessor_cache_clear($method_name);
+
+Koha::Object->accessor_cache_clear($method_name);
+
+=cut
+
+sub accessor_cache_clear {
+    my ($self, $method_name) = @_;
+    $self->_instance_cache_clear($method_name);
+}
+
 =head3 Koha::Object->_new_from_dbic();
 
 my $object = Koha::Object->_new_from_dbic($dbic_row);

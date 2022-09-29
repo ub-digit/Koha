@@ -2989,7 +2989,7 @@ sub CanBookBeRenewed {
         my $overduesblockrenewing = C4::Context->preference('OverduesBlockRenewing');
         my $restrictionblockrenewing = C4::Context->preference('RestrictionBlockRenewing');
         my $restricted  = $patron->is_debarred;
-        my $hasoverdues = $patron->has_overdues;
+        my $hasoverdues = $patron->has_overdues({ cache => 1 });
 
         if ( $restricted and $restrictionblockrenewing ) {
             return ( 0, 'restriction');
@@ -3291,7 +3291,7 @@ sub AddRenewal {
         my $overdue_restrictions = $patron->restrictions->search({ type => 'OVERDUES' });
         if ( $patron
           && $patron->is_debarred
-          && ! $patron->has_overdues
+          && !$patron->has_overdues
           && $overdue_restrictions->count
         ) {
             DelUniqueDebarment({ borrowernumber => $borrowernumber, type => 'OVERDUES' });
@@ -4516,7 +4516,7 @@ sub _CanBookBeAutoRenewed {
         }
     );
 
-    if ( $patron->is_expired && $patron->category->effective_BlockExpiredPatronOpacActions ) {
+    if ( $patron->is_expired({ cache => 1 }) && $patron->category->effective_BlockExpiredPatronOpacActions ) {
         return 'auto_account_expired';
     }
 

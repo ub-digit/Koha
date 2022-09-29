@@ -264,7 +264,7 @@ subtest 'siblings' => sub {
 };
 
 subtest 'has_overdues' => sub {
-    plan tests => 3;
+    plan tests => 12;
 
     my $item_1 = $builder->build_sample_item;
     my $retrieved_patron = Koha::Patrons->find( $new_patron_1->borrowernumber );
@@ -273,26 +273,75 @@ subtest 'has_overdues' => sub {
     my $tomorrow = DateTime->today( time_zone => C4::Context->tz() )->add( days => 1 );
     my $issue = Koha::Checkout->new({ borrowernumber => $new_patron_1->id, itemnumber => $item_1->itemnumber, date_due => $tomorrow, branchcode => $library->{branchcode} })->store();
     is( $retrieved_patron->has_overdues, 0, );
+
+    # Cache is set
+    is( $retrieved_patron->has_overdues({ cache => 1}), 0, );
+    is( $retrieved_patron->_instance_cache_get('has_overdues'), 0, 'has_overdues cache has been set');
+    # Cache is used
+    is( $retrieved_patron->has_overdues({ cache => 1}), 0, 'has_overdues cache is used');
+
     $issue->delete();
     my $yesterday = DateTime->today(time_zone => C4::Context->tz())->add( days => -1 );
     $issue = Koha::Checkout->new({ borrowernumber => $new_patron_1->id, itemnumber => $item_1->itemnumber, date_due => $yesterday, branchcode => $library->{branchcode} })->store();
     $retrieved_patron = Koha::Patrons->find( $new_patron_1->borrowernumber );
     is( $retrieved_patron->has_overdues, 1, );
+    is( $retrieved_patron->_instance_cache_get('has_overdues'), undef, 'has_overdues cache has been invalidated' );
+    # Cache is set
+    is( $retrieved_patron->has_overdues({ cache => 1}), 1, );
+    is ( $retrieved_patron->_instance_cache_get('has_overdues'), 1, 'has_overdues cache has been set' );
+    # Cache is used
+    is( $retrieved_patron->has_overdues({ cache => 1}), 1, 'has_overdues cache is used');
+
     $issue->delete();
+
+    # Cache is used (with stale entry, flushing cache must be handled manually as automatic invalidation is
+    # complex and probably not worth the effort)
+    is( $retrieved_patron->has_overdues({ cache => 1}), 1, );
+
+    # Cache has been invalidated
+    is( $retrieved_patron->has_overdues, 0, );
 };
 
 subtest 'is_expired' => sub {
-    plan tests => 4;
+    plan tests => 15;
     my $patron = $builder->build({ source => 'Borrower' });
     $patron = Koha::Patrons->find( $patron->{borrowernumber} );
     $patron->dateexpiry( undef )->store->discard_changes;
-    is( $patron->is_expired, 0, 'Patron should not be considered expired if dateexpiry is not set');
+    is( $patron->is_expired, 0, 'Patron should not be considered expired if dateexpiry is not set' );
     $patron->dateexpiry( dt_from_string )->store->discard_changes;
-    is( $patron->is_expired, 0, 'Patron should not be considered expired if dateexpiry is today');
+    is( $patron->is_expired, 0, 'Patron should not be considered expired if dateexpiry is today' );
     $patron->dateexpiry( dt_from_string->add( days => 1 ) )->store->discard_changes;
-    is( $patron->is_expired, 0, 'Patron should not be considered expired if dateexpiry is tomorrow');
+    is( $patron->is_expired, 0, 'Patron should not be considered expired if dateexpiry is tomorrow' );
     $patron->dateexpiry( dt_from_string->add( days => -1 ) )->store->discard_changes;
-    is( $patron->is_expired, 1, 'Patron should be considered expired if dateexpiry is yesterday');
+    is( $patron->is_expired, 1, 'Patron should be considered expired if dateexpiry is yesterday' );
+
+    # Test is_expired cache
+    $patron->dateexpiry( undef )->store->discard_changes;
+    # Set cache
+    is( $patron->is_expired({ cache => 1 }), 0, 'Patron should not be considered expired if dateexpiry is not set, with caching enabled' );
+    is( $patron->_instance_cache_get('is_expired'), 0, 'is_expired cache has been set');
+    is( $patron->is_expired({ cache => 1 }), 0, 'Patron should not be considered expired if dateexpiry is not set, with caching enabled and cache hit' );
+    $patron->dateexpiry( dt_from_string->add( days => -1 ) )->store->discard_changes;
+    is( $patron->is_expired({ cache => 1 }), 1, 'Patron should be considered expired if dateexpiry is yesterday, cache has been invalidated' );
+    is( $patron->_instance_cache_get('is_expired'), 1, 'is_expired cache has been set');
+    is( $patron->is_expired({ cache => 1 }), 1, 'Patron should be considered expired if dateexpiry is yesterday, on cache hit' );
+
+    $patron->{dateexpiry} = undef;
+    # Checking cache is really utilized by setting dateexpiry property without using accessor method
+    is( $patron->is_expired({ cache => 1 }), 1, 'Cache is used with stale value' );
+
+    $patron->set({ dateexpiry => undef })->store->discard_changes;
+    is( $patron->is_expired({ cache => 1 }), 0, 'Patron should not be considered expired if dateexpiry is not set, cache has been invalidated' );
+    is( $patron->is_expired({ cache => 1 }), 0, 'Patron should not be considered expired if dateexpiry is not set, on cache hit' );
+
+    $patron->is_expired;
+    is( $patron->_instance_cache_get('is_expired'), undef , 'Cache has been invalidated after calling is_expired without caching enabled' );
+
+    # Set cache
+    $patron->is_expired({ cache => 1 });
+    # Clear cache using public method accessor_cache_clear
+    $patron->accessor_cache_clear('is_expired');
+    is( $patron->_instance_cache_get('is_expired'), undef , 'Cache has been invalidated after calling accessor_cache_clear' );
 
     $patron->delete;
 };
