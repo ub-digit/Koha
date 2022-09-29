@@ -42,13 +42,12 @@ Koha::CirculationRules->set_rules(
     }
 );
 
-my $borrowernumber = Koha::Patron->new({
+my $patron = Koha::Patron->new({
     firstname =>  'my firstname',
     surname => 'my surname',
     categorycode => $patron_category->{categorycode},
     branchcode => $branchcode,
-})->store->borrowernumber;
-my $borrower = Koha::Patrons->find( $borrowernumber )->unblessed;
+})->store;
 
 my $record = MARC::Record->new();
 $record->append_fields(
@@ -74,9 +73,9 @@ $dbh->do('DELETE FROM repeatable_holidays');
 my $daysago20 = dt_from_string->add_duration(DateTime::Duration->new(days => -20));
 my $daysafter40 = dt_from_string->add_duration(DateTime::Duration->new(days => 40));
 
-AddIssue( $borrower, $barcode, $daysago20 );
+AddIssue( $patron, $barcode, $daysago20 );
 AddReturn( $barcode, $branchcode );
-my $debarments = GetDebarments({borrowernumber => $borrower->{borrowernumber}});
+my $debarments = GetDebarments({borrowernumber => $patron->borrowernumber});
 is(
     $debarments->[0]->{expiration},
     output_pref({ dt => $daysafter40, dateformat => 'iso', dateonly => 1 }),
@@ -97,9 +96,9 @@ Koha::CirculationRules->set_rules(
 );
 
 my $daysafter10 = dt_from_string->add_duration(DateTime::Duration->new(days => 10));
-AddIssue( $borrower, $barcode, $daysago20 );
+AddIssue( $patron, $barcode, $daysago20 );
 AddReturn( $barcode, $branchcode );
-$debarments = GetDebarments({borrowernumber => $borrower->{borrowernumber}});
+$debarments = GetDebarments({borrowernumber => $patron->borrowernumber});
 is(
     $debarments->[0]->{expiration},
     output_pref({ dt => $daysafter10, dateformat => 'iso', dateonly => 1 }),
