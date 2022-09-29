@@ -763,20 +763,53 @@ sub is_debarred {
     return;
 }
 
+=head3 dateexpiry
+
+Override Patron::dateexpiry to invalidate Patron::is_expired cache.
+
+=cut
+
+sub dateexpiry {
+    my $self = shift @_;
+    if (@_) {
+        $self->_cache_clear('is_expired');
+    }
+    return $self->SUPER::dateexpiry(@_);
+}
+
+=head3 set
+
+Override Patron::set to invalidate Patron::is_expired cache if dateexpiry is set.
+
+=cut
+
+sub set {
+    my $self = shift @_;
+    my ($properties) = @_;
+    if (exists $properties->{dateexpiry}) {
+        $self->_cache_clear('is_expired');
+    }
+    return $self->SUPER::set(@_);
+}
+
 =head3 is_expired
 
 my $is_expired = $patron->is_expired;
+my $is_expired = $patron->is_expired({ cache => 1});
 
 Returns 1 if the patron is expired or 0;
 
 =cut
 
 sub is_expired {
-    my ($self) = @_;
-    return 0 unless $self->dateexpiry;
-    return 0 if $self->dateexpiry =~ '^9999';
-    return 1 if dt_from_string( $self->dateexpiry ) < dt_from_string->truncate( to => 'day' );
-    return 0;
+    my ($self, $params) = @_;
+    $params //= {};
+    return $self->_accessor_cache('is_expired') if $params->{cache};
+
+    $self->_cache_clear('is_expired');
+    return $self->dateexpiry &&
+        $self->dateexpiry !~ '^9999' &&
+        dt_from_string( $self->dateexpiry ) < dt_from_string->truncate( to => 'day' ) ? 1 : 0;
 }
 
 =head3 password_expired
@@ -974,13 +1007,18 @@ sub renew_account {
 =head3 has_overdues
 
 my $has_overdues = $patron->has_overdues;
+my $has_overdues = $patron->has_overdues({ cache => 1 });
 
 Returns the number of patron's overdues
 
 =cut
 
 sub has_overdues {
-    my ($self) = @_;
+    my ($self, $params) = @_;
+    $params //= {};
+    return $self->_accessor_cache('has_overdues') if $params->{cache};
+
+    $self->_cache_clear('has_overdues');
     my $dtf = Koha::Database->new->schema->storage->datetime_parser;
     return $self->_result->issues->search({ date_due => { '<' => $dtf->format_datetime( dt_from_string() ) } })->count;
 }

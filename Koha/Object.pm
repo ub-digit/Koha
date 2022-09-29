@@ -80,12 +80,71 @@ sub new {
     }
 
     $self->{_messages} = [];
+    $self->{_cache} = {};
 
     croak("No _type found! Koha::Object must be subclassed!")
       unless $class->_type();
 
     bless( $self, $class );
 
+}
+
+=head3 Koha::Object->_cache_get();
+
+my $value = Koha::Object->_cache_get($cache_key);
+
+=cut
+
+sub _cache_get {
+    my ($self, $key) = @_;
+    return $self->{_cache}->{$key};
+}
+
+=head3 Koha::Object->_cache_set();
+
+Koha::Object->_cache_set($cache_key, $value);
+
+=cut
+
+sub _cache_set {
+    my ($self, $key, $value) = @_;
+    $self->{_cache}->{$key} = $value;
+}
+
+=head3 Koha::Object->_cache_clear($cache_key);
+
+Koha::Object->_cache_clear($cache_key);
+Koha::Object->_cache_clear();
+
+=cut
+
+sub _cache_clear {
+    my ($self, $key) = @_;
+    if (defined $key) {
+        delete $self->{_cache}->{$key};
+    }
+    else {
+        $self->{_cache} = {};
+    }
+}
+
+=head3 Koha::Object->_accessor_cache($method_name);
+
+my $value = Koha::Object->_accessor_cache($method_name);
+
+=cut
+
+sub _accessor_cache {
+    my ($self, $method_name) = @_;
+
+    my $value = $self->_cache_get($method_name);
+
+    return $value if defined $value;
+
+    $value = $self->$method_name();
+    $self->_cache_set($method_name, $value);
+
+    return $value;
 }
 
 =head3 Koha::Object->_new_from_dbic();
