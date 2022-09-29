@@ -49,7 +49,6 @@ my $flags = C4::Members::patronflags($borrower->unblessed);
 my $borrowernumber = $borrower->unblessed->{'borrowernumber'};
 my $attributes = $borrower->extended_attributes;
 my $debarments = GetDebarments({borrowernumber => $borrowernumber});
-#my $issues = C4::Members::GetAllIssues($borrowernumber);
 my @reserves = $borrower->holds->unblessed;
 my $holds = holds($borrower);
 my $full_issues = issues($borrower);
@@ -84,17 +83,7 @@ debarments => $debarments,
 borrower => $borrower->unblessed,
 attributes => $attributes->unblessed,
 message_preference => \@message_preferences,
-#prev_issues => $issues,
 holds => $holds });
-
-#print XMLout({
-#flags => $flags,
-#issues => \@full_issues,
-#debarments => $debarments,
-#borrower => $borrower->unblessed,
-#attributes => $attributes->unblessed,
-#prev_issues => $issues,
-#reserves => \@reserves }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
 
 exit 0;
 
@@ -118,6 +107,7 @@ sub issues {
     if ( $pending_checkouts->count ) { # Useless test
 	while ( my $c = $pending_checkouts->next ) {
 	    my $issue = $c->unblessed_all_relateds;
+	    my $item =  Koha::Items->find($issue->{itemnumber});
 
 	    if ($issue->{'auto_renew'}) {
 		$has_at_least_one_issue_auto_renewal = 1;
@@ -140,20 +130,9 @@ sub issues {
 		);
 	    $issue->{charges} = $charges->total_outstanding;
 
-	    my $rental_fines = Koha::Account::Lines->search(
-		{
-		    borrowernumber    => $patron->borrowernumber,
-		    amountoutstanding => { '>' => 0 },
-		    debit_type_code   => { 'LIKE' => 'RENT_%' },
-		    itemnumber        => $issue->{itemnumber}
-		}
-		);
-	    $issue->{rentalfines} = $rental_fines->total_outstanding;
-
 	    # check if item is renewable
-	    my ($status,$renewerror) = CanBookBeRenewed( $patron->borrowernumber, $issue->{'itemnumber'} );
-	    ($issue->{'renewcount'},$issue->{'renewsallowed'},$issue->{'renewsleft'}) = GetRenewCount($patron->borrowernumber, $issue->{'itemnumber'});
-	    ( $issue->{'renewalfee'}, $issue->{'renewalitemtype'} ) = GetIssuingCharges( $issue->{'itemnumber'}, $patron->borrowernumber );
+	    my ($status,$renewerror) = CanBookBeRenewed( $patron, $item );
+	    ($issue->{'renewcount'},$issue->{'renewsallowed'},$issue->{'renewsleft'}) = GetRenewCount($patron, $item);
 	    my $itemtype_object = Koha::ItemTypes->find( Koha::Items->find( $issue->{itemnumber} )->effective_itemtype );
 	    $issue->{itemtype_data} = $itemtype_object->unblessed;
 	    if($status && C4::Context->preference("OpacRenewalAllowed")){
@@ -175,10 +154,7 @@ sub issues {
 		if ( $renewerror eq 'too_soon' ) {
 		    $issue->{'too_soon'}         = 1;
 		    $issue->{'soonestrenewdate'} = output_pref(
-			C4::Circulation::GetSoonestRenewDate(
-			    $issue->{borrowernumber},
-			    $issue->{itemnumber}
-			)
+			C4::Circulation::GetSoonestRenewDate( $patron, $item )
 			);
 		}
 	    }
@@ -197,9 +173,6 @@ sub issues {
 		$issue->{'description'} = $itemtypes->{$itemtype}->{'description'};
 	    }
 
-	    my $biblio_object = Koha::Biblios->find($issue->{biblionumber});
-	    $issue->{biblio_data} = $biblio_object->unblessed;
-#	    $issue->{biblio_object} = Koha::Biblios->find($issue->{biblionumber});
 	    push @issuedat, $issue;
 	    $count++;
 	}
