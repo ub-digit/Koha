@@ -114,7 +114,7 @@ sub issues {
 	    }
 
 	    # check for reserves
-	    my $restype = GetReserveStatus( $issue->{'itemnumber'} );
+	    my $restype = GetReserveStatus( $item );
 	    if ( $restype ) {
 		$issue->{'reserved'} = 1;
 	    }
@@ -131,7 +131,7 @@ sub issues {
 	    $issue->{charges} = $charges->total_outstanding;
 
 	    # check if item is renewable
-	    my ($status,$renewerror) = CanBookBeRenewed( $patron, $item );
+	    my ($status,$renewerror) = CanBookBeRenewed( $patron, $c );
 	    ($issue->{'renewcount'},$issue->{'renewsallowed'},$issue->{'renewsleft'}) = GetRenewCount($patron, $item);
 	    my $itemtype_object = Koha::ItemTypes->find( $item->effective_itemtype );
 	    $issue->{itemtype_data} = $itemtype_object->unblessed;
@@ -154,7 +154,7 @@ sub issues {
 		if ( $renewerror eq 'too_soon' ) {
 		    $issue->{'too_soon'}         = 1;
 		    $issue->{'soonestrenewdate'} = output_pref(
-			C4::Circulation::GetSoonestRenewDate( $patron, $item )
+			C4::Circulation::GetSoonestRenewDate( $patron, $c )
 			);
 		}
 	    }
