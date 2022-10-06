@@ -80,6 +80,7 @@ Returns undef if no C<$param> is given
 
 sub UpdateStats {
     my ($params) = @_;
+    return () if (C4::Context->preference('DisableStatistics'));
 # make some controls
     return () if ! defined $params;
 # change these arrays if new types of transaction or new parameters are allowed

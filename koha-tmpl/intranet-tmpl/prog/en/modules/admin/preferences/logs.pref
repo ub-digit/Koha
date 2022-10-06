@@ -134,3 +134,10 @@ Logging:
                   1: Do
                   0: "Don't"
             - dump search query to a comment in the HTML source for the OPAC and staff interface.
+    Statistics:
+        -
+            - pref: DisableStatistics
+              choices:
+                  0: Enable
+                  1: Disable
+            - logging of statistics to the statistics table.
