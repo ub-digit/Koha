@@ -7,7 +7,6 @@ use utf8;
 use CGI qw ( -utf8 );
 use JSON;
 use C4::Auth qw/check_api_auth/;
-use C4::Items;
 use C4::Context;
 use Data::Dumper;
 
@@ -28,9 +27,14 @@ unless ($biblionumber) {
   exit 0;
 }
 
-my @items = C4::Items::GetItemsInfo( $biblionumber );
+my $biblio = Koha::Biblios->find($biblionumber);
+my $items = $biblio->items->search_ordered->as_list;
 
-my $itemnumbers = join(',', (map { $_->{'itemnumber'} } @items));
+my @itemlist;
+foreach my $item (@$items) {
+  push(@itemlist, $item->itemnumber);
+}
+my $itemnumbers = join(',', @itemlist);
 
 my $dbh = C4::Context->dbh();
 my $sql;
@@ -44,10 +48,11 @@ else {
   $in_transit_items = [];
 }
 
-my @new_items = map {
-  my $item = $_;
-    (grep { /$item->{'itemnumber'}/ } @$in_transit_items ) ? {%{$item},'in_transit'=>"1"} : {%{$item},'in_transit'=>"0"}
-} @items;
+my @new_items;
+foreach my $item (@$items) {
+  my $new_item = $item->unblessed;
+  push(@new_items, (grep { /$new_item->{'itemnumber'}/ } @$in_transit_items ) ? {%{$new_item},'in_transit'=>"1"} : {%{$new_item},'in_transit'=>"0"});
+}
 
 print $query->header(-type => 'text/json',-charset => 'utf-8');
 print encode_json({items => \@new_items});
