@@ -2564,7 +2564,7 @@ sub _calculate_new_debar_dt {
     my $circcontrol = C4::Context->preference('CircControl');
     my $issuing_rule = Koha::CirculationRules->get_effective_rules(
         {   categorycode => $patron->categorycode,
-            itemtype     => $item->{itype},
+            itemtype     => $item->effective_itemtype,
             branchcode   => $branchcode,
             rules => [
                 'finedays',
