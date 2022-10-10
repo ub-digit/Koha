@@ -10,3 +10,5 @@
   branch: master
 - url: https://github.com/ub-digit/koha-plugin-stats-other-table 
   branch: master
+- url: https://github.com/ub-digit/koha-plugin-extract-biblio-data
+  branch: main
