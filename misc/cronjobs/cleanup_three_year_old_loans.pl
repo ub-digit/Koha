@@ -11,11 +11,12 @@ use Koha::Items;
 
 my $dbh = C4::Context->dbh();
 
-my $sql = "SELECT i.issue_id, i.itemnumber, i.branchcode, i.date_due, it.itype, it.permanent_location, it.biblionumber, bi.title, bi.author, it.itemcallnumber, bo.categorycode, i.auto_renew,i.note
+my $sql = "SELECT i.issue_id, i.itemnumber, i.branchcode, i.date_due, it.itype, it.permanent_location, it.biblionumber, bi.title, bi.author, it.itemcallnumber, bo.categorycode, ba.attribute as organisation, i.auto_renew,i.note
 	FROM issues i
 	LEFT JOIN items it ON it.itemnumber=i.itemnumber
 	LEFT JOIN biblio bi ON bi.biblionumber=it.biblionumber
 	LEFT JOIN borrowers bo ON bo.borrowernumber=i.borrowernumber
+	LEFT JOIN borrower_attributes ba ON (ba.borrowernumber = i.borrowernumber AND ba.code = 'ORG')
  	WHERE i.date_due < DATE_SUB(NOW(), INTERVAL 3 YEAR)
 	;";
 
@@ -59,13 +60,14 @@ foreach(@$res){
 	my $stat_author = ($_->{author});
 	my $stat_callno = ($_->{itemcallnumber});
 	my $stat_categorycode = ($_->{categorycode});
+	my $stat_organisation = ($_->{organisation});
 	my $stat_issue_note = ($_->{note});
 	my $stat_issue_auto_renew = ($_->{auto_renew});
 
-	my $stat_sql = "INSERT INTO ub_statistics (datetime, branch, type, other, itemnumber, itemtype, location, biblionumber, title, author, callno, categorycode, issue_note, issue_auto_renew) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?);";
+	my $stat_sql = "INSERT INTO ub_statistics (datetime, branch, type, other, itemnumber, itemtype, location, biblionumber, title, author, callno, categorycode, stat_organisation, issue_note, issue_auto_renew) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);";
 
 	$sth = $dbh->prepare($stat_sql);
-	$res = $sth->execute($today, $stat_branch, $stat_type, $stat_other, $itemnumber, $stat_itemtype, $stat_location, $stat_biblionumber, $stat_title, $stat_author, $stat_callno, $stat_categorycode, $stat_issue_note, $stat_issue_auto_renew);
+	$res = $sth->execute($today, $stat_branch, $stat_type, $stat_other, $itemnumber, $stat_itemtype, $stat_location, $stat_biblionumber, $stat_title, $stat_author, $stat_callno, $stat_categorycode, $stat_organisation, $stat_issue_note, $stat_issue_auto_renew);
 
   }
 }
