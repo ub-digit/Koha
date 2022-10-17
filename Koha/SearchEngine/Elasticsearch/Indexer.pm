@@ -116,6 +116,15 @@ sub update_index {
         $index_record_ids = $record_ids;
     }
 
+    Koha::Plugins->call('before_index_action', {
+        action => 'update',
+        payload => {
+            engine => 'Elasticsearch',
+            records => $records,
+            record_ids => $index_record_ids
+         }
+    });
+
     my $documents = $self->marc_records_to_documents($records);
     my @body;
     for (my $i = 0; $i < scalar @$index_record_ids; $i++) {
