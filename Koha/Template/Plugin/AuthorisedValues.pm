@@ -26,17 +26,24 @@ use Koha::AuthorisedValues;
 
 sub GetByCode {
     my ( $self, $category, $code, $opac ) = @_;
-    my $av = Koha::AuthorisedValues->search({ category => $category, authorised_value => $code });
-    return $av->count
-            ? $opac
-                ? $av->next->opac_description
-                : $av->next->lib
-            : $code;
+    my $av = Koha::AuthorisedValues->get_description_by_category_and_authorised_value(
+        {
+            category => $category,
+            authorised_value => $code
+        }
+    );
+
+    my $description;
+    if ($av) {
+        $description = $opac ? $av->{opac_description} : $av->{lib};
+    }
+
+    return $description || $code;
 }
 
 sub Get {
-    my ( $self, $category, $selected, $opac ) = @_;
-    return GetAuthorisedValues( $category, $selected, $opac );
+    my ( $self, $category, $opac ) = @_;
+    return GetAuthorisedValues( $category, $opac );
 }
 
 sub GetAuthValueDropbox {
