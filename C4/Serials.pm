@@ -513,7 +513,9 @@ subscription expiration date.
 =cut
 
 sub SearchSubscriptions {
-    my ( $args ) = @_;
+    my ( $args, $params ) = @_;
+
+    $params //= {};
 
     my $additional_fields = $args->{additional_fields} // [];
     my $matching_record_ids_for_additional_fields = [];
@@ -619,6 +621,11 @@ sub SearchSubscriptions {
     my $results =  $sth->fetchall_arrayref( {} );
 
     my %additional_fields_by_id = map { $_->id => $_->name } Koha::AdditionalFields->search( { tablename => 'subscription' } )->as_list;
+    my $total_results = @{$results};
+
+    if ($params->{results_limit} && $total_results > $params->{results_limit}) {
+        $results = [splice(@{$results}, 0, $params->{results_limit})];
+    }
 
     for my $subscription ( @$results ) {
         $subscription->{cannotedit} = not can_edit_subscription( $subscription );
@@ -641,7 +648,7 @@ sub SearchSubscriptions {
         }
     }
 
-    return @$results;
+    return wantarray ? @{$results} : { results => $results, total => $total_results };
 }
 
 
