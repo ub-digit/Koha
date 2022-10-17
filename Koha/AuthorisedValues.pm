@@ -93,7 +93,7 @@ sub find_by_koha_field {
             distinct => 1,
         }
     );
-    return $av->count ? $av->next : undef;
+    return $av->next;
 }
 
 sub get_description_by_koha_field {
@@ -106,14 +106,14 @@ sub get_description_by_koha_field {
 
     my $memory_cache = Koha::Cache::Memory::Lite->get_instance;
     my $cache_key    = "AV_descriptions:$frameworkcode:$kohafield:$authorised_value";
-    my $cached       = $memory_cache->get_from_cache($cache_key);
-    return $cached if $cached;
+    my $description = $memory_cache->get_from_cache($cache_key);
 
-    my $av = $self->find_by_koha_field($params);
-    return {} unless defined $av;
-    my $descriptions = { lib => $av->lib, opac_description => $av->opac_description };
-    $memory_cache->set_in_cache( $cache_key, $descriptions );
-    return $descriptions;
+    unless (defined $description) {
+        my $av = $self->find_by_koha_field($params);
+        $description = defined $av ? { lib => $av->lib, opac_description => $av->opac_description } : {};
+        $memory_cache->set_in_cache( $cache_key, $description );
+    }
+    return $description;
 }
 
 sub get_descriptions_by_koha_field {
@@ -123,19 +123,50 @@ sub get_descriptions_by_koha_field {
 
     my $memory_cache = Koha::Cache::Memory::Lite->get_instance;
     my $cache_key    = "AV_descriptions:$frameworkcode:$kohafield";
-    my $cached       = $memory_cache->get_from_cache($cache_key);
-    return @$cached if $cached;
+    my $descriptions = $memory_cache->get_from_cache($cache_key);
 
-    my @avs          = $self->search_by_koha_field($params)->as_list;
-    my @descriptions = map {
-        {
-            authorised_value => $_->authorised_value,
-            lib              => $_->lib,
-            opac_description => $_->opac_description
-        }
-    } @avs;
-    $memory_cache->set_in_cache( $cache_key, \@descriptions );
-    return @descriptions;
+    unless (defined $descriptions) {
+        my @avs = $self->search_by_koha_field($params)->as_list;
+        $descriptions = [
+            map {
+                {
+                    authorised_value => $_->authorised_value,
+                    lib              => $_->lib,
+                    opac_description => $_->opac_description
+                }
+            } @avs
+        ];
+        $memory_cache->set_in_cache( $cache_key, $descriptions );
+    }
+    return @{$descriptions};
+}
+
+sub get_description_by_category_and_authorised_value {
+    my ( $self, $params ) = @_;
+    return unless defined $params->{category} && defined $params->{authorised_value};
+
+    my $category = $params->{category};
+    my $value = $params->{authorised_value};
+
+    my $memory_cache = Koha::Cache::Memory::Lite->get_instance;
+    my $cache_key = "AV_description_by_category_and_authorised_value:$category:$value";
+    my $description = $memory_cache->get_from_cache($cache_key);
+
+    unless (defined $description) {
+        my $av = $self->search(
+            {
+                category => $category,
+                authorised_value => $value
+            }
+        )->next;
+        $description = defined $av ? {
+            lib => $av->lib,
+            opac_description => $av->opac_description
+        } : {};
+        $memory_cache->set_in_cache( $cache_key, $description );
+    }
+
+    return $description;
 }
 
 sub categories {

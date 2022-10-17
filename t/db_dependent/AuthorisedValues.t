@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 use Modern::Perl;
-use Test::More tests => 16;
+use Test::More tests => 15;
 use Try::Tiny;
 
 use t::lib::TestBuilder;
@@ -136,12 +136,8 @@ my $limits = $av1->library_limits->as_list;
 is( @$limits, 2, 'library_limits functions correctly both as setter and getter' );
 
 my @categories = Koha::AuthorisedValues->new->categories;
+
 is( @categories, @existing_categories+3, 'There should have 3 categories inserted' );
-is_deeply(
-    \@categories,
-    [ sort { uc $a cmp uc $b } @categories ],
-    'categories must be ordered by category names'
-);
 
 subtest 'search_by_*_field + find_by_koha_field + get_description' => sub {
     plan tests => 5;
