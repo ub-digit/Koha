@@ -5,6 +5,7 @@
 [% USE Koha %]
 [% USE KohaDates %]
 [% USE Branches %]
+[% USE ExtendedAttributeProperties %]
 [% PROCESS 'member-main-address-style.inc' %]
 [% PROCESS 'member-alt-address-style.inc' %]
 [% PROCESS 'member-alt-contact-style.inc' %]
@@ -1486,7 +1487,24 @@ legend:hover {
                                                         <legend id="[% pa_loo.class | html %]_lgd">[% pa_loo.lib | html %]</legend>
                                                     [% END %]
                                                     [% FOREACH patron_attribute IN pa_loo.items %]
-                                                        <li data-category_code="[% patron_attribute.category_code | html %]">
+                                                        [% IF ExtendedAttributeProperties.isVisible(patron_attribute) %]
+                                                            [% attribute_hidden = '' %]
+                                                        [% ELSE %]
+                                                            [% attribute_hidden = 'class="hidden"' %]
+                                                        [% END %]
+                                                        [% IF ExtendedAttributeProperties.isEditable(patron_attribute) %]
+                                                            [% editable = 1 %]
+                                                            [% attribute_readonly = '' %]
+                                                            [% attribute_disabled = '' %]
+                                                            [% attribute_style = '' %]
+                                                        [% ELSE %]
+                                                            [% editable = 0 %]
+                                                            [% attribute_readonly = 'readonly="true" style="opacity:0.6"' %]
+                                                            [% attribute_disabled = 'disabled' %]
+                                                            [% attribute_style = 'style="opacity:0.6"' %]
+                                                        [% END %]
+
+                                                        <li [% attribute_hidden %] data-category_code="[% patron_attribute.category_code | html %]">
                                                             [% IF patron_attribute.mandatory %]
                                                                 <label for="[% patron_attribute.form_id | html %]" class="required" required="required">[% patron_attribute.description | html %]: </label>
                                                             [% ELSE %]
@@ -1494,18 +1512,18 @@ legend:hover {
                                                             [% END %]
                                                             [% IF ( patron_attribute.use_dropdown ) %]
                                                                 [% IF patron_attribute.mandatory %]
-                                                                    <select id="[% patron_attribute.form_id | html %]" name="[% patron_attribute.form_id | html %]" required="required">
+                                                                    <select id="[% patron_attribute.form_id | html %]" name="[% patron_attribute.form_id | html %]" required="required" [% attribute_style %]>
                                                                 [% ELSE %]
-                                                                    <select id="[% patron_attribute.form_id | html %]" name="[% patron_attribute.form_id | html %]">
+                                                                    <select id="[% patron_attribute.form_id | html %]" name="[% patron_attribute.form_id | html %]" [% attribute_style %]>
                                                                 [% END %]
-                                                                    <option value=""></option>
+                                                                    <option value="" [% attribute_disabled %]></option>
                                                                     [% FOREACH auth_val_loo IN patron_attribute.auth_val_loop %]
                                                                         [% IF auth_val_loo.authorised_value == patron_attribute.value %]
-                                                                            <option value="[% auth_val_loo.authorised_value | html %]" selected="selected">
+                                                                            <option value="[% auth_val_loo.authorised_value | html %]" selected="selected" [% attribute_disabled %]>
                                                                                 [% auth_val_loo.lib | html %]
                                                                             </option>
                                                                         [% ELSE %]
-                                                                            <option value="[% auth_val_loo.authorised_value | html %]" >
+                                                                            <option value="[% auth_val_loo.authorised_value | html %]" [% attribute_disabled %]>
                                                                                 [% auth_val_loo.lib | html %]
                                                                             </option>
                                                                         [% END %]
@@ -1513,15 +1531,17 @@ legend:hover {
                                                                 </select>
                                                             [% ELSE %]
                                                                 [% IF patron_attribute.mandatory %]
-                                                                <textarea rows="2" cols="30" id="[% patron_attribute.form_id | html %]" name="[% patron_attribute.form_id | html %]" required="required">[% patron_attribute.value | html %]</textarea>
+                                                                <textarea rows="2" cols="30" id="[% patron_attribute.form_id | html %]" name="[% patron_attribute.form_id | html %]" required="required" [% attribute_readonly %]>[% patron_attribute.value | html %]</textarea>
                                                                 [% ELSE %]
-                                                                <textarea rows="2" cols="30" id="[% patron_attribute.form_id | html %]" name="[% patron_attribute.form_id | html %]">[% patron_attribute.value | html %]</textarea>
+                                                                <textarea rows="2" cols="30" id="[% patron_attribute.form_id | html %]" name="[% patron_attribute.form_id | html %]" [% attribute_readonly %]>[% patron_attribute.value | html %]</textarea>
                                                                 [% END %]
                                                             [% END # /IF ( patron_attribute.use_dropdown ) %]
                                                             <input type="hidden" id="[% patron_attribute.form_id | html %]_code" name="[% patron_attribute.form_id | html %]_code" value="[% patron_attribute.code | html %]" />
+                                                            [% IF editable %]
                                                             <a href="#" class="clear_attribute"><i class="fa fa-fw fa-trash"></i> Clear</a>
                                                             [% IF ( patron_attribute.repeatable ) %]
                                                                 <a href="#" class="clone_attribute"><i class="fa fa-fw fa-plus"></i> New</a>
+                                                            [% END %]
                                                             [% END %]
                                                             [% IF patron_attribute.mandatory %]<span class="required">Required</span>[% END %]
                                                         </li>
