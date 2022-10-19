@@ -623,16 +623,22 @@ sub SearchSubscriptions {
     for my $subscription ( @$results ) {
         $subscription->{cannotedit} = not can_edit_subscription( $subscription );
         $subscription->{cannotdisplay} = not can_show_subscription( $subscription );
-        my @additional_field_values = Koha::AdditionalFieldValues->search(
-            {
-                field_id => { -in => [ keys %additional_fields_by_id ] },
-                record_id => $subscription->{subscriptionid}
-            }
-        )->as_list;
 
-        $subscription->{additional_fields} = {
-            map { $additional_fields_by_id{$_->field_id} => $_->value } @additional_field_values
-        };
+        if (%additional_fields_by_id) {
+            my @additional_field_values = Koha::AdditionalFieldValues->search(
+                {
+                    field_id => { -in => [ keys %additional_fields_by_id ] },
+                    record_id => $subscription->{subscriptionid}
+                }
+            )->as_list;
+
+            $subscription->{additional_fields} = {
+                map { $additional_fields_by_id{$_->field_id} => $_->value } @additional_field_values
+            };
+        }
+        else {
+            $subscription->{additional_fields} = {};
+        }
     }
 
     return @$results;
