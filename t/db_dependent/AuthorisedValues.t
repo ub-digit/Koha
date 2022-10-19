@@ -140,7 +140,7 @@ my @categories = Koha::AuthorisedValues->new->categories;
 is( @categories, @existing_categories+3, 'There should have 3 categories inserted' );
 
 subtest 'search_by_*_field + find_by_koha_field + get_description' => sub {
-    plan tests => 5;
+    plan tests => 6;
 
     my $test_cat = Koha::AuthorisedValueCategories->find('TEST');
     $test_cat->delete if $test_cat;
@@ -246,6 +246,22 @@ subtest 'search_by_*_field + find_by_koha_field + get_description' => sub {
                     opac_description => $av_empty_string->lib_opac
                 }
             ],
+        );
+    };
+    subtest 'get_description_by_category_and_authorised_value' => sub {
+        plan tests => 1;
+        my $description = Koha::AuthorisedValues->get_description_by_category_and_authorised_value(
+            {
+                category => $av_0->category,,
+                authorised_value => $av_0->authorised_value,
+            }
+        );
+        is_deeply(
+            $description,
+            {
+                lib              => $av_0->lib,
+                opac_description => $av_0->lib_opac
+            }
         );
     };
 };
