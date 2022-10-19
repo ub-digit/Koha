@@ -9,6 +9,7 @@
 [% USE TablesSettings %]
 [% USE Price %]
 [% USE UBPickupCode %]
+[% USE ExtendedAttributeProperties %]
 
 [% PROCESS 'member-display-address-style.inc' %]
 [% PROCESS 'member-display-alt-address-style.inc' %]
@@ -321,10 +322,12 @@
                                                     <h4>[% attribute.lib | html %]</h4>
                                                     <ol>
                                                         [% FOREACH item IN attribute.items %]
+                                                        [% IF ExtendedAttributeProperties.isVisible(item) %]
                                                             <li data-pa_code="[% item.type.code | replace('[^a-zA-Z0-9_-]', '') %]">
                                                                 <span class="label">[% item.type.description | html %]: </span>
                                                                 [% item.description | html_line_break %]
                                                             </li>
+                                                        [% END %]
                                                         [% END %]
                                                     </ol>
                                                 </div>
