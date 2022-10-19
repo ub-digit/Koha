@@ -292,6 +292,26 @@ Patrons:
            type: modalselect
            source: borrowers
          - "will be used to detect possible duplicates when adding a new patron."
+     -
+         - "The following attributes will not appear on the patron page:"
+         - pref: HiddenExtendedAttributes
+           class: multi
+         - (separate multiple choices with |)
+     -
+         - "The following attributes will not appear on the patron page for adminstrators:"
+         - pref: HiddenExtendedAttributesAdmin
+           class: multi
+         - (separate multiple choices with |)
+     -
+         - "The following attributes will not be editable on the edit patron page:"
+         - pref: NonEditableExtendedAttributes
+           class: multi
+         - (separate multiple choices with |)
+     -
+         - "The following attributes will not be editable on the edit patron page for adminstrators:"
+         - pref: NonEditableExtendedAttributesAdmin
+           class: multi
+         - (separate multiple choices with |)
     Patron relationships:
      -
          - "Guarantors can be the following of those they guarantee:"
