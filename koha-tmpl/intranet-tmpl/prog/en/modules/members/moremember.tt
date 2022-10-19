@@ -8,6 +8,8 @@
 [% USE AuthorisedValues %]
 [% USE TablesSettings %]
 [% USE Price %]
+[% USE ExtendedAttributeProperties %]
+
 [% PROCESS 'member-display-address-style.inc' %]
 [% PROCESS 'member-display-alt-address-style.inc' %]
 [% SET footerjs = 1 %]
@@ -318,10 +320,12 @@
                                                     <h4>[% attribute.lib | html %]</h4>
                                                     <ol>
                                                         [% FOREACH item IN attribute.items %]
+                                                        [% IF ExtendedAttributeProperties.isVisible(item) %]
                                                             <li>
                                                                 <span class="label">[% item.type.description | html %]: </span>
                                                                 [% item.description | html_line_break %]
                                                             </li>
+                                                        [% END %]
                                                         [% END %]
                                                     </ol>
                                                 </div>
