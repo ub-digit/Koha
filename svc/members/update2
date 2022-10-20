@@ -119,10 +119,14 @@ else { #$action eq 'update'
       $newdata{'categorycode'} = $categorycode;
   }
 
-  if($patronuserid) {
+  # Spara att de accepterat biblioteksreglerna.                                                                                                                                                                                                                                                                                
+  # Sparar att datat kommer från GU genom att skriva GU-kort uppdat i posten.     
+  if($msgtype ne "card") {
+    if($patronuserid) {
       $newdata{'userid'} = $patronuserid;
+    }
   }
-
+  
   # Spara att de accepterat biblioteksreglerna.
   # Sparar att datat kommer från GU genom att skriva GU-kort uppdat i posten.
   $borrower->extended_attributes->search({code => "ACCEPT"})->delete;
