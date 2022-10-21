@@ -85,8 +85,9 @@ if ($borrower->category->effective_BlockExpiredPatronOpacActions
     my %renewed_status = ();
     my $borrowernumber = $borrower->borrowernumber;
     for my $itemnumber (@items) {
-	my ( $status, $error ) =
-	    CanBookBeRenewed( $borrowernumber, $itemnumber );
+      my $checkout = Koha::Checkouts->find({ itemnumber => $itemnumber });
+      my ( $status, $error ) =
+	    CanBookBeRenewed( $borrower, $checkout );
 	if ( $status == 1 && $opacrenew == 1 ) {
 	    AddRenewal( $borrowernumber, $itemnumber, undef, undef, undef );
 	    $renewed_status{$itemnumber} = {itemnumber => $itemnumber, status => "ok"};
