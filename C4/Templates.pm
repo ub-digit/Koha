@@ -37,6 +37,7 @@ use C4::Context;
 
 use Koha::Cache::Memory::Lite;
 use Koha::Exceptions;
+use Koha::Plugins;
 
 __PACKAGE__->mk_accessors(qw( theme activethemes preferredtheme lang filename htdocs interface vars));
 
@@ -61,6 +62,19 @@ sub new {
         push @includes, "$htdocs/$_/$lang/includes";
         push @includes, "$htdocs/$_/en/includes" unless $lang eq 'en';
     }
+    if(C4::Context->config("enable_plugins")) {
+        my @plugins = Koha::Plugins->new()->GetPlugins( { method => 'template_includes', } );
+
+        foreach my $plugin (@plugins) {
+            my $extra_includes = $plugin->template_includes;
+            if(scalar @$extra_includes) {
+                foreach my $include (@$extra_includes) {
+                    push @includes, $include;
+                }
+            }
+        }
+    }
+
     # Do not use template cache if script is called from commandline
     my $use_template_cache = C4::Context->config('template_cache_dir') && defined $ENV{GATEWAY_INTERFACE};
     my $template = Template->new(
