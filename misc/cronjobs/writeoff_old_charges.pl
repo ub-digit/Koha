@@ -9,7 +9,7 @@ use Koha::Patrons;
 
 my $dbh = C4::Context->dbh();
 
-my $sql = "SELECT al.accountlines_id, al.amountoutstanding, al.borrowernumber, al.itemnumber
+my $sql = "SELECT al.accountlines_id, al.amountoutstanding, al.borrowernumber
     FROM accountlines al
     LEFT OUTER JOIN issues i ON (i.borrowernumber=al.borrowernumber AND i.itemnumber=al.itemnumber)
     LEFT OUTER JOIN reserves r ON (r.borrowernumber=al.borrowernumber AND r.itemnumber=al.itemnumber)
@@ -17,11 +17,6 @@ my $sql = "SELECT al.accountlines_id, al.amountoutstanding, al.borrowernumber, a
       AND  al.date < DATE_SUB(NOW(), INTERVAL 3 YEAR)
       AND  i.borrowernumber IS NULL
       AND  r.borrowernumber IS NULL
-    AND al.borrowernumber NOT IN (
-      SELECT bd.borrowernumber FROM borrower_debarments bd
-        WHERE (bd.comment LIKE 'ORI,%' OR bd.comment LIKE 'OR,%')
-    )
-    AND al.itemnumber IS NOT NULL
     ;";
 
 my $res = $dbh->selectall_arrayref($sql, { Slice => {} });
