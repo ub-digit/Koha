@@ -64,7 +64,7 @@ foreach(@$res){
 	my $stat_issue_note = ($_->{note});
 	my $stat_issue_auto_renew = ($_->{auto_renew});
 
-	my $stat_sql = "INSERT INTO ub_statistics (datetime, branch, type, other, itemnumber, itemtype, location, biblionumber, title, author, callno, categorycode, stat_organisation, issue_note, issue_auto_renew) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);";
+	my $stat_sql = "INSERT INTO ub_statistics (datetime, branch, type, other, itemnumber, itemtype, location, biblionumber, title, author, callno, categorycode, organisation, issue_note, issue_auto_renew) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?);";
 
 	$sth = $dbh->prepare($stat_sql);
 	$res = $sth->execute($today, $stat_branch, $stat_type, $stat_other, $itemnumber, $stat_itemtype, $stat_location, $stat_biblionumber, $stat_title, $stat_author, $stat_callno, $stat_categorycode, $stat_organisation, $stat_issue_note, $stat_issue_auto_renew);
