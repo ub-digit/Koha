@@ -2540,6 +2540,15 @@ sub AddReturn {
         ) if C4::Context->preference('RealTimeHoldsQueue');
     }
 
+    if ( $doreturn and !$issue ) {
+        Koha::Plugins->call('after_circ_action', {
+            action  => 'checkin_no_issue',
+            payload => {
+                checkin => $item
+            }
+        });
+    }
+
     return ( $doreturn, $messages, $issue, ( $patron ? $patron->unblessed : {} ));
 }
 
