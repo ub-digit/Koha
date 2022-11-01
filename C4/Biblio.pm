@@ -1374,39 +1374,67 @@ descriptions rather than normal ones when they exist.
 sub GetAuthorisedValueDesc {
     my ( $tag, $subfield, $value, $framework, $tagslib, $category, $opac ) = @_;
 
+    my $cache = Koha::Cache::Memory::Lite->get_instance();
+
     if ( !$category ) {
 
         return $value unless defined $tagslib->{$tag}->{$subfield}->{'authorised_value'};
 
         #---- branch
         if ( $tagslib->{$tag}->{$subfield}->{'authorised_value'} eq "branches" ) {
-            my $branch = Koha::Libraries->find($value);
-            return $branch? $branch->branchname: q{};
+            my $cache_key = "GetAuthorisedValueDesc_branchname:$value";
+            my $branchname = $cache->get_from_cache($cache_key);
+            unless ( defined $branchname ) {
+                my $branch = Koha::Libraries->find($value);
+                $branchname = $branch ? $branch->branchname: '';
+                $cache->set_in_cache($cache_key, $branchname);
+            }
+            return $branchname;
         }
 
         #---- itemtypes
         if ( $tagslib->{$tag}->{$subfield}->{'authorised_value'} eq "itemtypes" ) {
-            my $itemtype = Koha::ItemTypes->find( $value );
-            return $itemtype ? $itemtype->translated_description : q||;
+            my $cache_key = "GetAuthorisedValueDesc_translated_description:$value";
+            my $translated_description = $cache->get_from_cache($cache_key);
+            unless( defined $translated_description ) {
+                my $itemtype = Koha::ItemTypes->find( $value );
+                $translated_description = $itemtype ? $itemtype->translated_description : '';
+                $cache->set_in_cache($cache_key, $translated_description);
+            }
+            return $translated_description;
         }
-
         if ( $tagslib->{$tag}->{$subfield}->{'authorised_value'} eq "cn_source" ) {
-            my $source = GetClassSource($value);
-            return $source ? $source->{description} : q||;
+            my $cache_key = "GetAuthorisedValueDesc_source_description:$value";
+            my $source_description = $cache->get_from_cache($cache_key);
+            unless( defined $source_description ) {
+                my $source = GetClassSource($value);
+                $source_description = $source ? $source->{description} : '';
+                $cache->set_in_cache($cache_key, $source_description);
+            }
+            return $source_description;
         }
-
         #---- "true" authorized value
         $category = $tagslib->{$tag}->{$subfield}->{'authorised_value'};
     }
-
-    my $dbh = C4::Context->dbh;
-    if ( $category ne "" ) {
-        my $sth = $dbh->prepare( "SELECT lib, lib_opac FROM authorised_values WHERE category = ? AND authorised_value = ?" );
-        $sth->execute( $category, $value );
-        my $data = $sth->fetchrow_hashref;
-        return ( $opac && $data->{'lib_opac'} ) ? $data->{'lib_opac'} : $data->{'lib'};
+    if ( defined $category && $category ne '' ) {
+        #TODO: Later replace with call to cached function in Koha/AuthorizedValues.pm
+        # defined in Bug 31856 when/if this is merged
+        my $opac_key = defined $opac && $opac ? '1': '0';
+        my $cache_key = "GetAuthorisedValueDesc_authorized_value_description:$category:$value:$opac_key";
+        my $description = $cache->get_from_cache($cache_key);
+        unless ( defined $description ) {
+            my $dbh = C4::Context->dbh;
+            my $sth = $dbh->prepare( "SELECT lib, lib_opac FROM authorised_values WHERE category = ? AND authorised_value = ?" );
+            $sth->execute( $category, $value );
+            my $data = $sth->fetchrow_hashref;
+            if ($data) {
+                $description = $opac && $data->{'lib_opac'} ? $data->{'lib_opac'} : $data->{'lib'};
+            }
+            $cache->set_in_cache($cache_key, $description // '');
+        }
+        return $description;
     } else {
-        return $value;    # if nothing is found return the original value
+        return $value; # if nothing is found return the original value
     }
 }
 

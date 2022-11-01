@@ -1048,9 +1048,15 @@ This is meant to be used for display purpose only.
 
 sub columns_to_str {
     my ( $self ) = @_;
+    my $cache = Koha::Cache::Memory::Lite->get_instance();
+    my $cache_key = 'Item_columns_to_str_frameworkcode:' . $self->biblionumber;
 
-    my $frameworkcode = $self->biblio->frameworkcode;
-    my $tagslib = C4::Biblio::GetMarcStructure(1, $frameworkcode);
+    my $frameworkcode = $cache->get_from_cache($cache_key);
+    unless ( defined $frameworkcode ) {
+        $frameworkcode = $self->biblio->frameworkcode;
+        $cache->set_in_cache($cache_key, $frameworkcode);
+    }
+    my $tagslib = C4::Biblio::GetMarcStructure( 1, $frameworkcode, { unsafe => 1 } );
     my ( $itemtagfield, $itemtagsubfield) = C4::Biblio::GetMarcFromKohaField( "items.itemnumber" );
 
     my $columns_info = $self->_result->result_source->columns_info;
@@ -1061,7 +1067,7 @@ sub columns_to_str {
 
         next if $column eq 'more_subfields_xml';
 
-        my $value = $self->$column;
+        my $value = $self->_result()->get_column($column);
         # Maybe we need to deal with datetime columns here, but so far we have damaged_on, itemlost_on and withdrawn_on, and they are not linked with kohafield
 
         if ( not defined $value or $value eq "" ) {
