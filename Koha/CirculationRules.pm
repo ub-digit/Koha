@@ -300,13 +300,16 @@ sub get_effective_rule_value {
     my $cache_key = sprintf "CircRules:%s:%s:%s:%s", $rule_name // q{},
       $categorycode // q{}, $branchcode // q{}, $itemtype // q{};
 
-    my $cached       = $memory_cache->get_from_cache($cache_key);
-    return $cached if $cached;
-
-    my $rule = $self->get_effective_rule($params);
-
-    my $value= $rule ? $rule->rule_value : undef;
-    $memory_cache->set_in_cache( $cache_key, $value );
+    my $value = $memory_cache->get_from_cache($cache_key);
+    unless (defined $value) {
+        my $rule = $self->get_effective_rule($params);
+        if ($rule) {
+            $value = $rule->rule_value;
+        }
+        $value //= 'undef';
+        $memory_cache->set_in_cache( $cache_key, $value );
+    }
+    return if $value eq 'undef';
     return $value;
 }
 
@@ -541,7 +544,7 @@ sub get_opacitemholds_policy {
 
     return unless $item or $patron;
 
-    my $rule = Koha::CirculationRules->get_effective_rule(
+    return Koha::CirculationRules->get_effective_rule_value(
         {
             categorycode => $patron->categorycode,
             itemtype     => $item->effective_itemtype,
@@ -549,8 +552,6 @@ sub get_opacitemholds_policy {
             rule_name    => 'opacitemholds',
         }
     );
-
-    return $rule ? $rule->rule_value : undef;
 }
 
 =head3 get_onshelfholds_policy
@@ -564,15 +565,14 @@ sub get_onshelfholds_policy {
     my $item = $params->{item};
     my $itemtype = $item->effective_itemtype;
     my $patron = $params->{patron};
-    my $rule = Koha::CirculationRules->get_effective_rule(
+    return Koha::CirculationRules->get_effective_rule_value(
         {
             categorycode => ( $patron ? $patron->categorycode : undef ),
             itemtype     => $itemtype,
             branchcode   => $item->holdingbranch,
             rule_name    => 'onshelfholds',
         }
-    );
-    return $rule ? $rule->rule_value : 0;
+    ) // 0;
 }
 
 =head3 get_lostreturn_policy
@@ -627,7 +627,7 @@ sub get_lostreturn_policy {
     my $rules = Koha::CirculationRules->get_effective_rules(
         {
             branchcode => $branch,
-            rules  => ['lostreturn','processingreturn']
+            rules  => ['lostreturn', 'processingreturn']
         }
     );
 
@@ -714,7 +714,7 @@ sub get_effective_daysmode {
     my $itemtype         = $params->{itemtype};
     my $branchcode       = $params->{branchcode};
 
-    my $daysmode_rule = $class->get_effective_rule(
+    my $daysmode = $class->get_effective_rule_value(
         {
             categorycode => $categorycode,
             itemtype     => $itemtype,
@@ -722,12 +722,7 @@ sub get_effective_daysmode {
             rule_name    => 'daysmode',
         }
     );
-
-    return ( defined($daysmode_rule)
-          and $daysmode_rule->rule_value ne '' )
-      ? $daysmode_rule->rule_value
-      : C4::Context->preference('useDaysMode');
-
+    return $daysmode || C4::Context->preference('useDaysMode');
 }
 
 

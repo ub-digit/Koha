@@ -89,8 +89,8 @@ sub new {
 sub accumulate_rentalcharge {
     my ($self) = @_;
 
-    my $itemtype        = Koha::ItemTypes->find( $self->item->effective_itemtype );
-    my $lengthunit_rule = Koha::CirculationRules->get_effective_rule(
+    my $itemtype = Koha::ItemTypes->find( $self->item->effective_itemtype );
+    my $units = Koha::CirculationRules->get_effective_rule_value(
         {
             categorycode => $self->patron->categorycode,
             itemtype     => $itemtype->id,
@@ -98,9 +98,8 @@ sub accumulate_rentalcharge {
             rule_name    => 'lengthunit',
         }
     );
-    return 0 unless $lengthunit_rule;
+    return 0 unless $units;
 
-    my $units = $lengthunit_rule->rule_value;
     my $rentalcharge_increment =
       ( $units eq 'days' )
       ? $itemtype->rentalcharge_daily
