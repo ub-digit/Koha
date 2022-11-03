@@ -396,19 +396,19 @@ sub allows_renewal {
         my $renewable = Mojo::JSON->false;
         $renewable = Mojo::JSON->true if $can_renew;
 
-        my $rule = Koha::CirculationRules->get_effective_rule(
+        my $renewalsallowed = Koha::CirculationRules->get_effective_rule_value(
             {
                 categorycode => $checkout->patron->categorycode,
                 itemtype     => $checkout->item->effective_itemtype,
                 branchcode   => $checkout->branchcode,
-                rule_name    => 'renewalsallowed',
+                rule_name    => 'renewalsallowed'
             }
         );
         return $c->render(
             status => 200,
             openapi => {
                 allows_renewal => $renewable,
-                max_renewals => $rule->rule_value,
+                max_renewals => $renewalsallowed,
                 current_renewals => $checkout->renewals_count,
                 unseen_renewals => $checkout->unseen_renewals,
                 error => $error
