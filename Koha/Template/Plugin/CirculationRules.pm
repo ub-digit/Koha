@@ -46,7 +46,7 @@ sub Get {
     $categorycode = undef if $categorycode eq q{} or $categorycode eq q{*};
     $itemtype     = undef if $itemtype eq q{}     or $itemtype  eq q{*};
 
-    my $rule = Koha::CirculationRules->get_effective_rule(
+    return Koha::CirculationRules->get_effective_rule_value(
         {
             branchcode   => $branchcode,
             categorycode => $categorycode,
@@ -54,8 +54,6 @@ sub Get {
             rule_name    => $rule_name,
         }
     );
-
-    return $rule->rule_value if $rule;
 }
 
 =head3 Search

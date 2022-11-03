@@ -115,13 +115,13 @@ sub checkout {
         my @items = Koha::Items->search({ biblionumber => $self->biblio_id })->as_list;
         my @itemnumbers;
         foreach (@items) {
-            my $recalls_allowed = Koha::CirculationRules->get_effective_rule({
+            my $recalls_allowed = Koha::CirculationRules->get_effective_rule_value({
                 branchcode => C4::Context->userenv->{'branch'},
                 categorycode => $self->patron->categorycode,
                 itemtype => $_->effective_itemtype,
                 rule_name => 'recalls_allowed',
             });
-            if ( defined $recalls_allowed and $recalls_allowed->rule_value > 0 ) {
+            if ( defined $recalls_allowed and $recalls_allowed > 0 ) {
                 push ( @itemnumbers, $_->itemnumber );
             }
         }
@@ -261,14 +261,12 @@ sub calc_expirationdate {
         $branchcode = C4::Circulation::_GetCircControlBranch( $item->unblessed, $self->patron->unblessed );
     }
 
-    my $rule = Koha::CirculationRules->get_effective_rule({
+    my $shelf_time = Koha::CirculationRules->get_effective_rule_value({
         categorycode => $self->patron->categorycode,
         branchcode => $branchcode,
         itemtype => $item ? $item->effective_itemtype : undef,
         rule_name => 'recall_shelf_time'
-    });
-
-    my $shelf_time = defined $rule ? $rule->rule_value : C4::Context->preference('RecallsMaxPickUpDelay');
+    }) // C4::Context->preference('RecallsMaxPickUpDelay');
 
     my $expirationdate = dt_from_string->add( days => $shelf_time );
     return $expirationdate;

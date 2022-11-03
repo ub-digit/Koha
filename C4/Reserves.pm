@@ -329,7 +329,7 @@ See CanItemBeReserved() for possible return values.
 
 =cut
 
-sub CanBookBeReserved{
+sub CanBookBeReserved {
     my ($borrowernumber, $biblionumber, $pickup_branchcode, $params) = @_;
 
     # Check that patron have not checked out this biblio (if AllowHoldsOnPatronsPossessions set)
@@ -342,16 +342,16 @@ sub CanBookBeReserved{
 
         # biblio-level, item type-contrained
         my $patron          = Koha::Patrons->find($borrowernumber);
-        my $reservesallowed = Koha::CirculationRules->get_effective_rule(
+        my $reservesallowed = Koha::CirculationRules->get_effective_rule_value(
             {
                 itemtype     => $params->{itemtype},
                 categorycode => $patron->categorycode,
                 branchcode   => $pickup_branchcode,
                 rule_name    => 'reservesallowed',
             }
-        )->rule_value;
+        );
 
-        $reservesallowed = ( $reservesallowed eq '' ) ? undef : $reservesallowed;
+        $reservesallowed = $reservesallowed eq '' ? undef : $reservesallowed;
 
         my $count = $patron->holds->search(
             {
@@ -423,7 +423,7 @@ sub CanItemBeReserved {
     my ( $patron, $item, $pickup_branchcode, $params ) = @_;
 
     my $dbh = C4::Context->dbh;
-    my $ruleitemtype;    # itemtype of the matching issuing rule
+    my $effective_itemtype = $item->effective_itemtype;
     my $allowedreserves  = 0; # Total number of holds allowed across all records, default to none
 
     # We check item branch if IndependentBranches is ON
@@ -464,8 +464,12 @@ sub CanItemBeReserved {
     }
 
     # check if a recall exists on this item from this borrower
-    return { status => 'recall' }
-      if $patron->recalls->filter_by_current->search({ item_id => $item->itemnumber })->count;
+    if (
+        C4::Context->preference('UseRecalls') &&
+        $patron->recalls->filter_by_current->search({ item_id => $item->itemnumber })->count
+    ) {
+        return { status => 'recall' };
+    }
 
     my $controlbranch = C4::Context->preference('ReservesControlBranch');
 
@@ -482,31 +486,24 @@ sub CanItemBeReserved {
     }
 
     # we retrieve rights
-    if (
-        my $reservesallowed = Koha::CirculationRules->get_effective_rule({
-                itemtype     => $item->effective_itemtype,
-                categorycode => $borrower->{categorycode},
-                branchcode   => $reserves_control_branch,
-                rule_name    => 'reservesallowed',
-        })
-    ) {
-        $ruleitemtype     = $reservesallowed->itemtype;
-        $allowedreserves  = $reservesallowed->rule_value // 0; #undefined is 0, blank is unlimited
-    }
-    else {
-        $ruleitemtype = undef;
-    }
+    #undefined is 0, blank is unlimited
+    $allowedreserves = Koha::CirculationRules->get_effective_rule_value({
+        itemtype     => $effective_itemtype,
+        categorycode => $borrower->{categorycode},
+        branchcode   => $reserves_control_branch,
+        rule_name    => 'reservesallowed'
+    }) // 0;
 
     my $rights = Koha::CirculationRules->get_effective_rules({
         categorycode => $borrower->{'categorycode'},
-        itemtype     => $item->effective_itemtype,
+        itemtype     => $effective_itemtype,
         branchcode   => $reserves_control_branch,
-        rules        => ['holds_per_record','holds_per_day']
+        rules        => ['holds_per_record', 'holds_per_day']
     });
     my $holds_per_record = $rights->{holds_per_record} // 1;
     my $holds_per_day    = $rights->{holds_per_day};
 
-    if (   defined $holds_per_record && $holds_per_record ne '' ){
+    if ( defined $holds_per_record && $holds_per_record ne '' ){
         if ( $holds_per_record == 0 ) {
             return { status => "noReservesAllowed" };
         }
@@ -531,8 +528,8 @@ sub CanItemBeReserved {
     }
 
     # we check if it's ok or not
-    if ( defined $allowedreserves && $allowedreserves ne '' ){
-        if( $allowedreserves == 0 ){
+    if ( $allowedreserves ne '' ) {
+        if( $allowedreserves == 0 ) {
             return { status => 'noReservesAllowed' };
         }
         if ( !$params->{ignore_hold_counts} ) {
@@ -549,31 +546,23 @@ sub CanItemBeReserved {
 
             # If using item-level itypes, fall back to the record
             # level itemtype if the hold has no associated item
-            if ( defined $ruleitemtype ) {
-                if ( C4::Context->preference('item-level_itypes') ) {
-                    $querycount .= q{
-                        AND ( COALESCE( items.itype, biblioitems.itemtype ) = ?
-                           OR reserves.itemtype = ? )
-                    };
-                }
-                else {
-                    $querycount .= q{
-                        AND ( biblioitems.itemtype = ?
-                           OR reserves.itemtype = ? )
-                    };
-                }
+            if ( C4::Context->preference('item-level_itypes') ) {
+                $querycount .= q{
+                    AND ( COALESCE( items.itype, biblioitems.itemtype ) = ?
+                    OR reserves.itemtype = ? )
+                };
+            }
+            else {
+                $querycount .= q{
+                    AND ( biblioitems.itemtype = ?
+                    OR reserves.itemtype = ? )
+                };
             }
 
             my $sthcount = $dbh->prepare($querycount);
+            $sthcount->execute( $patron->borrowernumber, $reserves_control_branch, $effective_itemtype, $effective_itemtype );
 
-            if ( defined $ruleitemtype ) {
-                $sthcount->execute( $patron->borrowernumber, $reserves_control_branch, $ruleitemtype, $ruleitemtype );
-            }
-            else {
-                $sthcount->execute( $patron->borrowernumber, $reserves_control_branch );
-            }
-
-            my $reservecount = "0";
+            my $reservecount = 0;
             if ( my $rowcount = $sthcount->fetchrow_hashref() ) {
                 $reservecount = $rowcount->{count};
             }
@@ -583,25 +572,25 @@ sub CanItemBeReserved {
     }
 
     # Now we need to check hold limits by patron category
-    my $rule = Koha::CirculationRules->get_effective_rule(
+    my $max_holds = Koha::CirculationRules->get_effective_rule_value(
         {
             categorycode => $patron->categorycode,
             branchcode   => $reserves_control_branch,
             rule_name    => 'max_holds',
         }
     );
-    if (!$params->{ignore_hold_counts} && $rule && defined( $rule->rule_value ) && $rule->rule_value ne '' ) {
+    if (!$params->{ignore_hold_counts} && defined $max_holds && $max_holds ne '' ) {
         my $total_holds_count = Koha::Holds->search(
             {
                 borrowernumber => $patron->borrowernumber
             }
         )->count();
 
-        return { status => 'tooManyReserves', limit => $rule->rule_value} if $total_holds_count >= $rule->rule_value;
+        return { status => 'tooManyReserves', limit => $max_holds } if $total_holds_count >= $max_holds;
     }
 
     my $branchitemrule =
-      C4::Circulation::GetBranchItemRule( $reserves_control_branch, $item->effective_itemtype );
+      C4::Circulation::GetBranchItemRule( $reserves_control_branch, $effective_itemtype );
 
     if ( $branchitemrule->{holdallowed} eq 'not_allowed' ) {
         return { status => 'notReservable' };
@@ -2358,13 +2347,12 @@ sub GetMaxPatronHoldsForRecord {
 
         $branchcode = $item->homebranch if ( $controlbranch eq "ItemHomeLibrary" );
 
-        my $rule = Koha::CirculationRules->get_effective_rule({
+        my $holds_per_record = Koha::CirculationRules->get_effective_rule_value({
             categorycode => $categorycode,
             itemtype     => $itemtype,
             branchcode   => $branchcode,
             rule_name    => 'holds_per_record'
-        });
-        my $holds_per_record = $rule ? $rule->rule_value : 0;
+        }) // 0;
         $max = $holds_per_record if $holds_per_record > $max;
     }
 
