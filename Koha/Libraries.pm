@@ -64,6 +64,23 @@ sub search_filtered {
     return $self->SUPER::search( $params, $attributes );
 }
 
+use Data::Dumper;
+use Digest::MD5 qw(md5_hex);
+use Koha::Cache::Memory::Lite;
+
+sub find {
+    my ($self, @pars) = @_;
+
+    my $memory_cache = Koha::Cache::Memory::Lite->get_instance;
+    my $cache_key = md5_hex(Dumper(\@pars));
+    my $value = $memory_cache->get_from_cache($cache_key);
+    return $value if(defined($value));
+
+    $value = $self->SUPER::find( @pars );
+    $memory_cache->set_in_cache($cache_key, $value);
+    return $value;
+}
+
 =head3 type
 
 =cut
