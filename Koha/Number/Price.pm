@@ -22,6 +22,7 @@ use Modern::Perl;
 use Number::Format;
 use C4::Context;
 use Koha::Acquisition::Currencies;
+use Koha::Cache::Memory::Lite;
 
 use base qw( Class::Accessor );
 __PACKAGE__->mk_accessors(qw( value ));
@@ -91,11 +92,21 @@ sub round {
     return Number::Format->new(%$format_params)->round($self->value);
 }
 
+sub _active_currency {
+    my $memory_cache = Koha::Cache::Memory::Lite->get_instance;
+    my $cache_key = "Currencies:active_currency";
+    my $value = $memory_cache->get_from_cache($cache_key);
+    return $value if(defined($value));
+    $value = Koha::Acquisition::Currencies->get_active;
+    $memory_cache->set_in_cache($cache_key, $value);
+    return $value;
+}
+
 sub _format_params {
     my ( $self, $params ) = @_;
     my $with_symbol = $params->{with_symbol} || 0;
     my $p_cs_precedes = $params->{p_cs_precedes};
-    my $currency        = Koha::Acquisition::Currencies->get_active;
+    my $currency        = _active_currency();
     my $currency_format = C4::Context->preference("CurrencyFormat");
 
     my $int_curr_symbol = ( $with_symbol and $currency ) ? $currency->symbol : q||;
