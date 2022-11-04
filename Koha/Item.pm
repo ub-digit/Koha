@@ -51,6 +51,7 @@ use Koha::SearchEngine::Indexer;
 use Koha::StockRotationItem;
 use Koha::StockRotationRotas;
 use Koha::TrackedLinks;
+use Koha::Cache::Memory::Lite;
 
 use base qw(Koha::Object);
 
@@ -1662,7 +1663,20 @@ Returns whether the item is a bundle or not
 
 sub is_bundle {
     my ($self) = @_;
-    return $self->bundle_items->count ? 1 : 0;
+    my $dbi_cache = Koha::Cache::Memory::Lite->get_instance;
+    my $cache_key = "DBI->count:is_bundle_count";
+    my $sth = $dbi_cache->get_from_cache($cache_key);
+    unless(defined($sth)) {
+        my $query = "SELECT COUNT(*) FROM items i LEFT JOIN item_bundles ib ON i.itemnumber = ib.item WHERE ib.host = ?";
+        my $dbh = C4::Context->dbh;
+        $sth = $dbh->prepare($query);
+        $dbi_cache->set_in_cache( $cache_key, $sth );
+    }
+
+    $sth->execute($self->itemnumber);
+    my $count = $sth->fetchrow_arrayref()->[0];
+
+    return $count ? 1 : 0;
 }
 
 =head3 bundle_host
