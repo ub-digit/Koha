@@ -738,6 +738,24 @@ sub pickup_locations {
 
     Koha::Exceptions::MissingParameter->throw( parameter => 'patron' )
       unless exists $params->{patron};
+    my $memory_cache = Koha::Cache::Memory::Lite->get_instance;
+    my $patron = $params->{patron};
+    my $cache_key;
+    if(defined($patron)) {
+        $cache_key = sprintf("Item:pickup_locations:%s:%s", $self->itemnumber, $patron->borrowernumber);
+    } else {
+        $cache_key = sprintf("Item:pickup_locations:%s", $self->itemnumber);
+    }
+    my $value = $memory_cache->get_from_cache($cache_key);
+    return $value if(defined($value));
+
+    $value = $self->_internal_pickup_locations($params);
+    $memory_cache->set_in_cache($cache_key, $value);
+    return $value;
+}
+
+sub _internal_pickup_locations {
+    my ($self, $params) = @_;
 
     my $patron = $params->{patron};
 
