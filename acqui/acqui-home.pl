@@ -76,12 +76,17 @@ my $totordered_active   = 0;
 my $totavail_active     = 0;
 
 my @budget_loop;
-foreach my $budget ( @{$budget_arr} ) {
-    next unless (CanUserUseBudget($loggedinuser, $budget, $userflags));
+my $patron = Koha::Patrons->find($loggedinuser);
 
-    my $patron = Koha::Patrons->find( $budget->{budget_owner_id} );
-    if ( $patron ) {
-        $budget->{budget_owner} = $patron;
+foreach my $budget ( @{$budget_arr} ) {
+    next unless (CanUserUseBudget($patron, $budget, $userflags));
+
+    my $patron;
+    if($budget->{budget_owner_id}) {
+        my $patron = Koha::Patrons->find( $budget->{budget_owner_id} );
+        if ( $patron ) {
+            $budget->{budget_owner} = $patron;
+        }
     }
 
     if ( !defined $budget->{budget_amount} ) {
