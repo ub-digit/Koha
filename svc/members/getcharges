@@ -48,6 +48,8 @@ unless ($patron) {
 my $borrowernumber = $patron->borrowernumber;
 my $account = $patron->account;
 my $accountlines = $account->lines->search({ amountoutstanding => { '>' => 0 }});
+my $online_payment_disabled = C4::Context->preference("DisableOnlinePayments");
+my $online_payment_state = $online_payment_disabled ? "disabled" : "enabled";
 my $total_outstanding = $accountlines->total_outstanding;
 my $outstanding_credits = $account->outstanding_credits;
 
@@ -59,7 +61,8 @@ my $lines = lines($accountlines);
 
 print to_json({
     account_lines => $lines,
-    total => $total_outstanding
+    total => $total_outstanding,
+    online_payment_state => $online_payment_state
  });
 
 sub lines {
