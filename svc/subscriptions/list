@@ -35,6 +35,6 @@ unless ($subscriptions) {
 }
 
 print $query->header(-type => 'text/xml',-charset => 'utf-8');
-print XMLout({subscriptions => $subscriptions}, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+print XMLout({subscriptions => $subscriptions}, NoAttr => 1, RootName => 'response', XMLDecl => 1, SuppressEmpty => 1);
 
 exit 0;

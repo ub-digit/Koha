@@ -46,6 +46,6 @@ foreach(@$loc_list_ref) {
 }
 
 print $query->header(-type => 'text/xml',-charset => 'utf-8');
-print XMLout({ value => $loc_list_ref }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+print XMLout({ value => $loc_list_ref }, NoAttr => 1, RootName => 'response', XMLDecl => 1, SuppressEmpty => 1);
 
 exit 0;
