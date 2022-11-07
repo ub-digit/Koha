@@ -112,5 +112,5 @@ if ($reserve->{priority} ne '0') {
 }
 
 print $query->header(-type => 'text/xml',-charset => 'utf-8', -status => '201');
-print XMLout({ reserve => $reserve, queue_position => $queue_position }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+print XMLout({ reserve => $reserve, queue_position => $queue_position }, NoAttr => 1, RootName => 'response', XMLDecl => 1, SuppressEmpty => 1);
 exit 0;
