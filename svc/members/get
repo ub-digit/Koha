@@ -50,6 +50,6 @@ debarments => $debarments,
 borrower => $borrower->unblessed,
 attributes => $attributes->unblessed,
 issues => $issues,
-reserves => \@reserves }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+reserves => \@reserves }, NoAttr => 1, RootName => 'response', XMLDecl => 1, SuppressEmpty => 1);
 
 exit 0;

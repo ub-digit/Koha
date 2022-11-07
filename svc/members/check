@@ -70,4 +70,4 @@ else {
 }
 
 print $query->header(-type => 'text/xml',-charset => 'utf-8');
-print XMLout({uniq => $uniq, borrowernumber => $borrowernumber, expirationdate => $expirationdate, categorycode => $categorycode}, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+print XMLout({uniq => $uniq, borrowernumber => $borrowernumber, expirationdate => $expirationdate, categorycode => $categorycode}, NoAttr => 1, RootName => 'response', XMLDecl => 1, SuppressEmpty => 1);
