@@ -7,6 +7,7 @@ use utf8;
 use CGI qw ( -utf8 );
 use JSON;
 use C4::Auth qw/check_api_auth/;
+use C4::Items;
 use C4::Context;
 use Data::Dumper;
 
@@ -14,46 +15,149 @@ my $query = new CGI;
 
 my ($status, $cookie, $sessionID) = check_api_auth($query, { editcatalogue => 'edit_catalogue'} );
 unless ($status eq "ok") {
-  print $query->header(-type => 'text/json', -status => '403 Forbidden');
-  print encode_json({status => $status});
-  exit 0;
+    print $query->header(-type => 'text/json', -status => '403 Forbidden');
+    print encode_json({status => $status});
+    exit 0;
 }
 
 my $biblionumber = $query->param('biblionumber');
 
 unless ($biblionumber) {
-  print $query->header(-type => 'text/json', -status => '400');
-  print encode_json({status => 'Biblionumber is required', error_code => 'biblionumberIsMissing'});
-  exit 0;
+    print $query->header(-type => 'text/json', -status => '400');
+    print encode_json({status => 'Biblionumber is required', error_code => 'biblionumberIsMissing'});
+    exit 0;
 }
 
-my $biblio = Koha::Biblios->find($biblionumber);
-my $items = $biblio->items->search_ordered->as_list;
+my @items = GetItemsInfo( $biblionumber );
 
-my @itemlist;
-foreach my $item (@$items) {
-  push(@itemlist, $item->itemnumber);
-}
-my $itemnumbers = join(',', @itemlist);
+my $itemnumbers = join(',', (map { $_->{'itemnumber'} } @items));
 
 my $dbh = C4::Context->dbh();
 my $sql;
 my $in_transit_items;
 
 if ($itemnumbers) {
-  $sql = "SELECT itemnumber FROM branchtransfers WHERE datearrived IS NULL AND datecancelled IS NULL AND itemnumber IN (" . $itemnumbers .")";
-  $in_transit_items = $dbh->selectcol_arrayref($sql, undef);
+    $sql = "SELECT itemnumber FROM branchtransfers WHERE datearrived IS NULL AND datecancelled IS NULL AND itemnumber IN (" . $itemnumbers .")";
+    $in_transit_items = $dbh->selectcol_arrayref($sql, undef);
 }
 else {
-  $in_transit_items = [];
+    $in_transit_items = [];
 }
 
-my @new_items;
-foreach my $item (@$items) {
-  my $new_item = $item->unblessed;
-  push(@new_items, (grep { /$new_item->{'itemnumber'}/ } @$in_transit_items ) ? {%{$new_item},'in_transit'=>"1"} : {%{$new_item},'in_transit'=>"0"});
-}
+my @new_items = map {
+    my $item = $_;
+    (grep { /$item->{'itemnumber'}/ } @$in_transit_items ) ? {%{$item},'in_transit'=>"1"} : {%{$item},'in_transit'=>"0"}
+} @items;
 
 print $query->header(-type => 'text/json',-charset => 'utf-8');
 print encode_json({items => \@new_items});
 exit 0;
+
+sub GetItemsInfo {
+    my ( $biblionumber ) = @_;
+    my $dbh   = C4::Context->dbh;
+    require C4::Languages;
+    my $language = C4::Languages::getlanguage();
+        my $query = "
+    SELECT items.*,
+           biblio.*,
+           biblioitems.volume,
+           biblioitems.number,
+           biblioitems.itemtype,
+           biblioitems.isbn,
+           biblioitems.issn,
+           biblioitems.publicationyear,
+           biblioitems.publishercode,
+           biblioitems.volumedate,
+           biblioitems.volumedesc,
+           biblioitems.lccn,
+           biblioitems.url,
+           items.notforloan as itemnotforloan,
+           issues.borrowernumber,
+           issues.date_due as datedue,
+           issues.onsite_checkout,
+           borrowers.cardnumber,
+           borrowers.surname,
+           borrowers.firstname,
+           borrowers.branchcode as bcode,
+           serial.serialseq,
+           serial.publisheddate,
+           itemtypes.description,
+           COALESCE( localization.translation, itemtypes.description ) AS translated_description,
+           itemtypes.notforloan as notforloan_per_itemtype,
+           holding.branchurl,
+           holding.branchcode,
+           holding.branchname,
+           IF(tmp_holdsqueue.itemnumber,1,0) AS has_pending_hold
+     FROM items
+     LEFT JOIN branches AS holding ON items.holdingbranch = holding.branchcode
+     LEFT JOIN branches AS home ON items.homebranch=home.branchcode
+     LEFT JOIN biblio      ON      biblio.biblionumber     = items.biblionumber
+     LEFT JOIN biblioitems ON biblioitems.biblioitemnumber = items.biblioitemnumber
+     LEFT JOIN issues USING (itemnumber)
+     LEFT JOIN borrowers USING (borrowernumber)
+     LEFT JOIN serialitems USING (itemnumber)
+     LEFT JOIN serial USING (serialid)
+     LEFT JOIN itemtypes   ON   itemtypes.itemtype         = "
+	    . (C4::Context->preference('item-level_itypes') ? 'items.itype' : 'biblioitems.itemtype');
+        $query .= q|
+    LEFT JOIN tmp_holdsqueue USING (itemnumber)
+    LEFT JOIN localization ON itemtypes.itemtype = localization.code
+        AND localization.entity = 'itemtypes'
+        AND localization.lang = ?
+    |;
+
+    $query .= " WHERE items.biblionumber = ? ORDER BY home.branchname, items.enumchron, LPAD( items.copynumber, 8, '0' ), items.dateaccessioned DESC" ;
+    my $sth = $dbh->prepare($query);
+    $sth->execute($language, $biblionumber);
+    my $i = 0;
+    my @results;
+    my $serial;
+
+    my $userenv = C4::Context->userenv;
+    my $want_not_same_branch = C4::Context->preference("IndependentBranches") && !C4::Context->IsSuperLibrarian();
+    while ( my $data = $sth->fetchrow_hashref ) {
+	if ( $data->{borrowernumber} && $want_not_same_branch) {
+	    $data->{'NOTSAMEBRANCH'} = $data->{'bcode'} ne $userenv->{branch};
+	}
+
+	$serial ||= $data->{'serial'};
+
+	my $descriptions;
+	# get notforloan complete status if applicable
+	$descriptions = Koha::AuthorisedValues->get_description_by_koha_field({frameworkcode => $data->{frameworkcode}, kohafield => 'items.notforloan', authorised_value => $data->{itemnotforloan} });
+	$data->{notforloanvalue}     = $descriptions->{lib} // '';
+	$data->{notforloanvalueopac} = $descriptions->{opac_description} // '';
+
+	# get restricted status and description if applicable
+	$descriptions = Koha::AuthorisedValues->get_description_by_koha_field({frameworkcode => $data->{frameworkcode}, kohafield => 'items.restricted', authorised_value => $data->{restricted} });
+	$data->{restrictedvalue}     = $descriptions->{lib} // '';
+	$data->{restrictedvalueopac} = $descriptions->{opac_description} // '';
+
+	# my stack procedures
+	$descriptions = Koha::AuthorisedValues->get_description_by_koha_field({frameworkcode => $data->{frameworkcode}, kohafield => 'items.stack', authorised_value => $data->{stack} });
+	$data->{stack}          = $descriptions->{lib} // '';
+
+	# Find the last 3 people who borrowed this item.
+	        my $sth2 = $dbh->prepare("SELECT * FROM old_issues,borrowers
+                                    WHERE itemnumber = ?
+                                    AND old_issues.borrowernumber = borrowers.borrowernumber
+                                    ORDER BY returndate DESC
+                                    LIMIT 3");
+	$sth2->execute($data->{'itemnumber'});
+	my $ii = 0;
+	while (my $data2 = $sth2->fetchrow_hashref()) {
+	    $data->{"timestamp$ii"} = $data2->{'timestamp'} if $data2->{'timestamp'};
+	    $data->{"card$ii"}      = $data2->{'cardnumber'} if $data2->{'cardnumber'};
+	    $data->{"borrower$ii"}  = $data2->{'borrowernumber'} if $data2->{'borrowernumber'};
+	    $ii++;
+	}
+
+	$results[$i] = $data;
+	$i++;
+    }
+
+    return $serial
+	? sort { ($b->{'publisheddate'} || $b->{'enumchron'} || "") cmp ($a->{'publisheddate'} || $a->{'enumchron'} || "") } @results
+	: @results;
+}
