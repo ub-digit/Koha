@@ -1744,7 +1744,7 @@ sub AddIssue {
                     location       => $item_object->location,
                     borrowernumber => $patron->borrowernumber,
                     ccode          => $item_object->ccode,
-                    categorycode   => $borrower->{'categorycode'}
+                    categorycode   => $patron->categorycode
                 }
             );
 
