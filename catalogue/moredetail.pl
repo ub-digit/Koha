@@ -112,11 +112,12 @@ my $all_items = $biblio->items->search_ordered;
 
 my @items;
 my $patron = Koha::Patrons->find( $loggedinuser );
+
+$showallitems = 1 if !$itemnumber;
 while ( my $item = $all_items->next ) {
-    push @items, $item
-      unless $item->itemlost
-      && $patron->category->hidelostitems
-      && !$showallitems;
+    if ($showallitems || ($itemnumber == $item->itemnumber)) {
+        push @items, $item
+    }
 }
 
 my $hostrecords;
