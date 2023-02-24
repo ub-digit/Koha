@@ -35,6 +35,8 @@ if ($action eq 'pnr') {
   $borrower->add_extended_attribute({code => "PNR", attribute => substr($personalnumber, 2)});
 }
 elsif ($action eq 'cardinvalid') {
+  my $patrons = Koha::Patrons->search({borrowernumber => $borrowernumber});
+  my $borrower = $patrons->next;
   my $debarments = $borrower->restrictions->search({ type => "MANUAL", comment => "GU, GU-spärr" })->unblessed;
   if ((scalar @{$debarments}) == 0) {
     AddDebarment({borrowernumber => $borrowernumber, type => "MANUAL", comment => "GU, GU-spärr"});
