@@ -7,7 +7,6 @@ use CGI qw ( -utf8 );
 use C4::Auth qw/check_api_auth/;
 use C4::Members;
 use Koha::Patrons;
-use Koha::Patron::Debarments qw(GetDebarments);
 use XML::Simple;
 
 my $query = new CGI;
@@ -74,7 +73,7 @@ my $today = `date +"%Y-%m-%d"`;
 # Check if user is debarred with either GU or AV and #
 # that the debarment has not expired                 #
 # -------------------------------------------------- #
-my $debarments = GetDebarments({borrowernumber => $borrowernumber});
+my $debarments = $borrower->restrictions->unblessed;
 my $is_debarred = 0;
 foreach my $debarment (@{$debarments}) {
     my $debar_expire = $debarment->{'expiration'};

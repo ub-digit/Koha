@@ -7,7 +7,6 @@ use CGI qw ( -utf8 );
 use C4::Auth qw/check_api_auth/;
 use C4::Members;
 use C4::Reserves;
-use Koha::Patron::Debarments qw(GetDebarments);
 use Koha::Patrons;
 use Koha::Account::Lines;
 use C4::Circulation qw(CanBookBeRenewed);
@@ -54,7 +53,6 @@ my $total_outstanding = $accountlines->total_outstanding;
 my $outstanding_credits = $account->outstanding_credits;
 
 my $flags = C4::Members::patronflags($patron->unblessed);
-my $debarments = GetDebarments({borrowernumber => $borrowernumber});
 
 print $query->header(-type => 'application/json',-charset => 'utf-8');
 my $lines = lines($accountlines);

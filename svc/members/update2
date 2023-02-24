@@ -8,7 +8,7 @@ use XML::Simple;
 use C4::Auth qw/check_api_auth/;
 
 use C4::Members;
-use Koha::Patron::Debarments qw(GetDebarments AddDebarment DelDebarment);
+use Koha::Patron::Debarments qw(AddDebarment DelDebarment);
 
 use Data::Dumper;
 
@@ -35,7 +35,7 @@ if ($action eq 'pnr') {
   $borrower->add_extended_attribute({code => "PNR", attribute => substr($personalnumber, 2)});
 }
 elsif ($action eq 'cardinvalid') {
-  my $debarments = GetDebarments({borrowernumber => $borrowernumber, type => "MANUAL", comment => "GU, GU-spärr"});
+  my $debarments = $borrower->restrictions->search({ type => "MANUAL", comment => "GU, GU-spärr" })->unblessed;
   if ((scalar @{$debarments}) == 0) {
     AddDebarment({borrowernumber => $borrowernumber, type => "MANUAL", comment => "GU, GU-spärr"});
   }
@@ -100,7 +100,7 @@ else { #$action eq 'update'
 
   # Ta bort spärrarna GU och WR om vi får ett KORT-meddelande, inte annars
   if (defined($msgtype) && $msgtype eq "card") {
-      my $debarments = GetDebarments({borrowernumber => $borrowernumber});
+      my $debarments = $borrower->restrictions->unblessed;
       my @filtered_debarments = grep { $_->{comment} =~ /^GU,|WR,/ } @{$debarments};
       foreach (@filtered_debarments) {
           DelDebarment($_->{borrower_debarment_id});

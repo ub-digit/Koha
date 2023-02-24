@@ -9,7 +9,6 @@ use C4::Members;
 use C4::Koha qw(GetNormalizedISBN GetNormalizedUPC);
 use C4::Reserves qw(GetReserveStatus);
 use Koha::DateUtils qw( dt_from_string output_pref );
-use Koha::Patron::Debarments qw(GetDebarments);
 use Koha::Patrons;
 use C4::Circulation qw(CanBookBeRenewed GetRenewCount GetIssuingCharges);
 use XML::Simple;
@@ -48,7 +47,7 @@ unless ($borrower) {
 my $flags = C4::Members::patronflags($borrower->unblessed);
 my $borrowernumber = $borrower->unblessed->{'borrowernumber'};
 my $attributes = $borrower->extended_attributes;
-my $debarments = GetDebarments({borrowernumber => $borrowernumber});
+my $debarments = $borrower->restrictions;
 my @reserves = $borrower->holds->unblessed;
 my $holds = holds($borrower);
 my $full_issues = issues($borrower);
@@ -79,7 +78,7 @@ print to_json({
 flags => $flags,
 issues => $issues,
 overdues => $overdues,
-debarments => $debarments,
+debarments => $debarments->unblessed,
 borrower => $borrower->unblessed,
 attributes => $attributes->unblessed,
 message_preference => \@message_preferences,
