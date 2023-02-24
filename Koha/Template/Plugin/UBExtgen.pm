@@ -3,7 +3,6 @@ use Modern::Perl;
 use Template::Plugin;
 use base qw( Template::Plugin );
 use Koha::Patrons;
-use Koha::Patron::Debarments;
 use C4::Koha;
 use C4::Context;
 use Data::Dumper;
@@ -76,7 +75,7 @@ sub invalidCardnumber {
 
 sub isDebarred {
   my ($patron) = @_;
-  my $debarments = Koha::Patron::Debarments::GetDebarments({borrowernumber => $patron->borrowernumber()});
+  my $debarments = $patron->restrictions->unblessed;
 
   foreach my $debarment (@{$debarments}) {
     my $comment = $debarment->{comment};
