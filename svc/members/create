@@ -128,7 +128,7 @@ if ($origin and $origin eq "gukort") {
   $patron->extended_attributes([{code => "PNR12", attribute => $personalnumber}, {code => "PNR", attribute => substr($personalnumber, 2)}, {code => "ACCEPT", attribute => $accept_text}, {code => "IMPORT", attribute => "gukort"}]);
 }
 else {
-  $patron->extended_attributes([{code => "PNR12", attribute => $personalnumber}, {code => "PNR", attribute => substr($personalnumber, 2)}, {code => "ACCEPT", attribute => $accept_text}]);
+  $patron->extended_attributes([{code => "PNR12", attribute => $personalnumber}, {code => "PNR", attribute => substr($personalnumber, 2)}, {code => "ACCEPT", attribute => $accept_text}, {code => "IMPORT", attribute => "bibliotekskort"}]);
 }
 
 foreach my $debarment (@debarments) {
