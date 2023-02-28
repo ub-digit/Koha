@@ -8,6 +8,8 @@
 [% USE AuthorisedValues %]
 [% USE TablesSettings %]
 [% USE Price %]
+[% USE UBPickupCode %]
+
 [% PROCESS 'member-display-address-style.inc' %]
 [% PROCESS 'member-display-alt-address-style.inc' %]
 [% PROCESS 'i18n.inc' %]
@@ -378,6 +380,10 @@
                                         <li id="patron-cardnumber">
                                             <span class="label">Card number: </span>
                                             [% patron.cardnumber | html %]
+                                        </li>
+                                        <li id="patron-pickupcode">
+                                            <span class="label">Kod för avhämtning: </span>
+                                            [% UBPickupCode.PickupCode(patron) | html %]
                                         </li>
                                         <li id="patron-borrowernumber">
                                             <span class="label">Borrowernumber: </span>
