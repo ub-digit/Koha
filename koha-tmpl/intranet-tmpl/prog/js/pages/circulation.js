@@ -58,6 +58,8 @@ $(document).ready(function() {
         }
     });
 
+    $("#checkout-circ-settings").show();
+
     $(".circ_setting").on("click",function(){
         $("#barcode").focus();
     });

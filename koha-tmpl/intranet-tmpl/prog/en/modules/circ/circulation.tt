@@ -669,13 +669,9 @@
                                             [% END %]
                                         [% END %]
 
-                                        <div id="show-circ-settings">
-                                            <a href="#" title="Checkout settings"><i class="fa fa-sliders"></i></a>
-                                        </div>
-
                                         <button type="submit" class="btn btn-primary">Check out</button>
 
-                                        <div class="circ-settings">
+                                        <div class="circ-settings" id="checkout-circ-settings">
 
                                                 [% UNLESS ( noissues && Koha.Preference('OnSiteCheckoutsForce') ) %]
                                                     [% IF ( SpecifyDueDate ) %]
