@@ -2563,7 +2563,7 @@ sub MarkIssueReturned {
             my $overdue_restrictions = $patron->restrictions->search({ type => 'OVERDUES' });
             my $remove_restrictions =
                 C4::Context->preference('AutoRemoveOverduesRestrictions') eq 'when_no_overdue_causing_debarment' ?
-                    !$patron->has_debarring_overdues({ issue_branchcode => $issue_branchcode }) :
+                    !$patron->has_restricting_overdues({ issue_branchcode => $issue_branchcode }) :
                     !$patron->has_overdues;
             if (
                 $remove_restrictions
