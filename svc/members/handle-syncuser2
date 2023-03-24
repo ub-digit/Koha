@@ -1,0 +1,430 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+use CGI qw ( -utf8 );
+use XML::Simple;
+use C4::Auth qw/check_api_auth/;
+
+use C4::Members;
+
+use Koha::Patron;
+use Koha::Patron::Debarments qw/AddDebarment/;
+use C4::Members::Messaging;
+
+my $query = new CGI;
+binmode STDOUT, ':encoding(UTF-8)';
+
+my ($status, $cookie, $sessionID) = check_api_auth($query, { editcatalogue => 'edit_catalogue'} );
+unless ($status eq "ok") {
+  print $query->header(-type => 'text/xml', -status => '403 Forbidden');
+  print XMLout({ status => $status }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+  exit 0;
+}
+
+my %borrower = ();
+
+my $borrowernumber = $query->param('borrowernumber');
+my $cardnumber = $query->param('cardnumber');
+my $messaging_format = $query->param('messaging_format');
+my $debarments = $query->param('debarments');
+my $patronstatus = $query->param('patronstatus');
+my $categorycode = $query->param('categorycode');
+my $department_name = $query->param('department_name');
+my $department_number = $query->param('department_number');
+my $faculty_number = $query->param('faculty_number');
+my $valid_to = $query->param('valid_to');
+my $user_type = $query->param('user_type');
+my $accept_text = $query->param('accept_text');
+my $msgtype = $query->param('msgtype');
+my $origin = $query->param('origin');
+
+# If the request does not have a borrowernumber, then it's a new patron
+# TODO!! Cardnumber should always be pnr12 for new patrons
+if (!$borrowernumber) {
+  # Personal number is only 10 digits
+  my $personalnumber = $query->param('personalnumber');
+  unless ($personalnumber) {
+    print $query->header(-type => 'text/xml', -status => '400 Bad data');
+    print XMLout({ status => "Missing personalnumber" }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+    exit 0;
+  }
+
+  # Try to make a pnr12 variable with a 12 digit personal number by adding century, but it might be either 19 or 20
+  my $pnr12;
+  # Assume the person can't be younger than 10 years old
+  # The first two digits of the personal number is the year of birth
+  my $twodigitbirthyear = substr($personalnumber, 0, 2);
+  # So if the two digit year + 2000 makes the person younger than 10 years old, then it's 1900
+  # 2000+9, 2023-10, 2009 > 2013 == false
+  my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime(time);
+  $year += 1900;
+  if ((substr($year, 2, 2)  - $twodigitbirthyear) > 10) {
+    $pnr12 = "20" . $personalnumber;
+  }
+  else {
+    $pnr12 = "19" . $personalnumber;
+  }
+
+  $borrower{'cardnumber'} = $pnr12;
+  
+  # Mandatory borrower fields
+  $borrower{'password'} = $personalnumber;
+  $borrower{'categorycode'} = $query->param('categorycode');
+  $borrower{'branchcode'} = $query->param('branchcode');
+  $borrower{'surname'} = $query->param('surname');
+  $borrower{'address'} = $query->param('address');
+  $borrower{'city'} = $query->param('city');
+  $borrower{'lang'} = $query->param('lang');
+  $borrower{'dateexpiry'} = $query->param('dateexpiry');
+  $borrower{'userid'} = $query->param('patronuserid');
+  if ($query->param('firstname')) {
+    $borrower{'firstname'} = $query->param('firstname');
+  }
+  if ($query->param('email')) {
+    $borrower{'email'} = $query->param('email');
+  }
+
+  my @debarments;
+  if ($debarments) {
+    @debarments = split /,/, $debarments;
+  }
+  if ("gna" ~~ @debarments) {
+    $borrower{'gonenoaddress'} = 1;
+  }
+
+  $borrower{'sms_provider_id'} = 1;
+
+  my $patron = Koha::Patron->new({%borrower})->store;
+  $borrowernumber = $patron->borrowernumber;
+
+  my $attributes = [
+    {code => "PNR", attribute => $personalnumber},
+    {code => "PNR12", attribute => $pnr12},
+    {code => "ACCEPT", attribute => $accept_text},
+    {code => "IMPORT", attribute => "gukort-syncuser"}
+    ];
+  $patron->extended_attributes($attributes);
+
+  foreach my $debarment (@debarments) {
+    if ($debarment eq 'wr') {
+      AddDebarment({borrowernumber => $borrowernumber, type => "MANUAL", comment => "WR, Webbregistrerad"});
+    }
+    elsif ($debarment eq 'gu') {
+      AddDebarment({borrowernumber => $borrowernumber, type => "MANUAL", comment => "GU, GU-spärr"});
+    }
+  }
+
+  # Set messaging format if parameter is set
+  if ($messaging_format) {
+    my $messaging_options = C4::Members::Messaging::GetMessagingOptions();
+    my %whichActionsToTickUsingSimpleMessaging = map { $_ => 1 } (split(/\|/, C4::Context->preference('whichActionsToTickUsingSimpleMessaging')));
+    foreach my $messaging_option (@{$messaging_options}) {
+      if ($whichActionsToTickUsingSimpleMessaging{$messaging_option->{'message_name'}}) {
+        my $message_attribute_id = $messaging_option->{'message_attribute_id'};
+        my $message_transport_types = $messaging_format eq 'sms_email' ? ["sms", "email"] : [$messaging_format];
+        my $days_in_advance = $message_attribute_id eq 2 ? 2 : undef;
+        C4::Members::Messaging::SetMessagingPreference({borrowernumber => $borrowernumber,
+                                                        message_attribute_id => $message_attribute_id,
+                                                        message_transport_types => $message_transport_types,
+                                                        days_in_advance => $days_in_advance});
+      }
+    }
+  }
+} else {
+  # Update existing patron
+  # Fetch existing patron
+  my $patron = Koha::Patrons->find($borrowernumber);
+  # Fetch existing categorycode
+  my $old_categorycode = $patron->categorycode;
+  
+  # Create a hash of the fields that can be updated for any patron
+  my %newdata = ();
+
+  my $firstname;
+
+  my $categorycode = $query->param('categorycode');
+  my $surname = $query->param('surname');
+  my $userid = $query->param('patronuserid');
+  if ($query->param('firstname')) {
+    $firstname = $query->param('firstname');
+  }
+
+  $newdata{'borrowernumber'} = $patron->borrowernumber;
+  if($firstname) {
+    $newdata{'firstname'} = $firstname;
+  }
+  if($surname) {
+    $newdata{'surname'} = $surname;
+  }
+  if($patron->userid ne $userid) {
+    $newdata{'userid'} = $userid;
+  }
+  if($patron->categorycode ne $categorycode) {
+    $newdata{'categorycode'} = $categorycode;
+  }
+  if($query->param('email')) {
+    $newdata{'email'} = $query->param('email');
+  }
+
+  specialized_update($patron, $patronstatus, $user_type, \%newdata);
+  $patron->set(\%newdata)->store;
+}
+
+print $query->header(-type => 'text/xml',-charset => 'utf-8', -status => '201');
+print XMLout({ borrownumber => $borrowernumber }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+
+
+sub activating_employee {
+  my ($patronstatus, $user_type) = @_;
+  return $patronstatus eq "active" && for_employee($user_type);
+}
+
+sub activating_student {
+  my ($patronstatus, $user_type) = @_;
+  return $patronstatus eq "active" && for_student($user_type);
+}
+
+sub deactivating_employee {
+  my ($patronstatus, $user_type) = @_;
+  return $patronstatus eq "inactive" && for_employee($user_type);
+}
+
+sub deactivating_student {
+  my ($patronstatus, $user_type) = @_;
+  return $patronstatus eq "inactive" && for_student($user_type);
+}
+
+sub for_student {
+  my ($user_type) = @_;
+  return $user_type eq "Student";
+}
+
+sub for_employee {
+  my ($user_type) = @_;
+  # employee is any of Doc, Staff or StaffExternal
+  return $user_type eq "Doc" || $user_type eq "Staff" || $user_type eq "StaffExternal";
+}
+
+sub is_external {
+  my ($ccode) = @_;
+  my $external_ccodes = ["EX", "UX", "SR", "FR", "FX"];
+  return $ccode ~~ $external_ccodes;
+}
+
+sub is_student {
+  my ($ccode) = @_;
+  # The categorycodes for students are S or any that starts with S, except SR and SY
+  return $ccode =~ /^S/ && $ccode ne "SR" && $ccode ne "SY";
+}
+
+sub is_employee {
+  my ($ccode) = @_;
+  # The categorycodes for employees are GU, PE, TJ, TN, or any that starts with F, except FR, FX and FY
+  return $ccode =~ /^F/ && $ccode ne "FR" && $ccode ne "FX" && $ccode ne "FY" || $ccode eq "GU" || $ccode eq "PE" || $ccode eq "TJ" || $ccode eq "TN";
+}
+
+sub add_or_replace_attribute {
+  my ($patron, $code, $attribute) = @_;
+  # Remove the attribute if it exists, and add it again
+  $patron->extended_attributes->search({code => $code})->delete;
+  $patron->add_extended_attribute({code => $code, attribute => $attribute});
+}
+
+sub remove_attribute {
+  my ($patron, $code) = @_;
+  $patron->extended_attributes->search({code => $code})->delete;
+}
+
+sub specialized_update {
+  my ($patron, $patronstatus, $user_type, $newdata) = @_;
+  
+  use Data::Dumper;
+  print STDERR Dumper(["specialized_update", $patronstatus, $user_type, $newdata]);
+  print STDERR Dumper(["activating_employee", activating_employee($patronstatus, $user_type)]);
+  print STDERR Dumper(["activating_student", activating_student($patronstatus, $user_type)]);
+  print STDERR Dumper(["deactivating_employee", deactivating_employee($patronstatus, $user_type)]);
+  print STDERR Dumper(["deactivating_student", deactivating_student($patronstatus, $user_type)]);
+  print STDERR Dumper(["is_external", is_external($patron->categorycode)]);
+  print STDERR Dumper(["is_student", is_student($patron->categorycode)]);
+  print STDERR Dumper(["is_employee", is_employee($patron->categorycode)]);
+  print STDERR Dumper(["for_student", for_student($user_type)]);
+  print STDERR Dumper(["for_employee", for_employee($user_type)]);
+
+  # If it's an activation message, and we go from external to student
+  if (activating_student($patronstatus, $user_type) && is_external($patron->categorycode)) {
+    # This alternative does nothing special
+  }
+
+  # If it's an activation message, and we go from external to employee
+  if (activating_employee($patronstatus, $user_type) && is_external($patron->categorycode)) {
+    # This alternative does nothing special
+  }
+
+  # If it's an activation message, and we go from student to employee
+  if (activating_employee($patronstatus, $user_type) && is_student($patron->categorycode)) {
+    upgrade_student_to_employee($patron, $newdata);
+  }
+
+  # If it's an activation message as a student while already being an employee
+  if (activating_student($patronstatus, $user_type) && is_employee($patron->categorycode)) {
+    activate_student_on_employee($patron, $newdata);
+  }
+
+  # If it's a deactivation message, and we go from student to external
+  if (deactivating_student($patronstatus, $user_type) && is_student($patron->categorycode) && !is_employee($categorycode)) {
+    downgrade_student_to_external($patron, $newdata);
+  }
+
+  # If it's a deactivation message, and we stop being a student while being an employee
+  if (deactivating_student($patronstatus, $user_type) && is_employee($patron->categorycode)) {
+    deactivate_student_on_employee($patron, $newdata);
+  }
+  
+  # If it's a deactivation message, and we go from employee to external or student
+  if (deactivating_employee($patronstatus, $user_type) && is_employee($patron->categorycode)) {
+    downgrade_employee($patron, $newdata);
+  }
+
+  # If it's a deactivation message, and we stop being an employee while being a student
+  # This is not normal, but can happen in a transition period
+  if (deactivating_employee($patronstatus, $user_type) && is_student($patron->categorycode)) {
+    deactivate_employee_on_student($patron, $newdata);
+  }
+
+  # If it's a deactivation message, and we stop being an employee while being external
+  # This is not normal, but can happen in a transition period
+  if (deactivating_employee($patronstatus, $user_type) && is_external($patron->categorycode)) {
+    deactivate_employee_on_external($patron, $newdata);
+  }
+
+  # If it's a deactivation message, and we stop being a student while being external
+  # This is not normal, but can happen in a transition period
+  if (deactivating_student($patronstatus, $user_type) && is_external($patron->categorycode)) {
+    deactivate_student_on_external($patron, $newdata);
+  }
+}
+
+sub upgrade_student_to_employee {
+  my ($patron, $newdata) = @_;
+  
+  # When updating a student to an employee
+  # we need to save the student categorycode and userid
+  # so that they can be restored when the employee is deactivated
+
+  # Save the student categorycode
+  add_or_replace_attribute($patron, 'PREV_CAT', $patron->categorycode);
+  # Save the student userid
+  add_or_replace_attribute($patron, 'PREV_USER', $patron->userid);
+}
+
+sub activate_student_on_employee {
+  my ($patron, $newdata, $attributes) = @_;
+
+  # When an employee that is active, also becomes a student
+  # we need to save the student categorycode and userid
+  # so that they can be restored when the employee is deactivated  
+ 
+  # Save the student categorycode
+  add_or_replace_attribute($patron, 'PREV_CAT', 'S');
+  # Save the student userid
+  add_or_replace_attribute($patron, 'PREV_USER', $newdata->{'userid'});
+  # We should however not actually update the categorycode and userid
+  # to the student values, but instead keep the employee values
+  $newdata->{'categorycode'} = $patron->categorycode;
+  $newdata->{'userid'} = $patron->userid;
+  $newdata->{'email'} = $patron->email;
+}
+
+sub downgrade_student_to_external {
+  my ($patron, $newdata, $attributes) = @_;
+
+  $newdata->{'categorycode'} = "EX";
+  $newdata->{'userid'} = $patron->cardnumber;
+  $newdata->{'email'} = $patron->email;
+}
+
+sub deactivate_student_on_employee {
+  my ($patron, $newdata, $attributes) = @_;
+
+  # When an employee that is active, and has been a student
+  # stops being a student, we need to remove the saved student
+  # categorycode and userid, to avoid restoring them when the
+  # employee is deactivated
+
+  # Remove the saved student categorycode
+  remove_attribute($patron, 'PREV_CAT');
+  # Remove the saved student userid
+  remove_attribute($patron, 'PREV_USER');
+  
+  # We should however not actually update the categorycode and userid
+  # to the student values, but instead keep the employee values
+  $newdata->{'categorycode'} = $patron->categorycode;
+  $newdata->{'userid'} = $patron->userid;
+  $newdata->{'email'} = $patron->email;
+}
+
+sub deactivate_employee_on_student {
+  my ($patron, $newdata, $attributes) = @_;
+  
+  # We should not actually update the categorycode and userid
+  # to the employee values, but instead keep the student values
+  $newdata->{'categorycode'} = $patron->categorycode;
+  $newdata->{'userid'} = $patron->userid;
+  $newdata->{'email'} = $patron->email;
+}
+
+sub deactivate_employee_on_external {
+  my ($patron, $newdata, $attributes) = @_;
+  
+  # We should not actually update the categorycode and userid
+  # to the employee values, but instead keep the external values
+  $newdata->{'categorycode'} = $patron->categorycode;
+  $newdata->{'userid'} = $patron->userid;
+  $newdata->{'email'} = $patron->email;
+}
+
+sub deactivate_student_on_external {
+  my ($patron, $newdata, $attributes) = @_;
+  
+  # We should not actually update the categorycode and userid
+  # to the student values, but instead keep the external values
+  $newdata->{'categorycode'} = $patron->categorycode;
+  $newdata->{'userid'} = $patron->userid;
+  $newdata->{'email'} = $patron->email;
+}
+
+sub downgrade_employee {
+  my ($patron, $newdata, $attributes) = @_;
+
+  # When an employee stops being an employee, we need to restore
+  # the saved student categorycode and userid, if they exist
+
+  # Restore the saved student categorycode
+  my $prev_category = $patron->extended_attributes->search({code => 'PREV_CAT'})->next;
+  if ($prev_category) {
+    $newdata->{'categorycode'} = $prev_category->attribute;
+    remove_attribute($patron, 'PREV_CAT');
+  } else {
+    $newdata->{'categorycode'} = "EX";
+  }
+  # Restore the saved student userid
+  my $prev_userid = $patron->extended_attributes->search({code => 'PREV_USER'})->next;
+  if ($prev_userid) {
+    $newdata->{'userid'} = $prev_userid->attribute;
+    remove_attribute($patron, 'PREV_USER');
+    $newdata->{'email'} = $newdata->{'userid'} . '@student.gu.se';
+  } else {
+    $newdata->{'userid'} = $patron->cardnumber;
+    $newdata->{'email'} = $patron->email;
+  }
+}
+
+sub debug {
+  my ($errortext) = @_;
+
+  print $query->header(-type => 'text/xml', -status => '400 Bad data');
+  print XMLout({ status => $errortext }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+  exit 0;
+}
