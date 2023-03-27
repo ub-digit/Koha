@@ -239,18 +239,6 @@ sub remove_attribute {
 
 sub specialized_update {
   my ($patron, $patronstatus, $user_type, $newdata) = @_;
-  
-  use Data::Dumper;
-  print STDERR Dumper(["specialized_update", $patronstatus, $user_type, $newdata]);
-  print STDERR Dumper(["activating_employee", activating_employee($patronstatus, $user_type)]);
-  print STDERR Dumper(["activating_student", activating_student($patronstatus, $user_type)]);
-  print STDERR Dumper(["deactivating_employee", deactivating_employee($patronstatus, $user_type)]);
-  print STDERR Dumper(["deactivating_student", deactivating_student($patronstatus, $user_type)]);
-  print STDERR Dumper(["is_external", is_external($patron->categorycode)]);
-  print STDERR Dumper(["is_student", is_student($patron->categorycode)]);
-  print STDERR Dumper(["is_employee", is_employee($patron->categorycode)]);
-  print STDERR Dumper(["for_student", for_student($user_type)]);
-  print STDERR Dumper(["for_employee", for_employee($user_type)]);
 
   # If it's an activation message, and we go from external to student
   if (activating_student($patronstatus, $user_type) && is_external($patron->categorycode)) {
