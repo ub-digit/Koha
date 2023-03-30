@@ -14,10 +14,10 @@ sub getPatronInitials {
     my $lastName = $patron->surname();
     my $initials = "";
     if($lastName) {
-        $initials .= substr($lastName, 0, 1);
+        $initials = substr($lastName, 0, 1);
     }
     if($firstName) {
-        $initials = substr($firstName, 0, 1);
+        $initials .= substr($firstName, 0, 1);
     }
     return $initials;
 }
