@@ -26,6 +26,9 @@ sub getPatronInitials {
 # and return that as the patron's pickup code
 sub PickupCode {
     my ($self, $patron) = @_;
+    if(!defined($patron) || $patron eq "") {
+        return "";
+    }
     my $initials = getPatronInitials($patron);
     my $cardnumber = $patron->cardnumber();
     my $last4 = substr($cardnumber, -4);
