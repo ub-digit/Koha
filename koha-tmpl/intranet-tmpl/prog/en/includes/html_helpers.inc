@@ -91,8 +91,8 @@
                 [% SET kohafield = subfield.kohafield %]
             [% END %]
 
-            <li>
-                <div class="subfield_line" style="[% subfield.visibility | html %]" id="subfield[% subfield.tag | html %][% subfield.subfield | html %][% subfield.random | html %]">
+            <li style="[% subfield.visibility | html %]" >
+                <div class="subfield_line" id="subfield[% subfield.tag | html %][% subfield.subfield | html %][% subfield.random | html %]">
                     [% IF ( subfield.mandatory ) %]
                         <label class="required">[% subfield.subfield | html %] - [% subfield.marc_lib | $raw %]</label>
                     [% ELSE %]
