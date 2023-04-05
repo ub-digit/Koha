@@ -737,7 +737,6 @@ if (!defined($data{'dateenrolled'}) or $data{'dateenrolled'} eq ''){
 }
 if ( $op eq 'duplicate' ) {
     $data{'dateenrolled'} = dt_from_string;
-    $data{dateexpiry} = $category->get_expiry_date( $data{dateenrolled} );
 }
 if (C4::Context->preference('uppercasesurnames')) {
     $data{'surname'} &&= uc( $data{'surname'} );
