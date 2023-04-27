@@ -1561,6 +1561,10 @@ legend:hover {
                                                                 <label for="[% patron_attribute.form_id | html %]">[% patron_attribute.description | html %]: </label>
                                                             [% END %]
                                                             [% IF ( patron_attribute.use_dropdown ) %]
+                                                                [% UNLESS ExtendedAttributeProperties.isEditable(patron_attribute) %]
+                                                                    <input type="hidden" id="[% patron_attribute.form_id | html %]" name="[% patron_attribute.form_id | html %]" value="[% patron_attribute.value | html %]" />
+                                                                [% END %]
+
                                                                 [% IF patron_attribute.mandatory %]
                                                                     <select id="[% patron_attribute.form_id | html %]" name="[% patron_attribute.form_id | html %]" required="required" [% attribute_style %]>
                                                                 [% ELSE %]
