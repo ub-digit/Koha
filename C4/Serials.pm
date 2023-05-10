@@ -621,32 +621,34 @@ sub SearchSubscriptions {
     my $dbh = C4::Context->dbh;
     my $sth = $dbh->prepare($query);
     $sth->execute(@where_args);
-    my $results =  $sth->fetchall_arrayref( {} );
+    my $results = $sth->fetchall_arrayref( {} );
 
     my %additional_fields_by_id = map { $_->id => $_->name } Koha::AdditionalFields->search( { tablename => 'subscription' } )->as_list;
-
-    for my $subscription ( @$results ) {
-        $subscription->{cannotedit} = not can_edit_subscription( $subscription );
-        $subscription->{cannotdisplay} = not can_show_subscription( $subscription );
-
-        if (%additional_fields_by_id) {
-            my @additional_field_values = Koha::AdditionalFieldValues->search(
-                {
-                    field_id => { -in => [ keys %additional_fields_by_id ] },
-                    record_id => $subscription->{subscriptionid}
-                }
-            )->as_list;
-
-            $subscription->{additional_fields} = {
-                map { $additional_fields_by_id{$_->field_id} => $_->value } @additional_field_values
-            };
+    if (%additional_fields_by_id) {
+        my %subscriptions_by_id = map { $_->{subscriptionid } => $_ } @{$results};
+        my $field_values_rs = Koha::AdditionalFieldValues->search(
+            {
+                field_id => { -in => [ keys %additional_fields_by_id ] },
+                record_id => { -in => [ keys %subscriptions_by_id ] }
+            }
+        );
+        while (my $field_value = $field_values_rs->next) {
+            my $field_name = $additional_fields_by_id{$field_value->field_id};
+            $subscriptions_by_id{$field_value->record_id}->{additional_fields}->{$field_name} = $field_value->value;
         }
-        else {
+    }
+    else {
+        for my $subscription ( @{$results} ) {
             $subscription->{additional_fields} = {};
         }
     }
 
-    return @$results;
+    for my $subscription ( @{$results} ) {
+        $subscription->{cannotedit} = not can_edit_subscription( $subscription );
+        $subscription->{cannotdisplay} = not can_show_subscription( $subscription );
+    }
+
+    return @{$results};
 }
 
 
