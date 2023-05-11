@@ -115,6 +115,7 @@ use Koha::SearchEngine::Indexer;
 use Koha::Libraries;
 use Koha::Util::MARC;
 use Koha::MetadataRecord;
+use Koha::AuthorisedValues;
 
 =head1 NAME
 
@@ -1452,28 +1453,17 @@ sub GetAuthorisedValueDesc {
     }
 
     my $dbh = C4::Context->dbh;
-    if ( $category ne "" ) {
-        $cache_key = "AV_descriptions:" . $category;
-        my $av_descriptions = $cache->get_from_cache( $cache_key, { unsafe => 1 } );
-        if ( !$av_descriptions ) {
-            $av_descriptions = {
-                map {
-                    $_->authorised_value =>
-                      { lib => $_->lib, lib_opac => $_->lib_opac }
-                } Koha::AuthorisedValues->search(
-                    { category => $category },
-                    {
-                        columns => [ 'authorised_value', 'lib_opac', 'lib' ]
-                    }
-                )->as_list
-            };
-            $cache->set_in_cache($cache_key, $av_descriptions);
-        }
-        return ( $opac && $av_descriptions->{$value}->{'lib_opac'} )
-          ? $av_descriptions->{$value}->{'lib_opac'}
-          : $av_descriptions->{$value}->{'lib'};
+    if ( $category ) {
+        my $description = Koha::AuthorisedValues->get_description_by_category_and_authorised_value(
+            {
+                category => $category,
+                authorised_value => $value
+            }
+        );
+        return $opac ?
+            $description->{'opac_description'} : $description->{'lib'};
     } else {
-        return $value;    # if nothing is found return the original value
+        return $value; # if nothing is found return the original value
     }
 }
 
