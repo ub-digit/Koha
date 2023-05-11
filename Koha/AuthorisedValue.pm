@@ -52,18 +52,15 @@ sub store {
     }
     else {
         my %updated_columns = $self->_result->get_dirty_columns;
-
-        if (   exists $updated_columns{lib}
-            or exists $updated_columns{lib_opac} )
-        {
-            $flush = 1;
-        }
+        $flush = exists $updated_columns{lib}
+            or exists $updated_columns{lib_opac};
     }
 
     $self = $self->SUPER::store;
 
     if ($flush) {
-        my $key = "AV_descriptions:".$self->category;
+        my $category = $self->category;
+        my $key = "AV_descriptions:$category";
         $cache->clear_from_cache($key);
     }
 
@@ -78,7 +75,8 @@ AuthorisedValue specific C<delete> to clear relevant caches on delete.
 
 sub delete {
     my $self = shift @_;
-    my $key = "AV_descriptions:".$self->category;
+    my $category = $self->category;
+    my $key = "AV_descriptions:$category";
     $cache->clear_from_cache($key);
     $self->SUPER::delete(@_);
 }
