@@ -1103,15 +1103,15 @@ sub article_request_fee {
 
     $library_id //= C4::Context->userenv ? C4::Context->userenv->{'branch'} : undef;
 
-    my $fee = Koha::CirculationRules->get_effective_rule_value(
+    my $value = Koha::CirculationRules->get_effective_rule_value(
         {
             branchcode   => $library_id,
             categorycode => $self->categorycode,
             rule_name    => 'article_request_fee'
         }
-    ) + 0;
+    );
 
-    return $fee;
+    return $value ? $value + 0 : 0;
 }
 
 =head3 add_article_request_fee_if_needed
