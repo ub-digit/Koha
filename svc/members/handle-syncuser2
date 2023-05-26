@@ -261,7 +261,7 @@ sub specialized_update {
   }
 
   # If it's a deactivation message, and we go from student to external
-  if (deactivating_student($patronstatus, $user_type) && is_student($patron->categorycode) && !is_employee($categorycode)) {
+  if (deactivating_student($patronstatus, $user_type) && is_student($patron->categorycode) && !is_employee($patron->categorycode)) {
     downgrade_student_to_external($patron, $newdata);
   }
 
