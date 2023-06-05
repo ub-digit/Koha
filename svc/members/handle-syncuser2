@@ -164,9 +164,9 @@ if (!$borrowernumber) {
   if($patron->categorycode ne $categorycode) {
     $newdata{'categorycode'} = $categorycode;
   }
-  if($query->param('email')) {
-    $newdata{'email'} = $query->param('email');
-  }
+  # if($query->param('email')) {
+  #   $newdata{'email'} = $query->param('email');
+  # }
 
   specialized_update($patron, $patronstatus, $user_type, \%newdata);
   $patron->set(\%newdata)->store;
