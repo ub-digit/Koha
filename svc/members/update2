@@ -60,6 +60,7 @@ else { #$action eq 'update'
   my $email = $query->param('email');
   my $msgtype = $query->param('msgtype');
   my $last_employment_date = $query->param('last_employment_date');
+  my $gna = $borrower->unblessed->{'gonenoaddress'};
 
   my $existing_pnr12_obj = $borrower->get_extended_attribute("PNR12");
   my $existing_pnr_obj = $borrower->get_extended_attribute("PNR");
@@ -90,6 +91,50 @@ else { #$action eq 'update'
 
   if ($surname) {
     $newdata{'surname'} = $surname;
+  }
+
+  if ($gna == 1) {
+    my $address = $query->param('address');
+    if ($address) {
+      $newdata{'address'} = $address;
+      $newdata{'gonenoaddress'} = 0;
+    }
+    my $city = $query->param('city');
+    if ($city) {
+      $newdata{'city'} = $city;
+    }
+    my $address2 = $query->param('address2');
+    if ($address2) {
+      $newdata{'address2'} = $address2;
+    }
+    my $zipcode = $query->param('zipcode');
+    if ($zipcode) {
+      $newdata{'zipcode'} = $zipcode;
+    }
+    my $country = $query->param('country');
+    if ($country) {
+      $newdata{'country'} = $country;
+    }
+    my $b_address = $query->param('b_address');
+    if ($b_address) {
+      $newdata{'B_address'} = $b_address;
+    }
+    my $b_address2 = $query->param('b_address2');
+    if ($b_address2) {
+      $newdata{'B_address2'} = $b_address2;
+    }
+    my $b_zipcode = $query->param('b_zipcode');
+    if ($b_zipcode) {
+      $newdata{'B_zipcode'} = $b_zipcode;
+    }
+    my $b_city = $query->param('b_city');
+    if ($b_city) {
+      $newdata{'B_city'} = $b_city;
+    }
+    my $b_country = $query->param('b_country');
+    if ($b_country) {
+      $newdata{'B_country'} = $b_country;
+    }
   }
 
   # if ($phone) {
