@@ -21,6 +21,9 @@ use Koha::Database;
 use Koha::Exceptions::Patron::Attribute;
 use Koha::Patron::Attribute::Types;
 use Koha::AuthorisedValues;
+use Koha::Cache::Memory::Lite;
+use C4::Log qw( logaction );
+use JSON qw( to_json );
 
 use base qw(Koha::Object);
 
@@ -55,7 +58,46 @@ sub store {
     Koha::Exceptions::Patron::Attribute::UniqueIDConstraint->throw( attribute => $self )
         unless $self->unique_ok();
 
+    # Only log for non-repeatable attributes
+    if (!$self->type->repeatable) {
+        my $key = "patron_attribute_" . $self->borrowernumber . "_" . $self->code;
+        my $cache = Koha::Cache::Memory::Lite->get_instance();
+        my $previous_value = $cache->get($key);
+
+        my $change;
+        if ( !defined $previous_value ) {
+            $change = {
+                before => "",
+                after  => $self->attribute
+            };
+        } else {
+            if ( $previous_value->{attribute} ne $self->attribute ) {
+                $change = {
+                    before => $previous_value->{attribute},
+                    after  => $self->attribute
+                };
+            }
+        }
+        $cache->clear_from_cache($key);
+        if (defined $change) {
+            logaction( "MEMBERS", "MODIFY", $self->borrowernumber, "Patron attribute " . 
+                        $self->code . ": " . to_json($change, { pretty => 1, canonical => 1 }) );
+        }
+    }
+
     return $self->SUPER::store();
+}
+
+sub delete {
+    my ($self) = @_;
+
+    if (!$self->type->repeatable) {
+        my $key = "patron_attribute_" . $self->borrowernumber . "_" . $self->code;
+        my $cache = Koha::Cache::Memory::Lite->get_instance();
+        $cache->set($key, $self->unblessed);
+    }
+
+    return $self->SUPER::delete($self);
 }
 
 =head3 type
