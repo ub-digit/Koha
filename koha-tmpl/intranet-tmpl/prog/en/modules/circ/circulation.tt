@@ -946,6 +946,8 @@
                     [% IF ( CircAutoPrintQuickSlip == 'clear' ) %]
                         window.location='/cgi-bin/koha/circ/circulation.pl';
                         return false;
+                    [% ELSIF ( CircAutoPrintQuickSlip == 'ignore' ) %]
+                        return false;
                     [% ELSE %]
                         return printx_window( '[% CircAutoPrintQuickSlip | html %]' );
                     [% END %]
