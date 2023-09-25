@@ -78,6 +78,11 @@ foreach my $option (@$messaging_options) {
     }
 }
 
+# Allow update of PIN if categorycode is local and not GU related
+if (can_update_pin($borrower)) {
+    update_pin($borrower, $query);
+}
+
 print $query->header(-type => 'application/json',-charset => 'utf-8');
 print to_json({ status => "ok" });
 
@@ -87,4 +92,31 @@ sub add {
 #    if ($query->param($field)) {
     $hash->{$field} = $query->param($field);
 #    }
+}
+
+sub can_update_pin {
+    my ($borrower, $query) = @_;
+
+    # Only categorycodes EX, UX, FR, FX and SR can update their PIN
+    my $categorycode = $borrower->categorycode;
+    return 1 if $categorycode =~ /^(EX|UX|FR|FX|SR)$/;
+    return 0;
+}
+
+sub update_pin {
+    my ($borrower) = @_;
+    my $pin = $query->param('pin');
+    # Only allow update if "pin" is set and contains exactly 4 digits
+    return unless $pin =~ /^\d{4}$/;
+
+    my $existing_pin_obj = $borrower->get_extended_attribute("PIN");
+    if ($existing_pin_obj) {
+        my $existing_pin = $existing_pin_obj->attribute;
+        if ($pin ne $existing_pin) {
+            $borrower->extended_attributes->search({code => "PIN"})->delete;
+            $borrower->add_extended_attribute({code => "PIN", attribute => $pin});
+        }
+    } else {
+        $borrower->add_extended_attribute({code => "PIN", attribute => $pin});
+    }
 }

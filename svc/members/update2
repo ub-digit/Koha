@@ -42,6 +42,21 @@ elsif ($action eq 'cardinvalid') {
     AddDebarment({borrowernumber => $borrowernumber, type => "MANUAL", comment => "GU, GU-spärr"});
   }
 }
+elsif ($action eq "updatepin") {
+  my $patrons = Koha::Patrons->search({borrowernumber => $borrowernumber});
+  my $borrower = $patrons->next;
+  my $pin = $query->param('pin');
+  my $existing_pin_obj = $borrower->get_extended_attribute("PIN");
+  if ($existing_pin_obj) {
+    my $existing_pin = $existing_pin_obj->attribute;
+    if ($pin ne $existing_pin) {
+      $borrower->extended_attributes->search({code => "PIN"})->delete;
+      $borrower->add_extended_attribute({code => "PIN", attribute => $pin});
+    }
+  } else {
+    $borrower->add_extended_attribute({code => "PIN", attribute => $pin});
+  }
+}
 else { #$action eq 'update'
   my $patrons = Koha::Patrons->search({borrowernumber => $borrowernumber});
   my $borrower = $patrons->next;
@@ -58,6 +73,7 @@ else { #$action eq 'update'
   my $surname = $query->param('surname');
   my $phone = $query->param('phone');
   my $email = $query->param('email');
+  my $pin = $query->param('pin');
   my $msgtype = $query->param('msgtype');
   my $last_employment_date = $query->param('last_employment_date');
   my $gna = $borrower->unblessed->{'gonenoaddress'};
@@ -72,7 +88,16 @@ else { #$action eq 'update'
   if ($existing_pnr12_obj) {
     $existing_pnr12 = $existing_pnr12_obj->attribute;
   }
-
+  my $existing_pin_obj = $borrower->get_extended_attribute("PIN");
+  if ($existing_pin_obj) {
+    my $existing_pin = $existing_pin_obj->attribute;
+    if ($pin ne $existing_pin) {
+      $borrower->extended_attributes->search({code => "PIN"})->delete;
+      $borrower->add_extended_attribute({code => "PIN", attribute => $pin});
+    }
+  } else {
+    $borrower->add_extended_attribute({code => "PIN", attribute => $pin});
+  }
 
   # If new pnr is present, update in Koha
   if ($newpnr) {
