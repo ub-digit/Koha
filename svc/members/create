@@ -140,6 +140,10 @@ foreach my $debarment (@debarments) {
   }
 }
 
+# Allow update of PIN if categorycode is local and not GU related
+if (can_update_pin($patron)) {
+    update_pin($patron, $query);
+}
 
 # Set messaging format if parameter is set
 if ($messaging_format) {
@@ -160,3 +164,30 @@ if ($messaging_format) {
 
 print $query->header(-type => 'text/xml',-charset => 'utf-8', -status => '201');
 print XMLout({ borrownumber => $borrowernumber }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+
+sub can_update_pin {
+    my ($borrower) = @_;
+
+    # Only categorycodes EX, UX, FR, FX and SR can update their PIN
+    my $categorycode = $borrower->categorycode;
+    return 1 if $categorycode =~ /^(EX|UX|FR|FX|SR)$/;
+    return 0;
+}
+
+sub update_pin {
+    my ($borrower, $query) = @_;
+    my $pin = $query->param('pin');
+    # Only allow update if "pin" is set and contains exactly 4 digits
+    return unless $pin =~ /^\d{4}$/;
+
+    my $existing_pin_obj = $borrower->get_extended_attribute("PIN");
+    if ($existing_pin_obj) {
+        my $existing_pin = $existing_pin_obj->attribute;
+        if ($pin ne $existing_pin) {
+            $borrower->extended_attributes->search({code => "PIN"})->delete;
+            $borrower->add_extended_attribute({code => "PIN", attribute => $pin});
+        }
+    } else {
+        $borrower->add_extended_attribute({code => "PIN", attribute => $pin});
+    }
+}
