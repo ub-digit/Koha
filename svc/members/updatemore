@@ -95,7 +95,7 @@ sub add {
 }
 
 sub can_update_pin {
-    my ($borrower, $query) = @_;
+    my ($borrower) = @_;
 
     # Only categorycodes EX, UX, FR, FX and SR can update their PIN
     my $categorycode = $borrower->categorycode;
@@ -104,7 +104,7 @@ sub can_update_pin {
 }
 
 sub update_pin {
-    my ($borrower) = @_;
+    my ($borrower, $query) = @_;
     my $pin = $query->param('pin');
     # Only allow update if "pin" is set and contains exactly 4 digits
     return unless $pin =~ /^\d{4}$/;
