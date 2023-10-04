@@ -394,6 +394,7 @@ my $sms = $input->param('SMSnumber');
 if ( defined $sms ) {
     $newdata{smsalertnumber} = $sms;
 }
+$newdata{sms_provider_id} = 1;
 
 ###  Error checks should happen before this line.
 $nok = $nok || scalar(@errors);
