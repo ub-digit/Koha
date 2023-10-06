@@ -20,6 +20,7 @@ unless ($status eq "ok") {
   exit 0;
 }
 my $userid= $query->url_param('borrower');
+$userid =~ s/^\s+|\s+$//g;
 my $patrons = Koha::Patrons->search({userid => $userid});
 my $borrower = $patrons->next;
 
