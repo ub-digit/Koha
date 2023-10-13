@@ -1,0 +1,473 @@
+[% USE raw %]
+[% USE To %]
+[% USE Asset %]
+[% USE JSON.Escape %]
+[% USE Koha %]
+[% USE Biblio %]
+[% USE KohaDates %]
+[% USE Branches %]
+[% USE Categories %]
+[% USE ItemTypes %]
+[% USE AuthorisedValues %]
+[% USE Price %]
+[% USE TablesSettings %]
+[% PROCESS 'i18n.inc' %]
+[% SET footerjs = 1 %]
+[% INCLUDE 'doc-head-open.inc' %]
+[% SET libraries = Branches.all %]
+[% SET categories = Categories.all.unblessed %]
+[% SET columns = ['name', 'cardnumber', 'dateofbirth', 'category', 'branch', 'address', 'phone'] %]
+[% PROCESS "patron-search.inc" %]
+<title>[% FILTER collapse %]
+    [% title_in_title = INCLUDE 'biblio-title-head.inc' %]
+    [% tx("Reservera {title}", { title = title_in_title }) | html %] &rsaquo;
+    [% t("Reservationer") | html %] &rsaquo;
+    [% t("Cirkulation") | html %] &rsaquo;
+    [% t("Koha") | html %]
+[% END %]</title>
+[% INCLUDE 'doc-head-close.inc' %]
+[% FILTER collapse %]
+    <style>
+        a.hold-arrow {
+            display:inline-block;
+            padding:3px;
+        }
+        a.hold-arrow:link,
+        a.hold-arrow:visited {
+            color: #538200;
+        }
+
+        a.hold-arrow:hover,
+        a.hold-arrow:active{
+            color: #75b700;
+        }
+
+        .hold-arrow:hover i,
+        .hold-arrow:active i {
+            border-color: #75b700;
+        }
+
+        a.cancel-hold {
+            display:inline-block;
+            padding:3px;
+        }
+
+        a.cancel-hold:link,
+        a.cancel-hold:visited{
+            color:#c00;
+            font-size:130%
+        }
+
+        .icon-move-hold-up::before {
+            content: "\f062";
+        }
+
+        .icon-move-hold-top {
+            border-top: 2px solid #538200;
+            display: inline;
+        }
+
+        .icon-move-hold-top::before {
+            content: "\f062";
+        }
+
+        .icon-move-hold-bottom {
+            border-bottom: 2px solid #538200;
+            display: inline;
+        }
+
+        .icon-move-hold-bottom::before {
+            content: "\f063";
+        }
+
+        .icon-move-hold-down::before {
+            content: "\f063";
+        }
+
+        .icon-unset-lowest::before {
+            content: "\f050";
+        }
+
+        .icon-set-lowest::before {
+            content: "\f04e";
+        }
+    </style>
+[% END %]
+</head>
+
+<body id="circ_request" class="catalog">
+
+[% WRAPPER 'header.inc' %]
+    [% INCLUDE 'circ-search.inc' %]
+[% END %]
+
+[% WRAPPER 'sub-header.inc' %]
+    [% WRAPPER breadcrumbs %]
+        [% WRAPPER breadcrumb_item %]
+            <a href="/cgi-bin/koha/catalogue/search.pl">Catalog</a>
+        [% END %]
+        [% WRAPPER breadcrumb_item %]
+            [% INCLUDE 'biblio-title.inc' link =1 %]
+        [% END %]
+        [% WRAPPER breadcrumb_item bc_active= 1 %]
+            <span>Reservera</span>
+        [% END %]
+    [% END #/ WRAPPER breadcrumbs %]
+[% END #/ WRAPPER sub-header.inc %]
+
+<div class="main container-fluid">
+    <div class="row">
+        [% IF ( nobiblio ) # No sidebar menu when placing multiple holds or biblio not found %]
+            <div class="col-md-10 col-md-offset-1">
+        [% ELSE %]
+            <div class="col-sm-10 col-sm-push-2">
+        [% END %]
+
+        <main>
+            <h1>Reservationer</h1>
+
+            [% IF ( nobiblio ) %]
+                <div class="dialog alert">
+                <strong>Kan inte reservera:</strong> posten finns inte.
+                </div>
+            [% END %]
+            [% IF ( nosubscriptions ) %]
+                <div class="dialog alert">
+                <strong>Kan inte reservera:</strong> denna post har inga kopplade prenumerationer.
+                </div>
+            [% END %]
+
+            <h2>Reservera [% INCLUDE 'biblio-title.inc' link = 1 %] [% IF biblio.author %] by [% biblio.author | html %][% END %]</h2>
+
+            [% UNLESS patron OR patron.borrowernumber OR nosubscriptions OR nobiblio %]
+                [% IF ( messageborrower ) %]
+                    <div class="dialog alert">
+                        <h3>Patron not found</h3>
+                        <p>No patron with this name, please, try another</p>
+                    </div>
+                [% END %]
+
+                <fieldset>
+                    <h2>Sök låntagare</h2>
+
+                    [% WRAPPER tabs id= "circ_holds_select" %]
+                        [% WRAPPER tabs_nav %]
+                            [% WRAPPER tab_item tabname= "holds_patronsearch_pane" bt_active= 1 %] <span>Låntagare</span> [% END %]
+                        [% END # /WRAPPER tabs_nav %]
+
+                        [% WRAPPER tab_panels %]
+                            [% WRAPPER tab_panel tabname="holds_patronsearch_pane" bt_active= 1 %]
+                                [% PROCESS patron_search_filters_simple %]
+
+                                [% PROCESS patron_search_table table_id => 'table_borrowers', open_on_row_click => 1 %]
+                            [% END # /tab_panel# %]
+                        [% END # /WRAPPER tab_panels %]
+                    [% END # /WRAPPER tabs %]
+                </fieldset>
+            [% ELSIF NOT ( noitems || nobiblio ) # /UNLESS patron %]
+
+                [% IF ( messageborrower ) %]
+                    <div class="dialog alert">
+                        <h3>Patron not found:</h3>
+                        <p>Name or barcode not found. Please try an other </p>
+                    </div>
+                [% END %]
+
+                <div class="dialog alert hide holdalert">
+                </div>
+
+                <fieldset class="rows">
+                    <legend>Reservationsdetaljer</legend>
+                    <form action="placerequest_subscription.pl" method="post" name="form" id="hold-request-form">
+
+                        <input type="hidden" name="borrowernumber" value="[% patron.borrowernumber | html %]" />
+                        [% FOREACH biblionumber IN biblionumbers %]
+                            <input type="hidden" name="biblionumber" value="[% biblionumber | html %]"/>
+                        [% END %]
+
+                        <input type="hidden" name="holdable_bibs" id="holdable_bibs" value="[% biblio.biblionumber | html %]"/>
+                        <input type="hidden" name="title" value="[% biblio.title | html %]" />
+                        <input type="hidden" name="rank-request" value="[% fixedRank | html %]" />
+
+                        <ol>
+                            <li>
+                                <span class="label">Låntagare:</span>
+                                [% IF ( patron.borrowernumber ) %]
+                                    [% INCLUDE 'patron-title.inc' patron => patron no_title => 1 no_cardnumber => 1 hide_patron_infos_if_needed => 1 %]
+                                [% ELSE %]
+                                    Not defined yet
+                                [% END %]
+                            </li>
+
+                            <li>
+                                <label for="holdnotes">Detaljer om beställningen:</label>
+                                <input id="holdnotes" name="notes" maxlength="140" size="60"></textarea>
+                            </li>
+                            <li>
+                                <label for="pickup">Hämta på:</label>
+                                <select name="pickup" id="pickup"
+                                        data-biblio-id="[% biblio.biblionumber | html %]"
+                                        data-patron-id="[% patron.borrowernumber | html %]"
+                                        data-pickup-location-source="biblio">
+                                    [% PROCESS options_for_libraries libraries => Branches.pickup_locations({ search_params => { biblio => biblionumber, patron => patron }, selected => pickup }) %]
+                                </select>
+                            </li>
+                        </ol>
+
+                        [% biblio = biblioloop.0 %]
+                        <h4>Välj prenumeration</h4>
+                        <table id="ub_subscription_select">
+                          <tbody>
+                            [% FOREACH subscriptionloo IN biblio.subscriptionloop %]
+                              <tr>
+                                <td>
+                                  [% IF ( subscriptioncount == 1 ) %]
+                                    <input type="radio" checked="checked" name="checksubscription" value="[% subscriptionloo.subscriptionid | html %]" />
+                                  [% ELSE %]
+                                    <input type="radio" name="checksubscription" value="[% subscriptionloo.subscriptionid | html %]" />
+                                  [% END %]
+                                </td>
+                                <td>
+                                  [% IF subscriptionloo.branchcode %]
+                                      <h3>På bibliotek: [% Branches.GetName(subscriptionloo.branchcode) || subscriptionloo.branchcode | html %]</h3>
+                                  [% END %]
+                                  [% IF ( subscriptionloo.closed ) %]<p>Denna prenumeration är avslutad.</p>[% END %]
+                                  [% IF ( subscriptionloo.location ) %]<p class="subscription_location"><strong>Plats:</strong> [% AuthorisedValues.GetDescriptionByKohaField( kohafield => 'items.location', authorised_value => subscriptionloo.location ) | html %]</p>[% END %]
+                                  [% IF ( subscriptionloo.callnumber ) %]<p><strong>Hyllsignatur:</strong> [% subscriptionloo.callnumber | html %] </p>[% END %]
+                                  [% IF ( subscriptionloo.subscriptionnotes ) %]<p>[% subscriptionloo.subscriptionnotes | html | html_line_break %] </p>[% END %]
+                                  [% IF ( subscriptionloo.missinglist ) %]<p><strong>Saknar nummer:</strong><br/> [% subscriptionloo.missinglist | html | html_line_break %] </p>[% END %]
+                                  [% IF ( subscriptionloo.recievedlist ) %]<p><strong>Mottagna nummer:</strong><br/> [% subscriptionloo.recievedlist | html | html_line_break %] </p>[% END %]
+                                  [% IF ( subscriptionloo.librariannote ) %]<p><em>([% subscriptionloo.librariannote | html %])</em></p>[% END %]
+                                </td>
+                              </tr>
+                            [% END %]
+                          </tbody>
+                        </table>
+
+                        <fieldset class="action">
+                            [% IF ( patron AND patron.borrowernumber ) %]
+                                <button type="submit" class="btn btn-primary">Reservera</button>
+                            [% END # /IF patron %]
+                        </fieldset> <!-- /.action -->
+                    </form> <!-- /#hold-request-form -->
+                </fieldset> <!-- /.rows -->
+            [% END %]
+        </main>
+
+        [% IF ( nobiblio ) # No sidebar menu when placing multiple holds or biblio not found %]
+            </div> <!-- /.col-md-10.col-md-offset-1 -->
+        [% ELSE %]
+            </div> <!-- /.col-sm-10.col-sm-push-2 -->
+                <div class="col-sm-2 col-sm-pull-10">
+                    <aside>
+                        [% INCLUDE 'biblio-view-menu.inc' %]
+                    </aside>
+                </div> <!-- /.col-sm-2.col-sm-pull-10 -->
+        [% END %]
+    </div> <!-- /.row -->
+
+[% MACRO jsinclude BLOCK %]
+    [% INCLUDE 'datatables.inc' %]
+    [% INCLUDE 'calendar.inc' %]
+    [% INCLUDE 'columns_settings.inc' %]
+    [% Asset.js("lib/hc-sticky.js") | $raw %]
+    [% INCLUDE 'select2.inc' %]
+    [% Asset.js("js/holds.js") | $raw%]
+
+    [% SET url_biblio_params = "biblionumber=" _ biblionumbers.join("&amp;biblionumber=") %]
+
+    <script>
+        var Sticky;
+        var biblionumbers = [[% biblionumbers.join(', ') | $raw %]];
+        var borrowernumber = "[% patron.borrowernumber | $raw %]";
+        var patron_homebranch = "[% To.json( Branches.GetName( patron.branchcode ) ) | $raw %]";
+        var override_items = {[% FOREACH biblio IN biblioloop %][% FOREACH itemloo IN biblio.itemloop %][% IF ( itemloo.override ) %]
+        [% itemloo.itemnumber | html %]: {
+            homebranch: "[% To.json( Branches.GetName( itemloo.homebranch ) ) | $raw %]",
+            holdallowed: "[% itemloo.holdallowed | html %]"
+            },
+            [% END %][% END %][% END %]
+        };
+
+        var MSG_CANCEL_SELECTED = _("Cancel selected (%s)");
+        $.fn.select2.defaults.set("width", "100%" );
+        $.fn.select2.defaults.set("dropdownAutoWidth", true );
+
+        $(document).ready(function() {
+            $('#cancellation-reason-fieldset').hide();
+            $('.rank-request').on('change', function() {
+                if ( $(".rank-request option:selected[value='del']").length ) {
+                    $('#cancellation-reason-fieldset').show();
+                } else {
+                    $('#cancellation-reason-fieldset').hide();
+                }
+            });
+
+            if( $("#circ_holds_select").length > 0 ){
+                [% SET active = clubs ? 1 : 0 %]
+                /* Set active tab based on whether a club search was submitted */
+                var tabs = $("#circ_holds_select li:eq(" + [% active | $raw %] + ") a").tab("show");
+                $( tabs[0].hash ).find("input.focus").focus();
+
+                /* Change active focus when tabs change */
+                $("#circ_holds_select a[data-toggle='tab']").on("shown.bs.tab", function (e) {
+                    active_tab = e.target.hash;
+                    $( active_tab ).find("input.focus").focus();
+                });
+            }
+
+
+            function ToggleHoldsToPlace() {
+                if ( $("#requestany").prop('checked') ) {
+                    $("#holds_to_place_count").prop('disabled', false);
+                } else {
+                    $("#holds_to_place_count").prop('disabled', true);
+                }
+            }
+            ToggleHoldsToPlace();
+            $("#requestany").on('change', function(){
+                ToggleHoldsToPlace();
+            });
+
+            var my_table = $("#requestspecific").dataTable($.extend(true, {}, dataTablesDefaults, {
+                'bPaginate': false,
+                "sDom": '<"top pager"ilf>t',
+            }));
+
+            //Override fieldset styling for dataTables search box
+            $("div.top.pager").css("margin-left","1em");
+            $(".dataTables_filter label").css({
+                "width":"auto",
+                "margin-right":"0em"
+            });
+
+            $("#hold-request-form").on("submit", function(e){
+                return check(e, $(this));
+            });
+
+            $(".pickup_location_dropdown").each( function () {
+                $(this).pickup_locations_dropdown();
+            });
+
+            $("#pickup_multi").select2({
+                width: '30%',
+                allowClear: true
+            });
+
+            $('.multi_pickup_select').select2({
+                width: '100%',
+                allowClear: true
+            });
+
+            $("#pickup").each( function () {
+                $(this).pickup_locations_dropdown();
+            });
+
+            $(".pickup_locations").each(function () {
+                $(this).pickup_locations_dropdown();
+            });
+        });
+
+        function check( e, table ) {
+
+            var msg = "";
+
+            if ( $('#ub_subscription_select input[type="radio"]:checked').length == 0 ) {
+                msg = (_("- Välj en prenumeration") + "\n");
+            }
+            if( $("#pickup").length < 1 || $("#pickup").val() == "" || $('#pickup').val() === null ){
+                msg = _("- Välj ett avhämtningsbibliotek" + "\n");
+            }
+            if( $("#holdnotes").length < 1 || $("#holdnotes").val() == "" || $('#holdnotes').val() === null ){
+                msg = _("- Fyll i beställningsdetaljer" + "\n");
+            }
+
+            if (msg == "") {
+                $('#hold-request-form').preventDoubleFormSubmit();
+                return(true);
+            } else {
+                e.preventDefault();
+                alert(msg);
+                return(false);
+            }
+        }
+
+         $(document).ready(function() {
+            $(".clear-date").on("click",function(e){
+                e.preventDefault();
+                var fieldID = this.id.replace("clear-date-","");
+                $("#" + fieldID).val("");
+            });
+
+            [% UNLESS ( patron || patron.borrowernumber || borrowers || noitems || nobiblio ) %]
+                [% IF ( PatronAutoComplete ) %]
+                    patron_autocomplete($("#search_patron_filter"), { 'link-to': 'reserve_subscription', 'url-params': '[% url_biblio_params | url %]' });
+                [% END %]
+            [% END %]
+
+            Sticky = $("#toolbar");
+            Sticky.hcSticky({
+                stickTo: "#existing_holds",
+                stickyClass: "floating"
+            });
+
+            if(!localStorage.selectedHolds  || document.referrer.replace(/\?.*/, '') !== document.location.origin+document.location.pathname) {
+                localStorage.selectedHolds = [];
+            }
+
+            $('.holds_table .select_hold').each(function() {
+                if(localStorage.selectedHolds.includes($(this).data('id'))) {
+                    $(this).prop('checked', true);
+                }
+            });
+
+            $('.holds_table .select_hold_all').each(function() {
+                var table = $(this).parents('.holds_table');
+                var count = $('.select_hold:not(:checked)', table).length;
+                $('.select_hold_all', table).prop('checked', !count);
+            });
+
+            $('.cancel_selected_holds').html(MSG_CANCEL_SELECTED.format($('.holds_table .select_hold:checked').length));
+
+            $('.holds_table .select_hold_all').click(function() {
+                var table = $(this).parents('.holds_table');
+                var count = $('.select_hold:checked', table).length;
+                $('.select_hold', table).prop('checked', !count);
+                $(this).prop('checked', !count);
+                $('.cancel_selected_holds').html(MSG_CANCEL_SELECTED.format($('.holds_table .select_hold:checked').length));
+                localStorage.selectedHolds = $('.holds_table .select_hold:checked').toArray().map(el => $(el).data('id'));
+            });
+
+            $('.holds_table .select_hold').click(function() {
+                var table = $(this).parents('.holds_table');
+                var count = $('.select_hold:not(:checked)', table).length;
+                $('.select_hold_all', table).prop('checked', !count);
+                $('.cancel_selected_holds').html(MSG_CANCEL_SELECTED.format($('.holds_table .select_hold:checked').length));
+                localStorage.selectedHolds = $('.holds_table .select_hold:checked').toArray().map(el => $(el).data('id'));
+            });
+
+            $('.cancel_selected_holds').click(function(e) {
+                e.preventDefault();
+                if($('.holds_table .select_hold:checked').length) {
+                    cancel_link = $(this);
+                    delete localStorage.selectedHolds;
+                    $('#cancelModal').modal();
+                }
+                return false;
+            });
+        });
+    </script>
+
+    <script>
+        table_settings = [% TablesSettings.GetColumns( 'circ', 'circulation', 'table_borrowers', 'json' ) | $raw %];
+    </script>
+
+    [% PROCESS patron_search_js table_id => 'table_borrowers', categories => categories, libraries => libraries, extended_attribute_types => attribute_type_codes, columns => columns, open_on_row_click => 1, on_click_url => '/cgi-bin/koha/reserve/request_subscription.pl?' _ url_biblio_params, redirect_if_one_result => 1, redirect_url => '/cgi-bin/koha/reserve/request_subscription.pl?' _ url_biblio_params, redirect_if_attribute_equal => 'cardnumber' %]
+    <script>
+        $(document).ready(function() {
+            $("#holds_patronsearch").on("submit", filter);
+        });
+    </script>
+[% END %]
+
+[% INCLUDE 'intranet-bottom.inc' %]
