@@ -112,10 +112,10 @@ while (1) {
             my $body = $frame->body;
             decode_json($body); # TODO Should this be from_json? Check utf8 flag.
         } catch {
+            # ACK to broker on failure, since this will not be processable in the future anyway.
+            $conn->ack( { frame => $frame } );
             $logger->warn(sprintf "Frame not processed - %s", $_);
             return;
-        } finally {
-            $conn->ack( { frame => $frame } );
         };
 
         next unless $args;
@@ -125,9 +125,17 @@ while (1) {
         my $job = Koha::BackgroundJobs->find($args->{job_id});
 
         unless ( $job ) {
+            # We did not find a job, but due to how transactions work, we may find one in the future.
+            # NACK for now.
+            $conn->nack( { frame => $frame } );
             $logger->warn(sprintf "No job found for id=%s", $args->{job_id});
+            # To prevent full speed looping, sleep for a short while (normal sleep can only sleep for full seconds)
+            select(undef, undef, undef, 0.1);
             next;
         }
+
+        # Useful BackgroundJob found. ACK to broker that we are ok.
+        $conn->ack( { frame => $frame } );
 
         push @jobs, $job;
         if ( @jobs >= $batch_size || !$conn->can_read( { timeout => '0.1' } ) ) {
