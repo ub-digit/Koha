@@ -1,0 +1,90 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+use CGI qw ( -utf8 );
+use C4::Auth qw/check_api_auth/;
+use XML::Simple;
+
+my $query = new CGI;
+binmode STDOUT, ':encoding(UTF-8)';
+
+my ($status, $cookie, $sessionID) = check_api_auth($query, { editcatalogue => 'edit_catalogue'} );
+unless ($status eq "ok") {
+  print $query->header(-type => 'text/xml', -status => '403 Forbidden');
+  print XMLout({ status => $status, status => 'Forbidden' }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+  exit 0;
+}
+
+# Fields that are allowed to be updated
+# - branch (branchcode)
+# - value (float)
+# - type (string of type, for example 'issue' or 'hold_place')
+# - other (string, different depending on type)
+# - itemnumber (integer)
+# - itemtype (integer)
+# - location (string, LOC code)
+# - ccode (string)
+# - biblionumber (integer)
+# - title (string)
+# - author (string)
+# - callno (string, callnumber)
+# - categorycode (string, borrower categorycode)
+# - organisation (string)
+# - borrowernumber (integer, performer if provider, otherwise current context borrowernumber)
+# - issue_note (string)
+# - issue_auto_renew (bool, 0 or 1)
+
+my $branch = $query->param('branch');
+my $value = $query->param('value');
+my $type = $query->param('type');
+my $other = $query->param('other');
+my $itemnumber = $query->param('itemnumber');
+my $itemtype = $query->param('itemtype');
+my $location = $query->param('location');
+my $ccode = $query->param('ccode');
+my $biblionumber = $query->param('biblionumber');
+my $title = $query->param('title');
+my $author = $query->param('author');
+my $callno = $query->param('callno');
+my $categorycode = $query->param('categorycode');
+my $organisation = $query->param('organisation');
+my $borrowernumber = $query->param('borrowernumber');
+my $issue_note = $query->param('issue_note');
+my $issue_auto_renew = $query->param('issue_auto_renew');
+
+# If borrowernumber is not provided, use the context userenv user.
+# If that does not exist, we write NULL.
+if (!$borrowernumber) {
+  my $userenv = C4::Context->userenv;
+  # userenv does not contain borrowernumber, so we need to fetch it from the database.
+  # if userenv is not set, leave it as undef.
+
+  if ($userenv) {
+    my $performer = Koha::Patrons->find( { cardnumber => $userenv->{cardnumber} } );
+    $borrowernumber = $performer->borrowernumber;
+  }
+}
+
+my $dbh = C4::Context->dbh;
+
+# Check if table "ub_statistics" exists.
+my $sqlquery = "SHOW TABLES LIKE 'ub_statistics'";
+my $sth = $dbh->prepare($sqlquery);
+$sth->execute();
+my $table_exists = $sth->fetchrow_arrayref();
+
+# If table does exist, insert data, otherwise silently ignore.
+
+if ($table_exists) {
+  my $sqlquery = "INSERT INTO ub_statistics (datetime, branch, value, type, other, itemnumber, itemtype, location, ccode, biblionumber, title, author, callno, categorycode, organisation, borrowernumber, issue_note, issue_auto_renew) VALUES (NOW(), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+  my $sth = $dbh->prepare($sqlquery);
+  $sth->execute($branch, $value, $type, $other, $itemnumber, $itemtype, $location, $ccode, $biblionumber, $title, $author, $callno, $categorycode, $organisation, $borrowernumber, $issue_note, $issue_auto_renew);
+}
+
+print $query->header(-type => 'text/xml',-charset => 'utf-8', -status => '200');
+print XMLout({ status => "ok" }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+
+exit 0;
