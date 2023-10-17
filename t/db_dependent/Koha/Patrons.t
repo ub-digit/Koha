@@ -275,10 +275,10 @@ subtest 'has_overdues' => sub {
     is( $retrieved_patron->has_overdues, 0, );
 
     # Cache is set
-    is( $retrieved_patron->has_overdues({ cache => 1}), 0, );
+    is( $retrieved_patron->has_overdues({ cache => 1 }), 0);
     is( $retrieved_patron->_instance_cache_get('has_overdues'), 0, 'has_overdues cache has been set');
     # Cache is used
-    is( $retrieved_patron->has_overdues({ cache => 1}), 0, 'has_overdues cache is used');
+    is( $retrieved_patron->has_overdues({ cache => 1 }), 0, 'has_overdues cache is used');
 
     $issue->delete();
     my $yesterday = DateTime->today(time_zone => C4::Context->tz())->add( days => -1 );
@@ -339,9 +339,9 @@ subtest 'is_expired' => sub {
 
     # Set cache
     $patron->is_expired({ cache => 1 });
-    # Clear cache using public method accessor_cache_clear
-    $patron->accessor_cache_clear('is_expired');
-    is( $patron->_instance_cache_get('is_expired'), undef , 'Cache has been invalidated after calling accessor_cache_clear' );
+    # Clear cache using _method_cache_clear
+    $patron->_method_cache_clear('is_expired');
+    is( $patron->_instance_cache_get('is_expired'), undef , 'Cache has been invalidated after calling _method_cache_clear' );
 
     $patron->delete;
 };

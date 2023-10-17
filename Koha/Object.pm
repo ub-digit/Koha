@@ -25,6 +25,8 @@ use Mojo::JSON;
 use Scalar::Util qw( blessed looks_like_number );
 use Try::Tiny qw( catch try );
 use List::MoreUtils qw( any );
+use Data::Dumper;
+use Digest::MD5 qw( md5_hex );
 
 use Koha::Database;
 use Koha::Exceptions::Object;
@@ -96,8 +98,31 @@ my $instance_cache_key = Koha::Object->_instance_cache_key($key);
 
 sub _instance_cache_key {
     my ($self, $key) = @_;
-    warn "_instance_cache_key must not be called on object that has not been stored" unless $self->id;
+    croak "_instance_cache_key must not be called on object that has not been stored" unless $self->id;
     return $self->_type . ':' . $self->id  . ':' . $key;
+}
+
+=head3 Koha::Object->_method_cache_key();
+
+my $method_cache_key = Koha::Object->_method_cache_key($key, @args);
+
+=cut
+
+sub _method_cache_key {
+    my ($self, $method, @args) = @_;
+    if (@args) {
+        if(ref $args[0] eq 'HASH') {
+            if (!%{$args[0]} && @args == 1) {
+                return $method;
+            }
+        }
+        else {
+            croak "First argument to _instance_cache_key must be hashref";
+        }
+        local $Data::Dumper::Sortkeys = 1;
+        return $method . md5_hex(Dumper(\@args));
+    }
+    return $method;
 }
 
 =head3 Koha::Object->_instance_cache_get();
@@ -123,7 +148,6 @@ Koha::Object->_instance_cache_set($cache_key, $value);
 sub _instance_cache_set {
     my ($self, $key, $value) = @_;
     return unless $self->id;
-    $self->{_cache}->{$key} = $value;
     return Koha::Cache::Memory::Lite->get_instance->set_in_cache(
         $self->_instance_cache_key($key),
         $value
@@ -133,7 +157,6 @@ sub _instance_cache_set {
 =head3 Koha::Object->_instance_cache_clear($cache_key);
 
 Koha::Object->_instance_cache_clear($cache_key);
-Koha::Object->_instance_cache_clear();
 
 =cut
 
@@ -145,34 +168,40 @@ sub _instance_cache_clear {
     )
 }
 
-=head3 Koha::Object->_accessor_cache($method_name);
+=head3 Koha::Object->_method_cache($method_name);
 
-my $value = Koha::Object->_accessor_cache($method_name);
+my $value = Koha::Object->_method_cache($method_name, @args);
 
 =cut
 
-sub _accessor_cache {
-    my ($self, $method_name) = @_;
+sub _method_cache {
+    my ($self, $method_name, @args) = @_;
 
-    my $value = $self->_instance_cache_get($method_name);
+    my $cache_key = $self->_method_cache_key($method_name, @args);
+    my $value = $self->_instance_cache_get($cache_key);
 
     return $value if defined $value;
 
-    $value = $self->$method_name();
-    $self->_instance_cache_set($method_name, $value);
+    if (@args) {
+        delete $args[0]->{cache};
+    }
+    $value = $self->$method_name(@args);
+
+    $self->_instance_cache_set($cache_key, $value);
 
     return $value;
 }
 
-=head3 Koha::Object->accessor_cache_clear($method_name);
+=head3 Koha::Object->_method_cache_clear($method_name, @args);
 
-Koha::Object->accessor_cache_clear($method_name);
+Koha::Object->_method_cache_clear($method_name, @args);
 
 =cut
 
-sub accessor_cache_clear {
-    my ($self, $method_name) = @_;
-    $self->_instance_cache_clear($method_name);
+sub _method_cache_clear {
+    my ($self, $method_name, @args) = @_;
+    my $cache_key = $self->_method_cache_key($method_name, @args);
+    $self->_instance_cache_clear($cache_key);
 }
 
 =head3 Koha::Object->_new_from_dbic();
