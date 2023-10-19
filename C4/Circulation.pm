@@ -434,8 +434,8 @@ sub TooMany {
     # applicable issuing rule
 
     # If the parent rule is for default type we discount it
-    my $parent_maxissueqty;
-    $parent_maxissueqty = Koha::CirculationRules->get_effective_rule_value(
+    my $parent_maxissueqty_rule;
+    $parent_maxissueqty_rule = Koha::CirculationRules->get_effective_rule(
         {
             categorycode => $cat_borrower,
             itemtype     => $parent_type,
@@ -443,8 +443,10 @@ sub TooMany {
             rule_name    => 'maxissueqty',
         }
     ) if $parent_type;
+    # If the parent rule is for default type we discount it
+    $parent_maxissueqty_rule = undef if $parent_maxissueqty_rule && !defined $parent_maxissueqty_rule->itemtype;
 
-    my $maxissueqty = Koha::CirculationRules->get_effective_rule_value(
+    my $maxissueqty_rule = Koha::CirculationRules->get_effective_rule(
         {
             categorycode => $cat_borrower,
             itemtype     => $type,
@@ -453,7 +455,7 @@ sub TooMany {
         }
     );
 
-    my $maxonsiteissueqty = Koha::CirculationRules->get_effective_rule_value(
+    my $maxonsiteissueqty_rule = Koha::CirculationRules->get_effective_rule(
         {
             categorycode => $cat_borrower,
             itemtype     => $type,
@@ -467,18 +469,18 @@ sub TooMany {
     # if a rule is found and has a loan limit set, count
     # how many loans the patron already has that meet that
     # rule
-    if (defined $maxissueqty and $maxissueqty ne "") {
+    if (defined $maxissueqty_rule and $maxissueqty_rule->rule_value ne "") {
 
         my $checkouts;
-        if ( $branch ) {
+        if ( $maxissueqty_rule->branchcode ) {
             if ( C4::Context->preference('CircControl') eq 'PickupLibrary' ) {
                 $checkouts = $patron->checkouts->search(
-                    { 'me.branchcode' => $branch } );
+                    { 'me.branchcode' => $maxissueqty_rule->branchcode } );
             } elsif (C4::Context->preference('CircControl') eq 'PatronLibrary') {
                 $checkouts = $patron->checkouts; # if branch is the patron's home branch, then count all loans by patron
             } else {
                 my $branch_type = C4::Context->preference('HomeOrHoldingBranch') || 'homebranch';
-                $checkouts = $patron->checkouts->search( { "item.$branch_type" => $branch } );
+                $checkouts = $patron->checkouts->search( { "item.$branch_type" => $maxissueqty_rule->branchcode } );
             }
         } else {
             $checkouts = $patron->checkouts; # if rule is not branch specific then count all loans by patron
@@ -488,20 +490,20 @@ sub TooMany {
         my $sum_checkouts;
 
         my @types;
-        unless ( $type ) {
+        unless ( $maxissueqty_rule->itemtype ) {
             # matching rule has the default item type, so count only
             # those existing loans that don't fall under a more
             # specific rule
             @types = Koha::CirculationRules->search(
                 {
-                    branchcode => $branch,
-                    categorycode => $cat_borrower,
+                    branchcode => $maxissueqty_rule->branchcode,
+                    categorycode => [ $maxissueqty_rule->categorycode, $cat_borrower ],
                     itemtype  => { '!=' => undef },
                     rule_name => 'maxissueqty'
                 }
             )->get_column('itemtype');
         } else {
-            if ( $parent_maxissueqty ) {
+            if ( defined $parent_maxissueqty_rule ) {
                 # if we have a parent item type then we count loans of the
                 # specific item type or its siblings or parent
                 my $children = Koha::ItemTypes->search({ parent_type => $parent_type });
@@ -520,7 +522,7 @@ sub TooMany {
         while ( my $c = $checkouts->next ) {
             my $itemtype = $c->item->effective_itemtype;
 
-            unless ( $type ) {
+            unless ( $maxissueqty_rule->itemtype ) {
                 next if grep {$_ eq $itemtype} @types;
             } else {
                 next unless grep {$_ eq $itemtype} @types;
@@ -539,20 +541,23 @@ sub TooMany {
             checkout_count               => $checkout_count,
             onsite_checkout_count        => $onsite_checkout_count,
             onsite_checkout              => $onsite_checkout,
-            max_checkouts_allowed        => $maxissueqty,,
-            max_onsite_checkouts_allowed => $maxonsiteissueqty,
+            max_checkouts_allowed        => $maxissueqty_rule ? $maxissueqty_rule->rule_value : undef,
+            max_onsite_checkouts_allowed => $maxonsiteissueqty_rule ? $maxonsiteissueqty_rule->rule_value : undef,
             switch_onsite_checkout       => $switch_onsite_checkout,
         };
         # If parent rules exists
-        if ( defined $parent_maxissueqty ){
-            $checkout_rules->{max_checkouts_allowed} = $parent_maxissueqty;
+        if ( defined $parent_maxissueqty_rule ) {
+            $checkout_rules->{max_checkouts_allowed} = $parent_maxissueqty_rule->rule_value;
             my $qty_over = _check_max_qty($checkout_rules);
             return $qty_over if defined $qty_over;
 
             # If the parent rule is less than or equal to the child, we only need check the parent
-            if( $maxissueqty < $parent_maxissueqty && defined($type) ) {
+            if(
+                $maxissueqty_rule->rule_value < $parent_maxissueqty_rule->rule_value
+                && defined($maxissueqty_rule->itemtype)
+            ) {
                 $checkout_rules->{checkout_count} = $checkout_count_type;
-                $checkout_rules->{max_checkouts_allowed} = $maxissueqty;
+                $checkout_rules->{max_checkouts_allowed} = $maxissueqty_rule->rule_value;
                 my $qty_over = _check_max_qty($checkout_rules);
                 return $qty_over if defined $qty_over;
             }
@@ -564,7 +569,10 @@ sub TooMany {
 
     # Now count total loans against the limit for the branch
     my $branch_borrower_circ_rule = GetBranchBorrowerCircRule($branch, $cat_borrower);
-    if (defined($branch_borrower_circ_rule->{patron_maxissueqty}) and $branch_borrower_circ_rule->{patron_maxissueqty} ne '') {
+    if (
+        defined($branch_borrower_circ_rule->{patron_maxissueqty})
+        and $branch_borrower_circ_rule->{patron_maxissueqty} ne ''
+    ) {
         my $checkouts;
         if ( C4::Context->preference('CircControl') eq 'PickupLibrary' ) {
             $checkouts = $patron->checkouts->search(
@@ -596,7 +604,7 @@ sub TooMany {
         return $qty_over if defined $qty_over;
     }
 
-    unless ( defined $maxissueqty || defined $branch_borrower_circ_rule->{patron_maxissueqty} ) {
+    unless ( defined $maxissueqty_rule || defined $branch_borrower_circ_rule->{patron_maxissueqty} ) {
         return { reason => 'NO_RULE_DEFINED', max_allowed => 0 };
     }
 
@@ -614,7 +622,7 @@ sub _check_max_qty {
     my $switch_onsite_checkout       = $params->{switch_onsite_checkout};
 
     if ( $onsite_checkout and defined $max_onsite_checkouts_allowed ) {
-        if ( $max_onsite_checkouts_allowed eq '' ) { return; }
+        return if $max_onsite_checkouts_allowed eq '';
         if ( $onsite_checkout_count >= $max_onsite_checkouts_allowed ) {
             return {
                 reason      => 'TOO_MANY_ONSITE_CHECKOUTS',
@@ -624,7 +632,7 @@ sub _check_max_qty {
         }
     }
     if ( C4::Context->preference('ConsiderOnSiteCheckoutsAsNormalCheckouts') ) {
-        if ( $max_checkouts_allowed eq '' ) { return; }
+        return if $max_checkouts_allowed eq '';
         my $delta = $switch_onsite_checkout ? 1 : 0;
         if ( $checkout_count >= $max_checkouts_allowed + $delta ) {
             return {
@@ -635,10 +643,10 @@ sub _check_max_qty {
         }
     }
     elsif ( not $onsite_checkout ) {
-        if ( $max_checkouts_allowed eq '' ) { return; }
+        return if $max_checkouts_allowed eq '';
         if (
-            $checkout_count - $onsite_checkout_count >= $max_checkouts_allowed )
-        {
+            $checkout_count - $onsite_checkout_count >= $max_checkouts_allowed
+        ) {
             return {
                 reason      => 'TOO_MANY_CHECKOUTS',
                 count       => $checkout_count - $onsite_checkout_count,
@@ -1420,22 +1428,16 @@ sub checkHighHolds {
 
         my $orig_due = C4::Circulation::CalcDateDue( $issuedate, $itype, $branchcode, $patron->unblessed );
 
-        my $rule = Koha::CirculationRules->get_effective_rule_value(
+        # overrides decreaseLoanHighHoldsDuration syspref
+        my $duration = Koha::CirculationRules->get_effective_rule_value(
             {
                 categorycode => $patron->categorycode,
                 itemtype     => $item->effective_itemtype,
                 branchcode   => $branchcode,
                 rule_name    => 'decreaseloanholds',
             }
-        );
+        ) || C4::Context->preference('decreaseLoanHighHoldsDuration');
 
-        my $duration;
-        if ( defined($rule) && $rule ne '' ){
-            # overrides decreaseLoanHighHoldsDuration syspref
-            $duration = $rule;
-        } else {
-            $duration = C4::Context->preference('decreaseLoanHighHoldsDuration');
-        }
         my $reduced_datedue = $calendar->addDuration( $issuedate, $duration );
         $reduced_datedue->set_hour($orig_due->hour);
         $reduced_datedue->set_minute($orig_due->minute);
@@ -1926,6 +1928,7 @@ wildcards.
 
 sub GetBranchBorrowerCircRule {
     my ( $branchcode, $categorycode ) = @_;
+
     return Koha::CirculationRules->get_effective_rules(
         {
             categorycode => $categorycode,
@@ -2668,11 +2671,11 @@ sub _calculate_new_debar_dt {
             ]
         }
     );
-    my $finedays = $issuing_rule ? $issuing_rule->{finedays} : undef;
-    my $unit     = $issuing_rule ? $issuing_rule->{lengthunit} : undef;
+    return unless $issuing_rule->{finedays};
+    my $finedays = $issuing_rule->{finedays};
+    my $unit     = $issuing_rule->{lengthunit};
     my $chargeable_units = C4::Overdues::get_chargeable_units($unit, $dt_due, $return_date, $branchcode);
 
-    return unless $finedays;
 
     # finedays is in days, so hourly loans must multiply by 24
     # thus 1 hour late equals 1 day suspension * finedays rate
@@ -3197,14 +3200,14 @@ sub AddRenewal {
         # a maximum value has been set in the circ rules
         my $unseen_renewals = $issue->unseen_renewals;
         if (C4::Context->preference('UnseenRenewals')) {
-            my $rule = Koha::CirculationRules->get_effective_rule(
+            my $unseen_renewals_allowed = Koha::CirculationRules->get_effective_rule_value(
                 {   categorycode => $patron->categorycode,
                     itemtype     => $item_object->effective_itemtype,
                     branchcode   => $circ_library->branchcode,
                     rule_name    => 'unseen_renewals_allowed'
                 }
             );
-            if (!$seen && $rule && looks_like_number($rule->rule_value)) {
+            if (!$seen && $unseen_renewals_allowed && looks_like_number($unseen_renewals_allowed)) {
                 $unseen_renewals++;
             } else {
                 # If the renewal is seen, unseen should revert to 0
@@ -3563,14 +3566,14 @@ sub GetIssuingCharges {
             # FIXME This should follow CircControl
             my $branch = C4::Context::mybranch();
             $patron //= Koha::Patrons->find( $borrowernumber );
-            my $discount = Koha::CirculationRules->get_effective_rule({
+            my $discount = Koha::CirculationRules->get_effective_rule_value({
                 categorycode => $patron->categorycode,
                 branchcode   => $branch,
                 itemtype     => $item_type,
                 rule_name    => 'rentaldiscount'
             });
             if ($discount) {
-                $charge = ( $charge * ( 100 - $discount->rule_value ) ) / 100;
+                $charge = ( $charge * ( 100 - $discount ) ) / 100;
             }
             $charge = sprintf '%.2f', $charge; # ensure no fractions of a penny returned
         }

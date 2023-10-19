@@ -1523,9 +1523,9 @@ sub can_be_recalled {
                 'on_shelf_recalls',
             ],
         });
-        push( @recalls_allowed, $rule->{recalls_allowed} ) if $rule;
-        push( @recalls_per_record, $rule->{recalls_per_record} ) if $rule;
-        push( @on_shelf_recalls, $rule->{on_shelf_recalls} ) if $rule;
+        push( @recalls_allowed, $rule->{recalls_allowed} ) if $rule->{recalls_allowed};
+        push( @recalls_per_record, $rule->{recalls_per_record} ) if $rule->{recalls_per_record};
+        push( @on_shelf_recalls, $rule->{on_shelf_recalls} ) if $rule->{on_shelf_recalls};
     }
     my $recalls_allowed = (sort {$b <=> $a} @recalls_allowed)[0]; # take highest
     my $recalls_per_record = (sort {$b <=> $a} @recalls_per_record)[0]; # take highest

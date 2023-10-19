@@ -1890,12 +1890,13 @@ sub can_be_recalled {
     });
 
     # check recalls allowed has been set and is not zero
-    return 0 if ( !defined($rule->{recalls_allowed}) || $rule->{recalls_allowed} == 0 );
+    return 0 if !$rule->{recalls_allowed};
 
     if ( $patron ) {
         # check borrower has not reached open recalls allowed limit
         return 0 if ( $patron->recalls->filter_by_current->count >= $rule->{recalls_allowed} );
 
+        $rule->{recalls_per_record} //= 0;
         # check borrower has not reach open recalls allowed per record limit
         return 0 if ( $patron->recalls->filter_by_current->search({ biblio_id => $self->biblionumber })->count >= $rule->{recalls_per_record} );
 
@@ -1964,12 +1965,12 @@ sub can_be_waiting_recall {
             branchcode   => $branchcode,
             categorycode => $most_relevant_recall ? $most_relevant_recall->patron->categorycode : undef,
             itemtype     => $self->effective_itemtype,
-            rules        => [ 'recalls_allowed', ],
+            rules        => [ 'recalls_allowed' ],
         }
     );
 
     # check recalls allowed has been set and is not zero
-    return 0 if ( !defined($rule->{recalls_allowed}) || $rule->{recalls_allowed} == 0 );
+    return 0 if !$rule->{recalls_allowed};
 
     # can recall
     return 1;

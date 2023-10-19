@@ -50,7 +50,7 @@ while( my $recall = $recalls->next ) {
         }
     }
     if ( $recall->waiting ) {
-        my $recall_shelf_time = Koha::CirculationRules->get_effective_rule({
+        my $recall_shelf_time = Koha::CirculationRules->get_effective_rule_value({
             categorycode => $recall->patron->categorycode,
             itemtype => $recall->item->effective_itemtype,
             branchcode => $recall->pickup_library_id,
@@ -58,8 +58,8 @@ while( my $recall = $recalls->next ) {
         });
         my $waitingdate = dt_from_string( $recall->waiting_date )->truncate( to  => 'day' );
         my $days_waiting = $today->subtract_datetime( $waitingdate );
-        if ( defined $recall_shelf_time and $recall_shelf_time->rule_value >= 0 ) {
-            if ( $days_waiting->days > $recall_shelf_time->rule_value ) {
+        if ( defined $recall_shelf_time and $recall_shelf_time >= 0 ) {
+            if ( $days_waiting->days > $recall_shelf_time ) {
                 # recall has been awaiting pickup for longer than the circ rules allow
                 $recall->set_expired({ interface => 'COMMANDLINE' });
             }

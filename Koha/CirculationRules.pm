@@ -313,7 +313,9 @@ sub get_effective_rule_value {
         if ($rule) {
             $value = $rule->rule_value;
         }
-        $value //= 'undef';
+        else {
+            $value = 'undef';
+        }
         $memory_cache->set_in_cache( $cache_key, $value );
     }
     return if $value eq 'undef';

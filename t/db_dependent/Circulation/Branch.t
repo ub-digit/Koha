@@ -143,8 +143,8 @@ my $borrower_id1 = Koha::Patron->new({
 
 is_deeply(
     GetBranchBorrowerCircRule(),
-    { patron_maxissueqty => undef, patron_maxonsiteissueqty => undef },
-"Without parameter, GetBranchBorrower returns undef (unilimited) for patron_maxissueqty and patron_maxonsiteissueqty if no rules defined"
+    undef,
+    "Without parameter, GetBranchBorrower returns undef (unilimited) for patron_maxissueqty and patron_maxonsiteissueqty if no rules defined"
 );
 
 Koha::CirculationRules->set_rules(

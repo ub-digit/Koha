@@ -48,13 +48,13 @@ if ( C4::Context->preference('UseRecalls') ) {
     # check if already recalled
     my $recalled = $biblio->recalls->filter_by_current->search({ patron_id => $borrowernumber })->count;
     if ( defined $recalled and $recalled > 0 ) {
-        my $recalls_per_record = Koha::CirculationRules->get_effective_rule({
+        my $recalls_per_record = Koha::CirculationRules->get_effective_rule_value({
             categorycode => $patron->categorycode,
             branchcode => undef,
             itemtype => undef,
             rule_name => 'recalls_per_record'
         });
-        if ( defined $recalls_per_record and $recalls_per_record->rule_value and $recalled >= $recalls_per_record->rule_value ){
+        if ( defined $recalls_per_record and $recalls_per_record and $recalled >= $recalls_per_record ) {
             $error = 'duplicate';
         }
     }
