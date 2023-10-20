@@ -99,7 +99,7 @@
                                     <input class="decimal" type="text" size="10" id="shipmentcost" name="shipmentcost" value="[% IF shipmentcost %][% shipmentcost | $Price on_editing => 1 %][% END %]" />
                                 [% END %]
                             </li>
-                            <li>
+                            <li style="display:none">
                                 <label for="shipment_budget_id">Shipping fund: </label>
                                 [% PROCESS fund_dropdown form_id => 'shipment_budget_id' form_name => 'shipment_budget_id' selected => shipment_budget_id %]
                             </li>
