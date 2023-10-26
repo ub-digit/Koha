@@ -90,7 +90,7 @@ if ($borrower->category->effective_BlockExpiredPatronOpacActions
       my ( $status, $error ) =
 	    CanBookBeRenewed( $borrower, $checkout );
 	if ( $status == 1 && $opacrenew == 1 ) {
-	    AddRenewal( $borrowernumber, $itemnumber, undef, undef, undef );
+	    AddRenewal({ borrowernumber => $borrowernumber, itemnumber => $itemnumber });
 	    $renewed_status{$itemnumber} = {itemnumber => $itemnumber, status => "ok"};
 	}
 	else {
