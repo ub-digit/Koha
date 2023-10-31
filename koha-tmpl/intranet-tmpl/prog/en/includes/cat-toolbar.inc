@@ -196,7 +196,7 @@
 
 [% IF ( CAN_user_reserveforothers ) %]
     [% IF biblio.subscriptions.count %]
-        <div class="btn-group"><a id="placehold_subscription" class="btn btn-default" href="/cgi-bin/koha/reserve/request_subscription.pl?biblionumber=[% biblionumber | html %]"><i class="fa-solid fa-bookmark"></i> Reservera prenumeration</a></div>
+        <div class="btn-group"><a id="placehold_subscription" class="btn btn-default" href="/cgi-bin/koha/reserve/request_subscription.pl?biblionumber=[% biblionumber | html %]"><i class="fa-solid fa-bookmark"></i> Reservera volym/nummer ur bestånd</a></div>
     [% END %]
 [% END %]
 

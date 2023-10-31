@@ -20,7 +20,7 @@
 [% PROCESS "patron-search.inc" %]
 <title>[% FILTER collapse %]
     [% title_in_title = INCLUDE 'biblio-title-head.inc' %]
-    [% tx("Reservera {title}", { title = title_in_title }) | html %] &rsaquo;
+    [% tx("Reservera ur bestånd från {title}", { title = title_in_title }) | html %] &rsaquo;
     [% t("Reservationer") | html %] &rsaquo;
     [% t("Cirkulation") | html %] &rsaquo;
     [% t("Koha") | html %]
@@ -110,7 +110,7 @@
             [% INCLUDE 'biblio-title.inc' link =1 %]
         [% END %]
         [% WRAPPER breadcrumb_item bc_active= 1 %]
-            <span>Reservera</span>
+            <span>Reservera ur bestånd</span>
         [% END %]
     [% END #/ WRAPPER breadcrumbs %]
 [% END #/ WRAPPER sub-header.inc %]
@@ -137,7 +137,7 @@
                 </div>
             [% END %]
 
-            <h2>Reservera [% INCLUDE 'biblio-title.inc' link = 1 %] [% IF biblio.author %] by [% biblio.author | html %][% END %]</h2>
+            <h2>Reservera ur bestånd från [% INCLUDE 'biblio-title.inc' link = 1 %] [% IF biblio.author %] by [% biblio.author | html %][% END %]</h2>
 
             [% UNLESS patron OR patron.borrowernumber OR nosubscriptions OR nobiblio %]
                 [% IF ( messageborrower ) %]
@@ -202,6 +202,7 @@
                             <li>
                                 <label for="holdnotes">Detaljer om beställningen:</label>
                                 <input id="holdnotes" name="notes" maxlength="140" size="60"></textarea>
+                                <div class="hint">Ange volym, år, nummer eller sidnummer för det exemplar du vill beställa.</div>
                             </li>
                             <li>
                                 <label for="pickup">Hämta på:</label>
