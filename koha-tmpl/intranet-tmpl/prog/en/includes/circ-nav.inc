@@ -111,6 +111,7 @@
             </li>
         </ul>
 
+        [% IF !Koha.Preference('HideCircReports') %]
         <h5>Overdues</h5>
         <ul>
             [% IF ( CAN_user_circulate_overdues_report ) %]
@@ -122,5 +123,6 @@
                 <a href="/cgi-bin/koha/circ/branchoverdues.pl" title="Limited to your library. See report help for other details.">Overdues with fines</a>
              </li>
         </ul>
+        [% END %]
     </div>
 </div>
