@@ -43,18 +43,35 @@ elsif ($action eq 'cardinvalid') {
   }
 }
 elsif ($action eq "updatepin") {
+  # Change this to 0 if you want to allow PIN updates on non-GU cards
+  my $ignore_pin_on_nongu_cards = 1;
   my $patrons = Koha::Patrons->search({borrowernumber => $borrowernumber});
+  my $should_update_pin = 1;
   my $borrower = $patrons->next;
-  my $pin = $query->param('pin');
-  my $existing_pin_obj = $borrower->get_extended_attribute("PIN");
-  if ($existing_pin_obj) {
-    my $existing_pin = $existing_pin_obj->attribute;
-    if ($pin ne $existing_pin) {
-      $borrower->extended_attributes->search({code => "PIN"})->delete;
+  if ($ignore_pin_on_nongu_cards == 1) {
+    my $cardnumber = $borrower->cardnumber();
+    # If cardnumber has length 10 and starts with a "3", it is a non-GU cardnumber
+    if (length($cardnumber) == 10 && substr($cardnumber, 0, 1) eq "3") {
+      $should_update_pin = 0;
+    }
+    # If cardnumber has length different from 10, it is a non-GU cardnumber
+    if (length($cardnumber) != 10) {
+      $should_update_pin = 0;
+    }
+  }
+  # We will only update the PIN if we concluded that we should from the logic above
+  if ($should_update_pin == 1) {
+    my $pin = $query->param('pin');
+    my $existing_pin_obj = $borrower->get_extended_attribute("PIN");
+    if ($existing_pin_obj) {
+      my $existing_pin = $existing_pin_obj->attribute;
+      if ($pin ne $existing_pin) {
+        $borrower->extended_attributes->search({code => "PIN"})->delete;
+        $borrower->add_extended_attribute({code => "PIN", attribute => $pin});
+      }
+    } else {
       $borrower->add_extended_attribute({code => "PIN", attribute => $pin});
     }
-  } else {
-    $borrower->add_extended_attribute({code => "PIN", attribute => $pin});
   }
 }
 else { #$action eq 'update'
