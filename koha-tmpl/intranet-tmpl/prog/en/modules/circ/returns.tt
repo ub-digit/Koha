@@ -637,14 +637,6 @@
                                                             [% INCLUDE 'patron-title.inc' patron=patron hide_patron_infos_if_needed=1 invert_name=1 link_to="circulation_reserves" %]
                                                             <span class="patron-category"> - [% patron.category.description | html %]</span>
                                                         </li>
-                                                        [% INCLUDE display_holdpatron_address %]
-                                                        [% IF ( patron.phone ) %]
-                                                            <li> [% patron.phone | html %]</li>
-                                                        [% END %]
-
-                                                        [% IF ( patron.email ) %]
-                                                            <li><a id="boremail" href="mailto:[% patron.email | html %]">[% patron.email | html %]</a></li>
-                                                        [% END %]
 
                                                         [% IF ( patron.is_debarred ) %]
                                                             <li class="error">Patron is RESTRICTED</li>
@@ -800,22 +792,6 @@
                                                             [% INCLUDE 'patron-title.inc' patron=patron hide_patron_infos_if_needed=1 invert_name=1 link_to="circulation_reserves" %]
                                                             <span class="patron-category"> - [% patron.category.description | html %]</span>
                                                         </li>
-
-                                                        [% INCLUDE display_holdpatron_address %]
-
-                                                        [% IF ( patron.phone ) %]
-                                                            <li>[% patron.phone | html %]</li>
-                                                        [% END %]
-
-                                                        [% IF ( patron.email ) %]
-                                                            <li>
-                                                                [% IF ( transfertodo ) %]
-                                                                    [% patron.email | html %]
-                                                                [% ELSE %]
-                                                                    <a id="boremail" href="mailto:[% patron.email | html %]">[% patron.email | html %]</a>
-                                                                [% END %]
-                                                            </li>
-                                                        [% END %]
 
                                                         [% UNLESS ( transfertodo) %]
                                                             [% INCLUDE display_bormessagepref %]
