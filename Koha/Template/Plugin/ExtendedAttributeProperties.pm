@@ -31,6 +31,20 @@ sub isEditable {
     return 1;
 }
 
+sub hasSecretValue {
+    my ($self, $attribute) = @_;
+
+    if (blessed($attribute)) {
+        $attribute = $attribute->unblessed;
+    }
+
+    if (getLoggedInUser()->has_permission({tools => 'view_system_logs'})) {
+        if (isInList($attribute->{'code'}, 'SecretExtendedAttributesAdmin')) {return 1;}
+    }
+    elsif (isInList($attribute->{'code'}, 'SecretExtendedAttributes')) {return 1;}
+    return 0;
+}
+
 sub getLoggedInUser {
     my $loggedinborrowernumber = C4::Context->userenv->{'number'};
     my $loggedinuser = Koha::Patrons->find($loggedinborrowernumber);

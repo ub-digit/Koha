@@ -324,7 +324,11 @@
                                                         [% IF ExtendedAttributeProperties.isVisible(item) %]
                                                             <li data-pa_code="[% item.type.code | replace('[^a-zA-Z0-9_-]', '') %]">
                                                                 <span class="label">[% item.type.description | html %]: </span>
+                                                                [% IF ExtendedAttributeProperties.hasSecretValue(item) %]
+                                                                ****
+                                                                [% ELSE %]
                                                                 [% item.description | html_line_break %]
+                                                                [% END %]
                                                             </li>
                                                         [% END %]
                                                         [% END %]

@@ -326,6 +326,16 @@ Patrons:
          - pref: NonEditableExtendedAttributesAdmin
            class: multi
          - (separate multiple choices with |)
+     -
+         - "The value for each of the following attributes will be shown as secret:"
+         - pref: SecretExtendedAttributes
+           class: multi
+         - (separate multiple choices with |)
+     -
+         - "The value for each of the following attributes will be shown as secret for adminstrators:"
+         - pref: SecretExtendedAttributesAdmin
+           class: multi
+         - (separate multiple choices with |)
     Patron relationships:
      -
          - "Guarantors can be the following of those they guarantee:"
