@@ -275,7 +275,9 @@
                                                                 [%- END -%]
                                                             [%- END -%]
                                                             [% IF ( edi_order ) %]
-                                                                <li><span class="label">EDI status:</span> [%- PROCESS edi_status edi_order=edi_order -%] ([% edi_order.transfer_date | $KohaDates %])</li>
+                                                                <li><span class="label">EDI status:</span> [%- PROCESS edi_status edi_order=edi_order -%] ([% edi_order.transfer_date | $KohaDates %])
+                                                                <a class="btn btn-default btn-xs" target="_blank" href="/cgi-bin/koha/acqui/edimsg.pl?id=[% edi_order.id %]">View EDI message</a>
+                                                                </li>
                                                             [% ELSE %]
                                                                 <li><span class="label">EDI status:</span> Not ordered</li>
                                                             [% END %]
