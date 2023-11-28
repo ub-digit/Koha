@@ -112,11 +112,13 @@ sub update_pin {
     my $existing_pin_obj = $borrower->get_extended_attribute("PIN");
     if ($existing_pin_obj) {
         my $existing_pin = $existing_pin_obj->attribute;
-        if ($pin ne $existing_pin) {
+        if ($pin && ($pin ne $existing_pin)) {
             $borrower->extended_attributes->search({code => "PIN"})->delete;
             $borrower->add_extended_attribute({code => "PIN", attribute => $pin});
         }
     } else {
-        $borrower->add_extended_attribute({code => "PIN", attribute => $pin});
+        if ($pin) {
+            $borrower->add_extended_attribute({code => "PIN", attribute => $pin});
+        }
     }
 }
