@@ -221,8 +221,8 @@ sub is_student {
 
 sub is_employee {
   my ($ccode) = @_;
-  # The categorycodes for employees are GU, PE, TJ, TN, or any that starts with F, except FR, FX and FY
-  return $ccode =~ /^F/ && $ccode ne "FR" && $ccode ne "FX" && $ccode ne "FY" || $ccode eq "GU" || $ccode eq "PE" || $ccode eq "TJ" || $ccode eq "TN";
+  # The categorycodes for employees are GU, PE, TJ, TN, or any that starts with F, except FR, FX
+  return $ccode =~ /^F/ && $ccode ne "FR" && $ccode ne "FX" || $ccode eq "GU" || $ccode eq "PE" || $ccode eq "TJ" || $ccode eq "TN";
 }
 
 sub add_or_replace_attribute {
