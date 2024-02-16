@@ -100,6 +100,7 @@ sub can_update_pin {
     # Only categorycodes EX, UX, FR, FX and SR can update their PIN
     my $categorycode = $borrower->categorycode;
     return 1 if $categorycode =~ /^(EX|UX|FR|FX|SR)$/;
+    return 1 if (length($cardnumber) == 10 && substr($cardnumber, 0, 1) eq "3");
     return 0;
 }
 
