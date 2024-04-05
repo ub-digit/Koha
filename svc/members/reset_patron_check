@@ -1,0 +1,80 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+
+use CGI qw ( -utf8 );
+use XML::Simple;
+use C4::Auth qw/check_api_auth/;
+use Koha::Patrons;
+use C4::Members;
+use C4::Context;
+use JSON qw( to_json );
+
+my $query = new CGI;
+binmode STDOUT, ':encoding(UTF-8)';
+
+my ($status, $cookie, $sessionID) = check_api_auth($query, { editcatalogue => 'edit_catalogue'} );
+unless ($status eq "ok") {
+  print $query->header(-type => 'text/xml', -status => '403 Forbidden');
+  print XMLout({ status => $status }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+  exit 0;
+}
+
+my $cardnumber = $query->param('cardnumber');
+my $patron = Koha::Patrons->find({ cardnumber => $cardnumber });
+
+if (!$patron) {
+    print $query->header(-type => 'application/json',-charset => 'utf-8');
+    print to_json({ status => "error", code => "patron_not_found" });
+    exit 0;
+}
+
+my $valid_category = check_categorycode($patron);
+
+# If the patron is not valid, return an error
+if (!$valid_category) {
+    print $query->header(-type => 'application/json',-charset => 'utf-8');
+    print to_json({ status => "error", code => "patron_not_found" });
+    exit 0;
+}
+
+# If the patron is valid, return some patron data
+# - borrowernumber
+# - cardnumber
+# - categorycode
+# - smsalertnumber
+# - email
+# - emailpro
+# - phone
+# - phonepro
+# - B_email
+# - B_phone
+# - altcontactphone
+
+my $patron_data = {
+    borrowernumber => $patron->borrowernumber,
+    cardnumber => $patron->cardnumber,
+    categorycode => $patron->categorycode,
+    smsalertnumber => $patron->smsalertnumber,
+    email => $patron->email,
+    emailpro => $patron->emailpro,
+    phone => $patron->phone,
+    phonepro => $patron->phonepro,
+    B_email => $patron->B_email,
+    B_phone => $patron->B_phone,
+    altcontactphone => $patron->altcontactphone
+};
+
+print $query->header(-type => 'application/json',-charset => 'utf-8');
+print to_json({ status => "ok", patron => $patron_data });
+
+
+# Only some categorycodes are valid (EX, UX, FR, FX, SR)
+sub check_categorycode {
+    my ($patron) = @_;
+
+    my $categorycode = $patron->categorycode;
+    return 1 if $categorycode =~ /^(EX|UX|FR|FX|SR)$/;
+    return 0;
+}
