@@ -22,6 +22,7 @@ unless ($status eq "ok") {
 
 
 my $personalnumber = $query->param('personalnumber');
+my $patronuserid = $query->param('patronuserid');
 
 if($personalnumber eq "") {
   print $query->header(-type => 'text/xml', -status => '400 Bad Request');
@@ -29,46 +30,61 @@ if($personalnumber eq "") {
   exit 0;
 }
 
-my $dbh = C4::Context->dbh();
-my $sql = "SELECT DISTINCT borrowernumber
-           FROM borrower_attributes
-           WHERE code = 'PNR12'
-           AND attribute = ?
-           OR code = 'PNR12'
-           AND substring(attribute, -10) = ?
-           OR code = 'PNR'
-           AND attribute = ?";
+# Find all possible borrowers from personal number
+my $pnr_borrowernumbers = find_all_by_pnr($personalnumber);
+# Find one or no borrower from patronuserid
+my $userid_borrowernumber = find_by_userid($patronuserid);
 
-my $value = $dbh->selectrow_array($sql, undef, $personalnumber, $personalnumber, substr($personalnumber, -10));
-
-
-my $res;
-if ($value) {
-  $sql = "SELECT ba.attribute AS 'anstslut',
-          b.categorycode
-          FROM borrowers b
-          LEFT OUTER JOIN borrower_attributes ba
-          ON ba.borrowernumber = b.borrowernumber
-          AND ba.code = 'ANSTSLUT'
-          WHERE b.borrowernumber = ?";
-
- 
- $res = $dbh->selectrow_hashref($sql, undef, $value); 
+my $found_borrowernumber;
+# If pnr_borrowernumbers has one value and userid_borrowernumber is undef, borrowernumber is the value from pnr_borrowernumbers
+if (scalar(@$pnr_borrowernumbers) == 1 && !$userid_borrowernumber) {
+  $found_borrowernumber = $pnr_borrowernumbers->[0];
+}
+# If pnr_borrowernumbers has one value and userid_borrowernumber has a value, and they are the same, borrowernumber is the value from pnr_borrowernumbers
+elsif (scalar(@$pnr_borrowernumbers) == 1 && $userid_borrowernumber && $pnr_borrowernumbers->[0] == $userid_borrowernumber) {
+  $found_borrowernumber = $pnr_borrowernumbers->[0];
+}
+# If pnr_borrowernumbers has one value and userid_borrowernumber has a value, and they are different, create an error email
+elsif (scalar(@$pnr_borrowernumbers) == 1 && $userid_borrowernumber && $pnr_borrowernumbers->[0] != $userid_borrowernumber) {
+  report_error("pnr_borrower_not_same_as_userid_borrower", $pnr_borrowernumbers->[0], $userid_borrowernumber);
+  print $query->header(-type => 'text/xml', -status => '422 Unprocessable Entity');
+  print XMLout({ status => $status }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+  exit 0;
+}
+# If pnr_borrowernumbers has no value and userid_borrowernumber has a value, borrowernumber is the value from userid_borrowernumber
+elsif (scalar(@$pnr_borrowernumbers) == 0 && $userid_borrowernumber) {
+  $found_borrowernumber = $userid_borrowernumber;
+}
+# If pnr_borrowernumbers has no value and userid_borrowernumber has no value, return no found user (uniq = true)
+elsif (scalar(@$pnr_borrowernumbers) == 0 && !$userid_borrowernumber) {
+  $found_borrowernumber = '';
+}
+# If pnr_borrowernumbers has more than one value, create an error email
+elsif (scalar(@$pnr_borrowernumbers) > 1) {
+  report_error("multiple_borrowers_found_from_pnr", $pnr_borrowernumbers);
+  print $query->header(-type => 'text/xml', -status => '422 Unprocessable Entity');
+  print XMLout({ status => $status }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+  exit 0;
+}
+# any other case, create an error email
+else {
+  report_error("unknown_error", $pnr_borrowernumbers, $userid_borrowernumber);
+  print $query->header(-type => 'text/xml', -status => '422 Unprocessable Entity');
+  print XMLout({ status => $status }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+  exit 0;
 }
 
+my $borrowernumber = $found_borrowernumber;
 
 my $expirationdate = '';
 my $categorycode = '';
-if ($res) {
-  $expirationdate = $res->{anstslut};
-  $categorycode = $res->{categorycode};
+if ($borrowernumber) {
+  ($expirationdate, $categorycode) = extract_metadata($borrowernumber);
 }
 
 my $uniq;
-my $borrowernumber;
-if ($value) {
+if ($borrowernumber) {
  $uniq = "false";
- $borrowernumber = $value;
 }
 else {
   $uniq = "true";
@@ -77,3 +93,90 @@ else {
 
 print $query->header(-type => 'text/xml',-charset => 'utf-8');
 print XMLout({uniq => $uniq, borrowernumber => $borrowernumber, expirationdate => $expirationdate, categorycode => $categorycode}, NoAttr => 1, RootName => 'response', XMLDecl => 1, SuppressEmpty => 1);
+
+sub find_all_by_pnr {
+  my ($personalnumber) = @_;
+
+  my $dbh = C4::Context->dbh();
+  my $sql = "SELECT DISTINCT borrowernumber
+             FROM borrower_attributes
+             WHERE code = 'PNR12'
+             AND attribute = ?
+             OR code = 'PNR12'
+             AND substring(attribute, -10) = ?
+             OR code = 'PNR'
+             AND attribute = ?";
+
+  my @value = $dbh->selectrow_array($sql, undef, $personalnumber, $personalnumber, substr($personalnumber, -10));
+
+  return \@value;
+}
+
+# patronuserid is in borrowers.userid
+sub find_by_userid {
+  my ($patronuserid) = @_;
+
+  my $dbh = C4::Context->dbh();
+  my $sql = "SELECT DISTINCT borrowernumber
+             FROM borrowers
+             WHERE userid = ?";
+
+  my $value = $dbh->selectrow_array($sql, undef, $patronuserid);
+
+  return $value;
+}
+
+sub extract_metadata {
+  my ($borrowernumber) = @_;
+
+  my $dbh = C4::Context->dbh();
+  my $sql = "SELECT ba.attribute AS 'anstslut',
+            b.categorycode
+            FROM borrowers b
+            LEFT OUTER JOIN borrower_attributes ba
+            ON ba.borrowernumber = b.borrowernumber
+            AND ba.code = 'ANSTSLUT'
+            WHERE b.borrowernumber = ?";
+
+  my $res = $dbh->selectrow_hashref($sql, undef, $borrowernumber);
+
+  my $expirationdate = '';
+  my $categorycode = '';
+  if ($res) {
+    $expirationdate = $res->{anstslut};
+    $categorycode = $res->{categorycode};
+  }
+
+  return ($expirationdate, $categorycode);
+}
+
+sub report_error {
+  my ($error_code, $pnr_borrowernumbers, $userid_borrowernumber) = @_;
+  # Create a Letter from HOLD_WAITING_CANCEL template
+  # and send to email address of the library where the reservation is waiting.
+  my $admin_email = C4::Context->config("patron_match_error_email");
+  if (!$admin_email) {
+    return;
+  }
+  my $letter = C4::Letters::GetPreparedLetter(
+    module                 => 'members',
+    letter_code            => 'PATRON_MATCH_ERROR',
+    message_transport_type => 'email',
+    substitute => {
+      error_code => $error_code,
+      pnr_borrowernumbers => $pnr_borrowernumbers,
+      userid_borrowernumber => $userid_borrowernumber,
+    }
+  );
+
+  if ($letter) {
+      C4::Letters::EnqueueLetter(
+          {
+              letter => $letter,
+              to_address => ,
+              from_address => ,
+              message_transport_type => 'email',
+          }
+      );
+  }
+}
