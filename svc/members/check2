@@ -115,6 +115,9 @@ sub find_all_by_pnr {
 # patronuserid is in borrowers.userid
 sub find_by_userid {
   my ($patronuserid) = @_;
+  if(!$patronuserid) {
+    return;
+  }
 
   my $dbh = C4::Context->dbh();
   my $sql = "SELECT DISTINCT borrowernumber
