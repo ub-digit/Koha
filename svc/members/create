@@ -45,8 +45,6 @@ $borrower{'password'} = $personalnumber;
 $borrower{'categorycode'} = $query->param('categorycode');
 $borrower{'branchcode'} = $query->param('branchcode');
 $borrower{'surname'} = $query->param('surname');
-$borrower{'address'} = $query->param('address');
-$borrower{'city'} = $query->param('city');
 $borrower{'lang'} = $query->param('lang');
 $borrower{'dateexpiry'} = $query->param('dateexpiry');
 
@@ -59,6 +57,10 @@ my $firstname = $query->param('firstname');
 if ($firstname) {
   $borrower{'firstname'} = $firstname;
 }
+my $address = $query->param('address');
+if ($address) {
+  $borrower{'address'} = $address;
+}
 my $address2 = $query->param('address2');
 if ($address2) {
   $borrower{'address2'} = $address2;
@@ -66,6 +68,10 @@ if ($address2) {
 my $zipcode = $query->param('zipcode');
 if ($zipcode) {
   $borrower{'zipcode'} = $zipcode;
+}
+my $city = $query->param('city');
+if ($city) {
+  $borrower{'city'} = $city;
 }
 my $country = $query->param('country');
 if ($country) {
