@@ -140,7 +140,8 @@ if ($do_it) {
         $search_params{object} = $object if $object;
     }
 
-    my @logs = Koha::ActionLogs->search(\%search_params)->as_list;
+    #Set limit to 10000 records to avoid timeout or memory issues
+    my @logs = Koha::ActionLogs->search(\%search_params, {rows => 10000 })->as_list;
 
     my @data;
     foreach my $log (@logs) {
