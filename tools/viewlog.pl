@@ -140,6 +140,9 @@ if ($do_it) {
         $search_params{object} = $object if $object;
     }
 
+    # Always exclude combination of action VIEW and module MEMBERS from the search query
+    $search_params{-and} = { -not => [ { action => 'VIEW', module => 'MEMBERS' } ] };
+
     my @logs = Koha::ActionLogs->search(\%search_params)->as_list;
 
     my @data;
