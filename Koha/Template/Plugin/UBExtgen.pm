@@ -90,13 +90,28 @@ sub isDebarred {
 sub isEx {
   my ($code) = @_;
 
-  if($code eq "EX") { return 1; }
-  if($code eq "UX") { return 1; }
-  if($code eq "SR") { return 1; }
-  if($code eq "FR") { return 1; }
-  if($code eq "FX") { return 1; }
+  if(getCatGroup($code) eq "ALLM") { return 1; }
+
+  # Replaced by the above solution using CATGROUP authorised values
+  # if($code eq "EX") { return 1; }
+  # if($code eq "UX") { return 1; }
+  # if($code eq "SR") { return 1; }
+  # if($code eq "FR") { return 1; }
+  # if($code eq "FX") { return 1; }
 
   return 0;
+}
+
+sub getCatGroup {
+my ($categorycode) = @_;
+    my $av = Koha::AuthorisedValues->search({ category => "CATGROUP", authorised_value => $categorycode });
+    if ($av->count) {
+        return $av->next->lib;
+    }
+    else {
+        # This should be handled by including all patron category codes in the authorised values table for CATGROUP
+        return $categorycode;
+    }
 }
 
 1;
