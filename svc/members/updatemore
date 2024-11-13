@@ -100,7 +100,8 @@ sub can_update_pin {
     # Only categorycodes EX, UX, FR, FX and SR can update their PIN
     my $categorycode = $borrower->categorycode;
     my $cardnumber = $borrower->cardnumber;
-    return 1 if $categorycode =~ /^(EX|UX|FR|FX|SR)$/;
+    # return 1 if $categorycode =~ /^(EX|UX|FR|FX|SR)$/;
+    return 1 if getCatGroup($categorycode) eq "ALLM";
     return 1 if (length($cardnumber) == 10 && substr($cardnumber, 0, 1) eq "3");
     return 0;
 }
@@ -122,5 +123,17 @@ sub update_pin {
         if ($pin) {
             $borrower->add_extended_attribute({code => "PIN", attribute => $pin});
         }
+    }
+}
+
+sub getCatGroup {
+my ($categorycode) = @_;
+    my $av = Koha::AuthorisedValues->search({ category => "CATGROUP", authorised_value => $categorycode });
+    if ($av->count) {
+        return $av->next->lib;
+    }
+    else {
+        # This should be handled by including all patron category codes in the authorised values table for CATGROUP
+        return $categorycode;
     }
 }

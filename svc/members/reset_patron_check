@@ -75,6 +75,19 @@ sub check_categorycode {
     my ($patron) = @_;
 
     my $categorycode = $patron->categorycode;
-    return 1 if $categorycode =~ /^(EX|UX|FR|FX|SR)$/;
+    return 1 if getCatGroup($categorycode) eq "ALLM";
+    # return 1 if $categorycode =~ /^(EX|UX|FR|FX|SR)$/;
     return 0;
+}
+
+sub getCatGroup {
+my ($categorycode) = @_;
+    my $av = Koha::AuthorisedValues->search({ category => "CATGROUP", authorised_value => $categorycode });
+    if ($av->count) {
+        return $av->next->lib;
+    }
+    else {
+        # This should be handled by including all patron category codes in the authorised values table for CATGROUP
+        return $categorycode;
+    }
 }
