@@ -4,6 +4,7 @@ use warnings;
 
 use C4::Auth qw/check_api_auth/;
 use C4::Biblio qw( DelBiblio );
+use C4::Circulation qw( AddReturn );
 use C4::Items;
 use XML::Simple;
 use CGI;
@@ -30,6 +31,19 @@ unless ($itemobj) {
   print $query->header(-type => 'text/xml', -status => '400');
   print XMLout({ status => "could not find item", error_code => 'could_not_find_item' }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
   exit 0;
+}
+
+my $checkout = $itemobj->checkout();
+my $exempt_fine = undef;
+if ($checkout) {
+  ( my $returned ) = AddReturn( $itemobj->barcode, $checkout->branchcode, $exempt_fine );
+  unless ($returned) {
+    print $query->header(-type => 'text/xml', -status => '400');
+    print XMLout({ status => "could not return checkout", error_code => 'could_return_checkoutr' }, NoAttr => 1, RootName => 'response', XMLDecl => 1);
+    exit 0;
+  }
+  # Reload $itemobj after returning checkouts
+  $itemobj = Koha::Items->find({barcode => $item});
 }
 
 my $itemnumber = $itemobj->itemnumber;
